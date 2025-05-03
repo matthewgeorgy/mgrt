@@ -45,11 +45,39 @@ RandomUnilateral :: proc() -> f32
 	return rand.float32()
 }
 
-RandomBilaterial :: proc() -> f32
+RandomBilateral :: proc() -> f32
 {
 	Result := 2.0 * RandomUnilateral() - 1
 
 	return Result
+}
+
+RandomUnitVector :: proc() -> v3
+{
+	for
+	{
+		P := v3{RandomBilateral(), RandomBilateral(), RandomBilateral()}
+		L := LengthSquared(P)
+
+		if (1e-20 < L && L <= 1)
+		{
+			return P / SquareRoot(L)
+		}
+	}
+}
+
+RandomOnHemisphere :: proc(Normal : v3) -> v3
+{
+	OnUnitSphere := RandomUnitVector()
+
+	if Dot(OnUnitSphere, Normal) > 0
+	{
+		return OnUnitSphere
+	}
+	else
+	{
+		return -OnUnitSphere
+	}
 }
 
 RayIntersectSphere :: proc(Ray : ray, Sphere : sphere) -> f32

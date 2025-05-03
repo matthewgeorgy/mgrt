@@ -94,7 +94,7 @@ main :: proc()
 							   ((f32(Y) + Offset.y) * PixelDeltaV)
 	
 				Ray := ray{CameraCenter, PixelCenter - CameraCenter}
-				PixelColor += CastRay(Ray, &World)
+				PixelColor += CastRay(Ray, &World, 10)
 			}
 
 			Color := PixelColor / f32(SamplesPerPixel)
@@ -111,13 +111,19 @@ main :: proc()
 	WriteImage(Image, string("test.bmp"))
 }
 
-CastRay :: proc(Ray : ray, World : ^world) -> v3
+CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 {
 	Color := World.Materials[0].Color
 	Record : hit_record
 
 	HitDistance : f32 = F32_MAX
 	MatIndex : u32
+	HitSomething := false
+
+	if Depth <= 0
+	{
+		return v3{0, 0, 0}
+	}
 
 	for SphereIndex : u32 = 0; SphereIndex < World.SphereCount; SphereIndex += 1
 	{
@@ -126,28 +132,39 @@ CastRay :: proc(Ray : ray, World : ^world) -> v3
 		Record.t = RayIntersectSphere(Ray, Sphere)
 		if (Record.t > 0 && Record.t < HitDistance)
 		{
+			HitSomething = true
 			HitDistance = Record.t
 			Record.MaterialIndex = Sphere.MatIndex
+			Record.SurfaceNormal = Normalize(Ray.Origin + Record.t * Ray.Direction - Sphere.Center)
 		}
 	}
 
-	for PlaneIndex : u32 = 0; PlaneIndex < World.PlaneCount; PlaneIndex += 1
+	// for PlaneIndex : u32 = 0; PlaneIndex < World.PlaneCount; PlaneIndex += 1
+	// {
+	// 	Plane := World.Planes[PlaneIndex]
+
+	// 	Record.t = RayIntersectPlane(Ray, Plane)
+	// 	if (Record.t > 0 && Record.t < HitDistance)
+	// 	{
+	// 		HitDistance = Record.t
+	// 		Record.MaterialIndex = Plane.MatIndex
+	// 	}
+	// }
+
+	if HitSomething
 	{
-		Plane := World.Planes[PlaneIndex]
+		NewRay : ray
 
-		Record.t = RayIntersectPlane(Ray, Plane)
-		if (Record.t > 0 && Record.t < HitDistance)
-		{
-			HitDistance = Record.t
-			Record.MaterialIndex = Plane.MatIndex
-		}
+		NewRay.Origin = Ray.Origin + HitDistance * Ray.Direction
+		NewRay.Direction = RandomOnHemisphere(Record.SurfaceNormal)
+
+		return 0.5 * CastRay(NewRay, World, Depth - 1)
 	}
-
-	if HitDistance < F32_MAX
+	else
 	{
-		Color = World.Materials[Record.MaterialIndex].Color
+		UnitDirection := Normalize(Ray.Direction)
+		A := 0.5 * (UnitDirection.y + 1)
+		return (1 - A) * v3{1, 1, 1} + A * v3{0.5, 0.7, 1.0}
 	}
-
-	return Color
 }
 
