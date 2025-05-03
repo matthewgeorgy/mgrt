@@ -92,8 +92,8 @@ RayIntersectSphere :: proc(Ray : ray, Sphere : sphere) -> f32
 	if Discriminant >= 0
 	{
 		// Take the closer intersection
-		tp := (-b + SquareRoot(Discriminant) / (2 * a))
-		tn := (-b - SquareRoot(Discriminant) / (2 * a))
+		tp := (-b + SquareRoot(Discriminant)) / (2 * a)
+		tn := (-b - SquareRoot(Discriminant)) / (2 * a)
 		t = tp
 		
 		if tn > 0.0001 && tn < tp

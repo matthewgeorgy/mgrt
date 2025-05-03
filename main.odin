@@ -36,8 +36,8 @@ main :: proc()
 	FocalLength : f32 = 1.0
 	ViewportHeight : f32 = 2
 	ViewportWidth : f32 = 2//ViewportHeight * f32(Image.Width) / f32(Image.Height)
-	LookFrom := v3{0, 0, 2}
-	LookAt := v3{0, 0, 0}
+	LookFrom := v3{0, 0, 1}
+	LookAt := v3{0, 0, -1}
 	CameraCenter := LookFrom
 
 	if (Image.Width > Image.Height)
@@ -113,7 +113,6 @@ main :: proc()
 
 CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 {
-	Color := World.Materials[0].Color
 	Record : hit_record
 
 	HitDistance : f32 = F32_MAX
@@ -130,7 +129,7 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 		Sphere := World.Spheres[SphereIndex]
 
 		Record.t = RayIntersectSphere(Ray, Sphere)
-		if (Record.t > 0 && Record.t < HitDistance)
+		if (Record.t > 0.0001 && Record.t < HitDistance)
 		{
 			HitSomething = true
 			HitDistance = Record.t
@@ -151,20 +150,22 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 	// 	}
 	// }
 
-	if HitSomething
+	if !HitSomething
 	{
-		NewRay : ray
-
-		NewRay.Origin = Ray.Origin + HitDistance * Ray.Direction
-		NewRay.Direction = RandomOnHemisphere(Record.SurfaceNormal)
-
-		return 0.5 * CastRay(NewRay, World, Depth - 1)
+		return World.Materials[0].Color
 	}
-	else
-	{
-		UnitDirection := Normalize(Ray.Direction)
-		A := 0.5 * (UnitDirection.y + 1)
-		return (1 - A) * v3{1, 1, 1} + A * v3{0.5, 0.7, 1.0}
-	}
+
+	NewRay : ray
+	Color : v3
+	Attenuation : v3
+
+	NewRay.Origin = Ray.Origin + HitDistance * Ray.Direction
+	NewRay.Direction = RandomOnHemisphere(Record.SurfaceNormal)
+
+	Attenuation = World.Materials[Record.MaterialIndex].Color
+
+	Color = Attenuation * CastRay(NewRay, World, Depth - 1)
+
+	return Color
 }
 
