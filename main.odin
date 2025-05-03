@@ -1,6 +1,7 @@
 package main
 
-import fmt	"core:fmt"
+import fmt		"core:fmt"
+import thread	"core:thread"
 
 material :: struct
 {
@@ -90,12 +91,22 @@ main :: proc()
 		}
 	}
 
-	for I : u32 = 0; I < Queue.EntryCount; I += 1
+	// Threading
+	THREADCOUNT :: 8
+	ThreadData : thread_data
+	Threads : [THREADCOUNT]^thread.Thread
+
+	ThreadData.Queue = &Queue
+	ThreadData.Camera = &Camera
+	ThreadData.World = &World
+	ThreadData.Image = &Image
+
+	for I := 0; I < THREADCOUNT; I += 1
 	{
-		Order := Queue.WorkOrders[I]
-		fmt.println(Order)
-		RenderTile(Order, &Camera, &World, &Image)
+		Threads[I] = thread.create_and_start_with_data(&ThreadData, Render)
 	}
+
+	thread.join_multiple(..Threads[:])
 
 	WriteImage(Image, string("test.bmp"))
 }

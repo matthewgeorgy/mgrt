@@ -1,5 +1,10 @@
 package main
 
+import fmt			"core:fmt"
+import win32		"core:sys/windows"
+import sync			"core:sync"
+import intrinsics	"base:intrinsics"
+
 work_order :: struct
 {
 	Top, Left, Bottom, Right : u32,
@@ -12,9 +17,18 @@ work_queue :: struct
 	World : ^world,
 	Image : image_u32,
 
-	NextEntry : u32,
-	EntryCount : u32,
-	RemainingEntries : u32,
+	// NOTE(matthew): These are treated as volatile!
+	NextEntry : i32,
+	EntryCount : i32,
+	RemainingOrders : i32,
+};
+
+thread_data :: struct
+{
+	Queue : ^work_queue,
+	Camera : ^camera,
+	World : ^world,
+	Image : ^image_u32,
 };
 
 PushWorkOrder :: proc(Queue : ^work_queue, Top, Left, Bottom, Right : u32)
@@ -24,7 +38,42 @@ PushWorkOrder :: proc(Queue : ^work_queue, Top, Left, Bottom, Right : u32)
 	append(&Queue.WorkOrders, Order)
 
 	Queue.EntryCount += 1
-	Queue.RemainingEntries += 1
+	Queue.RemainingOrders += 1
+}
+
+Render :: proc (Param : rawptr)
+{
+	ThreadData : ^thread_data = cast(^thread_data)Param
+
+	Queue := ThreadData.Queue
+	Camera := ThreadData.Camera
+	World := ThreadData.World
+	Image := ThreadData.Image
+
+	for
+	{
+		NextEntry := intrinsics.volatile_load(&Queue.NextEntry)
+		EntryCount := intrinsics.volatile_load(&Queue.EntryCount)
+
+		if NextEntry < EntryCount
+		{
+			EntryIndex := sync.atomic_add(&NextEntry, 1)
+			intrinsics.volatile_store(&Queue.NextEntry, NextEntry)
+
+			Order := Queue.WorkOrders[EntryIndex]
+
+			RenderTile(Order, Camera, World, Image)
+
+			RemainingOrders := intrinsics.volatile_load(&Queue.RemainingOrders)
+
+			sync.atomic_sub(&RemainingOrders, 1)
+			intrinsics.volatile_store(&Queue.RemainingOrders, RemainingOrders)
+		}
+		else
+		{
+			break
+		}
+	}
 }
 
 RenderTile :: proc(WorkOrder : work_order, Camera : ^camera, World : ^world, Image : ^image_u32)
@@ -56,5 +105,4 @@ RenderTile :: proc(WorkOrder : work_order, Camera : ^camera, World : ^world, Ima
 		}
 	}
 }
-
 
