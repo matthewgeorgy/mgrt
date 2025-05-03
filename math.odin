@@ -1,6 +1,7 @@
 package main
 
-import "core:math/linalg"
+import linalg	"core:math/linalg"
+import rand		"core:math/rand"
 
 v3f	:: [3]f32
 v3i :: [3]i32
@@ -39,6 +40,18 @@ plane :: struct
 	MatIndex : u32,
 };
 
+RandomUnilateral :: proc() -> f32
+{
+	return rand.float32()
+}
+
+RandomBilaterial :: proc() -> f32
+{
+	Result := 2.0 * RandomUnilateral() - 1
+
+	return Result
+}
+
 RayIntersectSphere :: proc(Ray : ray, Sphere : sphere) -> f32
 {
 	t := f32(F32_MAX)
@@ -50,7 +63,20 @@ RayIntersectSphere :: proc(Ray : ray, Sphere : sphere) -> f32
 
 	if Discriminant >= 0
 	{
-		t = (-b - SquareRoot(Discriminant) / (2 * a))
+		// Take the closer intersection
+		tp := (-b + SquareRoot(Discriminant) / (2 * a))
+		tn := (-b - SquareRoot(Discriminant) / (2 * a))
+		t = tp
+		
+		if tn > 0.0001 && tn < tp
+		{
+			t = tn
+		}
+	}
+
+	if t < 0
+	{
+		t = F32_MAX
 	}
 
 	return t

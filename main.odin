@@ -12,6 +12,7 @@ hit_record :: struct
 {
 	t : f32,
 	MaterialIndex  : u32,
+	SurfaceNormal : v3,
 };
 
 world :: struct
@@ -73,10 +74,8 @@ main :: proc()
 	World.MaterialCount = 3
 
 	World.Spheres[0] = sphere{v3{0, 0, -1}, 0.5, 1}
-	World.SphereCount = 1
-
-	World.Planes[0] = plane{v3{0, 1, 0}, -1, 2}
-	World.PlaneCount = 1
+	World.Spheres[1] = sphere{v3{0, -100.5, -1}, 100, 2}
+	World.SphereCount = 2
 
 	Out : ^u32 = Image.Pixels
 
@@ -84,11 +83,21 @@ main :: proc()
 	{
 		for X := i32(0); X < Image.Width; X += 1
 		{
-			PixelCenter := FirstPixel + (f32(X) * PixelDeltaU) + (f32(Y) * PixelDeltaV)
+			PixelColor : v3
+			SamplesPerPixel : u32 = 8
 
-			Ray := ray{CameraCenter, PixelCenter - CameraCenter}
+			for Sample : u32 = 0; Sample < SamplesPerPixel; Sample += 1
+			{
+				Offset := v3{RandomUnilateral() - 0.5, RandomUnilateral() - 0.5, 0}
+				PixelCenter := FirstPixel +
+							   ((f32(X) + Offset.x) * PixelDeltaU) +
+							   ((f32(Y) + Offset.y) * PixelDeltaV)
+	
+				Ray := ray{CameraCenter, PixelCenter - CameraCenter}
+				PixelColor += CastRay(Ray, &World)
+			}
 
-			Color := CastRay(Ray, &World)
+			Color := PixelColor / f32(SamplesPerPixel)
 
 			Red := u8(f32(255.999) * Color.r)
 			Green := u8(f32(255.999) * Color.g)
