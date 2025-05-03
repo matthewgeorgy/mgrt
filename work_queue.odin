@@ -1,9 +1,9 @@
 package main
 
 import fmt			"core:fmt"
-import win32		"core:sys/windows"
 import sync			"core:sync"
 import intrinsics	"base:intrinsics"
+import libc			"core:c/libc"
 
 work_order :: struct
 {
@@ -68,6 +68,9 @@ Render :: proc (Param : rawptr)
 
 			sync.atomic_sub(&RemainingOrders, 1)
 			intrinsics.volatile_store(&Queue.RemainingOrders, RemainingOrders)
+
+			libc.fprintf(libc.stderr, "\rRaycasting %u%%...", 100 * u32(Queue.EntryCount - Queue.RemainingOrders) / u32(Queue.EntryCount));
+			libc.fflush(libc.stdout)
 		}
 		else
 		{
@@ -83,9 +86,8 @@ RenderTile :: proc(WorkOrder : work_order, Camera : ^camera, World : ^world, Ima
 		for X := i32(WorkOrder.Left); X < i32(WorkOrder.Right); X += 1
 		{
 			PixelColor : v3
-			SamplesPerPixel : u32 = 8
 
-			for Sample : u32 = 0; Sample < SamplesPerPixel; Sample += 1
+			for Sample : u32 = 0; Sample < World.SamplesPerPixel; Sample += 1
 			{
 				Offset := v3{RandomUnilateral() - 0.5, RandomUnilateral() - 0.5, 0}
 				PixelCenter := Camera.FirstPixel +
@@ -96,10 +98,10 @@ RenderTile :: proc(WorkOrder : work_order, Camera : ^camera, World : ^world, Ima
 				Ray.Origin = Camera.Center
 				Ray.Direction = PixelCenter - Ray.Origin
 
-				PixelColor += CastRay(Ray, World, 10)
+				PixelColor += CastRay(Ray, World, World.MaxDepth)
 			}
 
-			Color := PixelColor / f32(SamplesPerPixel)
+			Color := PixelColor / f32(World.SamplesPerPixel)
 
 			WritePixel(Image^, X, Y, Color)
 		}

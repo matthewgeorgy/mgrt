@@ -2,6 +2,8 @@ package main
 
 import fmt		"core:fmt"
 import thread	"core:thread"
+import win32	"core:sys/windows"
+import libc		"core:c/libc"
 
 material :: struct
 {
@@ -37,6 +39,9 @@ world :: struct
 	SphereCount : u32,
 	PlaneCount : u32,
 	QuadCount : u32,
+
+	SamplesPerPixel : u32,
+	MaxDepth : int,
 };
 
 main :: proc()
@@ -70,6 +75,9 @@ main :: proc()
 	World.Quads[4] = CreateQuad(v3{-2, -3, 5}, v3{4, 0,  0}, v3{0, 0, -4}, 5)
 	World.QuadCount = 5
 
+	World.SamplesPerPixel = 8
+	World.MaxDepth = 10
+
 	// Work queue
 	Queue : work_queue
 
@@ -95,11 +103,19 @@ main :: proc()
 	THREADCOUNT :: 8
 	ThreadData : thread_data
 	Threads : [THREADCOUNT]^thread.Thread
+	StartCounter, EndCounter, Frequency : win32.LARGE_INTEGER
 
 	ThreadData.Queue = &Queue
 	ThreadData.Camera = &Camera
 	ThreadData.World = &World
 	ThreadData.Image = &Image
+
+	libc.printf("Resolution: %dx%d\n", Image.Width, Image.Height)
+	libc.printf("%d cores with %d %dx%d (%dk/tile) tiles\n", THREADCOUNT, Queue.EntryCount, TileWidth, TileHeight, TileWidth * TileHeight * 4 / 1024)
+	libc.printf("Quality: %u samples/pixel, %d bounces (max) per ray\n", World.SamplesPerPixel, World.MaxDepth)
+
+	win32.QueryPerformanceFrequency(&Frequency)
+	win32.QueryPerformanceCounter(&StartCounter)
 
 	for I := 0; I < THREADCOUNT; I += 1
 	{
@@ -107,6 +123,12 @@ main :: proc()
 	}
 
 	thread.join_multiple(..Threads[:])
+
+	win32.QueryPerformanceCounter(&EndCounter)
+
+	ElapsedTime := (EndCounter - StartCounter) * 1000
+
+	fmt.println("Render took", ElapsedTime / Frequency, "ms")
 
 	WriteImage(Image, string("test.bmp"))
 }
