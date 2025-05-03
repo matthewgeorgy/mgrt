@@ -69,28 +69,32 @@ main :: proc()
 	World.Quads[4] = CreateQuad(v3{-2, -3, 5}, v3{4, 0,  0}, v3{0, 0, -4}, 5)
 	World.QuadCount = 5
 
-	for Y := i32(0); Y < Image.Height; Y += 1
+	// Work queue
+	Queue : work_queue
+
+	TilesX : u32 = 16
+	TilesY : u32 = 16
+	TileWidth : u32 = u32(Image.Width) / TilesX
+	TileHeight : u32 = u32(Image.Height) / TilesY
+
+	for X : u32 = 0; X < TilesX; X += 1
 	{
-		for X := i32(0); X < Image.Width; X += 1
+		for Y : u32 = 0; Y < TilesY; Y += 1
 		{
-			PixelColor : v3
-			SamplesPerPixel : u32 = 8
+			Top := TileHeight * Y
+			Left := TileWidth * X
+			Bottom := TileHeight * (Y + 1)
+			Right := TileWidth * (X + 1)
 
-			for Sample : u32 = 0; Sample < SamplesPerPixel; Sample += 1
-			{
-				Offset := v3{RandomUnilateral() - 0.5, RandomUnilateral() - 0.5, 0}
-				PixelCenter := Camera.FirstPixel +
-							   ((f32(X) + Offset.x) * Camera.PixelDeltaU) +
-							   ((f32(Y) + Offset.y) * Camera.PixelDeltaV)
-
-				Ray := ray{Camera.Center, PixelCenter - Camera.Center}
-				PixelColor += CastRay(Ray, &World, 10)
-			}
-
-			Color := PixelColor / f32(SamplesPerPixel)
-
-			WritePixel(Image, X, Y, Color)
+			PushWorkOrder(&Queue, Top, Left, Bottom, Right)
 		}
+	}
+
+	for I : u32 = 0; I < Queue.EntryCount; I += 1
+	{
+		Order := Queue.WorkOrders[I]
+		fmt.println(Order)
+		RenderTile(Order, &Camera, &World, &Image)
 	}
 
 	WriteImage(Image, string("test.bmp"))
