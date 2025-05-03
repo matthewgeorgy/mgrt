@@ -23,15 +23,32 @@ main :: proc()
 {
 	Image := AllocateImage(1280, 720)
 
-	// Camear
+	// TODO(matthew): Bulletproof this. Might still be having issues depending
+	// on aspect ratios, etc, but it seems to be fine right now.
+	// Camera
 	FocalLength : f32 = 1.0
 	ViewportHeight : f32 = 2
-	ViewportWidth : f32 = ViewportHeight * f32(Image.Width) / f32(Image.Height)
-	CameraCenter := v3{0, 0, 0}
+	ViewportWidth : f32 = 2//ViewportHeight * f32(Image.Width) / f32(Image.Height)
+	LookFrom := v3{0, 0, 2}
+	LookAt := v3{0, 0, 0}
+	CameraCenter := LookFrom
+
+	if (Image.Width > Image.Height)
+	{
+		ViewportHeight = ViewportWidth * f32(Image.Height) / f32(Image.Width)
+	}
+	else
+	{
+		ViewportWidth = ViewportHeight * f32(Image.Width) / f32(Image.Height)
+	}
+
+	CameraW := Normalize(LookFrom - LookAt)
+	CameraU := Normalize(Cross(v3{0, 1, 0}, CameraW))
+	CameraV := Normalize(Cross(CameraW, CameraU))
 
 	// Viewport
-	ViewportU := v3{ViewportWidth, 0, 0}
-	ViewportV := v3{0, -ViewportHeight, 0}
+	ViewportU := ViewportWidth * CameraU
+	ViewportV := -ViewportHeight * CameraV
 
 	// Pixel deltas
 	PixelDeltaU := ViewportU / f32(Image.Width)
