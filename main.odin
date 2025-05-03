@@ -71,11 +71,15 @@ main :: proc()
 	World.Materials[0].Color = v3{0.1, 0.1, 0.1}
 	World.Materials[1].Color = v3{1, 0, 0}
 	World.Materials[2].Color = v3{0.2, 0.3, 0.7}
-	World.MaterialCount = 3
+	World.Materials[3].Color = v3{0.2, 0.8, 0.1}
+	World.MaterialCount = 4
 
 	World.Spheres[0] = sphere{v3{0, 0, -1}, 0.5, 1}
 	World.Spheres[1] = sphere{v3{0, -100.5, -1}, 100, 2}
-	World.SphereCount = 2
+	World.SphereCount = 1
+
+	World.Planes[0] = plane{v3{0, 1, 0}, 0.5, 3}
+	World.PlaneCount = 1
 
 	Out : ^u32 = Image.Pixels
 
@@ -152,17 +156,19 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 		}
 	}
 
-	// for PlaneIndex : u32 = 0; PlaneIndex < World.PlaneCount; PlaneIndex += 1
-	// {
-	// 	Plane := World.Planes[PlaneIndex]
+	for PlaneIndex : u32 = 0; PlaneIndex < World.PlaneCount; PlaneIndex += 1
+	{
+		Plane := World.Planes[PlaneIndex]
 
-	// 	Record.t = RayIntersectPlane(Ray, Plane)
-	// 	if (Record.t > 0 && Record.t < HitDistance)
-	// 	{
-	// 		HitDistance = Record.t
-	// 		Record.MaterialIndex = Plane.MatIndex
-	// 	}
-	// }
+		Record.t = RayIntersectPlane(Ray, Plane)
+		if (Record.t > 0.0001 && Record.t < HitDistance)
+		{
+			HitSomething = true
+			HitDistance = Record.t
+			Record.MaterialIndex = Plane.MatIndex
+			Record.SurfaceNormal = Normalize(Plane.N)
+		}
+	}
 
 	if !HitSomething
 	{
