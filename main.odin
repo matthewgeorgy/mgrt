@@ -8,6 +8,12 @@ material :: struct
 	Color : v3
 };
 
+hit_record :: struct
+{
+	t : f32,
+	MaterialIndex  : u32,
+};
+
 world :: struct
 {
 	Materials : [16]material,
@@ -61,14 +67,16 @@ main :: proc()
 	// World setup
 	World : world
 
-	World.Materials[0].Color = v3{1, 0, 0}
-	World.Materials[1].Color = v3{0, 1, 0}
-	World.Materials[2].Color = v3{0, 0, 1}
+	World.Materials[0].Color = v3{0.3, 0.4, 0.5}
+	World.Materials[1].Color = v3{1, 0, 0}
+	World.Materials[2].Color = v3{0.2, 0.2, 0.2}
 	World.MaterialCount = 3
 
-	World.Spheres[0] = sphere{v3{0, 0, -1}, 0.5, 0}
-	World.Spheres[1] = sphere{v3{0, 1, -2}, 0.5, 1}
-	World.SphereCount = 2
+	World.Spheres[0] = sphere{v3{0, 0, -1}, 0.5, 1}
+	World.SphereCount = 1
+
+	World.Planes[0] = plane{v3{0, 1, 0}, -1, 2}
+	World.PlaneCount = 1
 
 	Out : ^u32 = Image.Pixels
 
@@ -94,28 +102,10 @@ main :: proc()
 	WriteImage(Image, string("test.bmp"))
 }
 
-RayIntersectSphere :: proc(Ray : ray, Sphere : sphere) -> f32
-{
-	t := f32(F32_MAX)
-	OC := Sphere.Center - Ray.Origin
-	a := Dot(Ray.Direction, Ray.Direction)
-	b := -2.0 * Dot(Ray.Direction, OC)
-	c := Dot(OC, OC) - Sphere.Radius * Sphere.Radius
-	Discriminant := b * b - 4 * a * c
-
-	if Discriminant >= 0
-	{
-		t = (-b - SquareRoot(Discriminant) / (2 * a))
-	}
-
-	return t
-}
-
 CastRay :: proc(Ray : ray, World : ^world) -> v3
 {
-	UnitDirection := Normalize(Ray.Direction)
-	A := 0.5 * (UnitDirection.y + 1)
-	Color := (1 - A) * v3{1, 1, 1} + A * v3{0.5, 0.7, 1}
+	Color := World.Materials[0].Color
+	Record : hit_record
 
 	HitDistance : f32 = F32_MAX
 	MatIndex : u32
@@ -124,17 +114,29 @@ CastRay :: proc(Ray : ray, World : ^world) -> v3
 	{
 		Sphere := World.Spheres[SphereIndex]
 
-		ThisDistance := RayIntersectSphere(Ray, Sphere)
-		if ThisDistance < HitDistance
+		Record.t = RayIntersectSphere(Ray, Sphere)
+		if (Record.t > 0 && Record.t < HitDistance)
 		{
-			HitDistance = ThisDistance
-			MatIndex = Sphere.MatIndex
+			HitDistance = Record.t
+			Record.MaterialIndex = Sphere.MatIndex
+		}
+	}
+
+	for PlaneIndex : u32 = 0; PlaneIndex < World.PlaneCount; PlaneIndex += 1
+	{
+		Plane := World.Planes[PlaneIndex]
+
+		Record.t = RayIntersectPlane(Ray, Plane)
+		if (Record.t > 0 && Record.t < HitDistance)
+		{
+			HitDistance = Record.t
+			Record.MaterialIndex = Plane.MatIndex
 		}
 	}
 
 	if HitDistance < F32_MAX
 	{
-		Color = World.Materials[MatIndex].Color
+		Color = World.Materials[Record.MaterialIndex].Color
 	}
 
 	return Color
