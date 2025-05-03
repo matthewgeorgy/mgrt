@@ -14,6 +14,17 @@ hit_record :: struct
 	SurfaceNormal : v3,
 };
 
+camera :: struct
+{
+	Center : v3,
+	FirstPixel : v3,
+	PixelDeltaU : v3,
+	PixelDeltaV : v3,
+
+	LookFrom : v3,
+	LookAt : v3,
+};
+
 world :: struct
 {
 	Materials : [16]material,
@@ -29,42 +40,16 @@ world :: struct
 
 main :: proc()
 {
+	// Image
 	Image := AllocateImage(1280, 720)
 
-	// TODO(matthew): Bulletproof this. Might still be having issues depending
-	// on aspect ratios, etc, but it seems to be fine right now.
 	// Camera
-	FocalLength : f32 = 1.0
-	ViewportHeight : f32 = 2
-	ViewportWidth : f32 = 2//ViewportHeight * f32(Image.Width) / f32(Image.Height)
-	LookFrom := v3{0, 0, 9}
-	LookAt := v3{0, 0, 0}
-	CameraCenter := LookFrom
+	Camera : camera
 
-	if (Image.Width > Image.Height)
-	{
-		ViewportHeight = ViewportWidth * f32(Image.Height) / f32(Image.Width)
-	}
-	else
-	{
-		ViewportWidth = ViewportHeight * f32(Image.Width) / f32(Image.Height)
-	}
+	Camera.LookFrom = v3{0, 0, 9}
+	Camera.LookAt = v3{0, 0, 0}
 
-	CameraW := Normalize(LookFrom - LookAt)
-	CameraU := Normalize(Cross(v3{0, 1, 0}, CameraW))
-	CameraV := Normalize(Cross(CameraW, CameraU))
-
-	// Viewport
-	ViewportU := ViewportWidth * CameraU
-	ViewportV := -ViewportHeight * CameraV
-
-	// Pixel deltas
-	PixelDeltaU := ViewportU / f32(Image.Width)
-	PixelDeltaV := ViewportV / f32(Image.Height)
-
-	// First pixel
-	ViewportUpperLeft := CameraCenter - v3{0, 0, FocalLength} - (ViewportU / 2) - (ViewportV / 2)
-	FirstPixel := ViewportUpperLeft + 0.5 * (PixelDeltaU + PixelDeltaV)
+	InitializeCamera(&Camera, Image.Width, Image.Height)
 
 	// World setup
 	World : world
@@ -84,8 +69,6 @@ main :: proc()
 	World.Quads[4] = CreateQuad(v3{-2, -3, 5}, v3{4, 0,  0}, v3{0, 0, -4}, 5)
 	World.QuadCount = 5
 
-	Out : ^u32 = Image.Pixels
-
 	for Y := i32(0); Y < Image.Height; Y += 1
 	{
 		for X := i32(0); X < Image.Width; X += 1
@@ -96,11 +79,11 @@ main :: proc()
 			for Sample : u32 = 0; Sample < SamplesPerPixel; Sample += 1
 			{
 				Offset := v3{RandomUnilateral() - 0.5, RandomUnilateral() - 0.5, 0}
-				PixelCenter := FirstPixel +
-							   ((f32(X) + Offset.x) * PixelDeltaU) +
-							   ((f32(Y) + Offset.y) * PixelDeltaV)
+				PixelCenter := Camera.FirstPixel +
+							   ((f32(X) + Offset.x) * Camera.PixelDeltaU) +
+							   ((f32(Y) + Offset.y) * Camera.PixelDeltaV)
 
-				Ray := ray{CameraCenter, PixelCenter - CameraCenter}
+				Ray := ray{Camera.Center, PixelCenter - Camera.Center}
 				PixelColor += CastRay(Ray, &World, 10)
 			}
 
@@ -195,5 +178,40 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 	Color = Attenuation * CastRay(NewRay, World, Depth - 1)
 
 	return Color
+}
+
+InitializeCamera :: proc(Camera : ^camera, ImageWidth, ImageHeight : i32)
+{
+	// TODO(matthew): Bulletproof this. Might still be having issues depending
+	// on aspect ratios, etc, but it seems to be fine right now.
+	FocalLength : f32 = 1.0
+	ViewportHeight : f32 = 2
+	ViewportWidth : f32 = 2//ViewportHeight * f32(Image.Width) / f32(Image.Height)
+	Camera.Center = Camera.LookFrom
+
+	if (ImageWidth > ImageHeight)
+	{
+		ViewportHeight = ViewportWidth * f32(ImageHeight) / f32(ImageWidth)
+	}
+	else
+	{
+		ViewportWidth = ViewportHeight * f32(ImageWidth) / f32(ImageHeight)
+	}
+
+	CameraW := Normalize(Camera.LookFrom - Camera.LookAt)
+	CameraU := Normalize(Cross(v3{0, 1, 0}, CameraW))
+	CameraV := Normalize(Cross(CameraW, CameraU))
+
+	// Viewport
+	ViewportU := ViewportWidth * CameraU
+	ViewportV := -ViewportHeight * CameraV
+
+	// Pixel deltas
+	Camera.PixelDeltaU = ViewportU / f32(ImageWidth)
+	Camera.PixelDeltaV = ViewportV / f32(ImageHeight)
+
+	// First pixel
+	ViewportUpperLeft := Camera.Center - v3{0, 0, FocalLength} - (ViewportU / 2) - (ViewportV / 2)
+	Camera.FirstPixel = ViewportUpperLeft + 0.5 * (Camera.PixelDeltaU + Camera.PixelDeltaV)
 }
 
