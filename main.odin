@@ -1,9 +1,81 @@
 package main
 
-import fmt		"core:fmt"
+import fmt	"core:fmt"
+import mem	"core:mem"
 
 main :: proc()
 {
-	fmt.println("hello")
+	Image := AllocateImage(1280, 720)
+
+	// Camear
+	FocalLength : f32 = 1.0
+	ViewportHeight : f32 = 2
+	ViewportWidth : f32 = ViewportHeight * f32(Image.Width) / f32(Image.Height)
+	CameraCenter := v3{0, 0, 0}
+
+	// Viewport
+	ViewportU := v3{ViewportWidth, 0, 0}
+	ViewportV := v3{0, -ViewportHeight, 0}
+
+	// Pixel deltas
+	PixelDeltaU := ViewportU / f32(Image.Width)
+	PixelDeltaV := ViewportV / f32(Image.Height)
+
+	// First pixel
+	ViewportUpperLeft := CameraCenter - v3{0, 0, FocalLength} - (ViewportU / 2) - (ViewportV / 2)
+	FirstPixel := ViewportUpperLeft + 0.5 * (PixelDeltaU + PixelDeltaV)
+
+	Out : ^u32 = Image.Pixels
+
+	for Y := i32(0); Y < Image.Height; Y += 1
+	{
+		for X := i32(0); X < Image.Width; X += 1
+		{
+			PixelCenter := FirstPixel + (f32(X) * PixelDeltaU) + (f32(Y) * PixelDeltaV)
+
+			Ray := ray{CameraCenter, PixelCenter - CameraCenter}
+
+			Color := CastRay(Ray)
+
+			Red := u8(f32(255.999) * Color.r)
+			Green := u8(f32(255.999) * Color.g)
+			Blue := u8(f32(255.999) * Color.b)
+
+			Out^ = PackRGBA(Red, Green, Blue, 0)
+			Out = mem.ptr_offset(Out, 1)
+		}
+	}
+
+	WriteImage(Image, string("test.bmp"))
+}
+
+RayIntersectSphere :: proc(Ray : ray, Sphere : sphere) -> bool
+{
+	OC := Sphere.Center - Ray.Origin
+	a := Dot(Ray.Direction, Ray.Direction)
+	b := -2.0 * Dot(Ray.Direction, OC)
+	c := Dot(OC, OC) - Sphere.Radius * Sphere.Radius
+	Discriminant := b * b - 4 * a * c
+
+	return Discriminant >= 0
+}
+
+CastRay :: proc(Ray : ray) -> v3
+{
+	Sphere := sphere{v3{0, 0, -1}, 0.5}
+	Color : v3
+
+	if RayIntersectSphere(Ray, Sphere)
+	{
+		Color = v3{1, 0, 0}
+	}
+	else
+	{
+		UnitDirection := Normalize(Ray.Direction)
+		A := 0.5 * (UnitDirection.y + 1)
+		Color = (1 - A) * v3{1, 1, 1} + A * v3{0.5, 0.7, 1}
+	}
+
+	return Color
 }
 

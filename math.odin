@@ -17,5 +17,17 @@ Abs 			:: abs
 Min 			:: min
 Max 			:: max
 
-F32_MAX :: 3.402823466e+38
+F32_MAX 		:: 3.402823466e+38
+
+ray :: struct
+{
+	Origin : v3,
+	Direction : v3,
+};
+
+sphere :: struct
+{
+	Center : v3,
+	Radius : f32,
+};
 
