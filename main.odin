@@ -68,9 +68,9 @@ main :: proc()
 	// World setup
 	World : world
 
-	World.Materials[0].Color = v3{0.3, 0.4, 0.5}
+	World.Materials[0].Color = v3{0.1, 0.1, 0.1}
 	World.Materials[1].Color = v3{1, 0, 0}
-	World.Materials[2].Color = v3{0.2, 0.2, 0.2}
+	World.Materials[2].Color = v3{0.2, 0.3, 0.7}
 	World.MaterialCount = 3
 
 	World.Spheres[0] = sphere{v3{0, 0, -1}, 0.5, 1}
@@ -98,6 +98,10 @@ main :: proc()
 			}
 
 			Color := PixelColor / f32(SamplesPerPixel)
+			
+			Color.r = LinearTosRGB(Color.r)
+			Color.g = LinearTosRGB(Color.g)
+			Color.b = LinearTosRGB(Color.b)
 
 			Red := u8(f32(255.999) * Color.r)
 			Green := u8(f32(255.999) * Color.g)
@@ -109,6 +113,16 @@ main :: proc()
 	}
 
 	WriteImage(Image, string("test.bmp"))
+}
+
+LinearTosRGB :: proc (LinearValue : f32) -> f32
+{
+	if LinearValue > 0
+	{
+		return SquareRoot(LinearValue)
+	}
+
+	return 0
 }
 
 CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
