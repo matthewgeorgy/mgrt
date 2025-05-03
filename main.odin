@@ -1,7 +1,6 @@
 package main
 
 import fmt	"core:fmt"
-import mem	"core:mem"
 
 material :: struct
 {
@@ -84,7 +83,7 @@ main :: proc()
 	World.Quads[3] = CreateQuad(v3{-2,  3, 1}, v3{4, 0,  0}, v3{0, 0,  4}, 4)
 	World.Quads[4] = CreateQuad(v3{-2, -3, 5}, v3{4, 0,  0}, v3{0, 0, -4}, 5)
 	World.QuadCount = 5
-	
+
 	Out : ^u32 = Image.Pixels
 
 	for Y := i32(0); Y < Image.Height; Y += 1
@@ -100,23 +99,14 @@ main :: proc()
 				PixelCenter := FirstPixel +
 							   ((f32(X) + Offset.x) * PixelDeltaU) +
 							   ((f32(Y) + Offset.y) * PixelDeltaV)
-	
+
 				Ray := ray{CameraCenter, PixelCenter - CameraCenter}
 				PixelColor += CastRay(Ray, &World, 10)
 			}
 
 			Color := PixelColor / f32(SamplesPerPixel)
-			
-			Color.r = LinearTosRGB(Color.r)
-			Color.g = LinearTosRGB(Color.g)
-			Color.b = LinearTosRGB(Color.b)
 
-			Red := u8(f32(255.999) * Color.r)
-			Green := u8(f32(255.999) * Color.g)
-			Blue := u8(f32(255.999) * Color.b)
-
-			Out^ = PackRGBA(Red, Green, Blue, 0)
-			Out = mem.ptr_offset(Out, 1)
+			WritePixel(Image, X, Y, Color)
 		}
 	}
 

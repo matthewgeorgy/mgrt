@@ -1,8 +1,9 @@
 package main
 
-import "core:c/libc"
-import "core:fmt"
-import "core:strings"
+import libc		"core:c/libc"
+import fmt		"core:fmt"
+import strings	"core:strings"
+import mem		"core:mem"
 
 bitmap_header :: struct #packed
 {
@@ -57,7 +58,7 @@ WriteImage :: proc(Image : image_u32, OutputFileName : string)
 
 	Header.FileType = 0x4D42
 	Header.FileSize = size_of(Header) + MemorySize
-	Header.BitmapOffset = size_of(Header) 
+	Header.BitmapOffset = size_of(Header)
 	Header.Size = size_of(Header) - 14
 	Header.Width = Image.Width
 	Header.Height = -Image.Height // make pixels top -> bottom
@@ -86,8 +87,25 @@ PackRGBA :: proc(Red, Green, Blue, Alpha : u8) -> u32
 	B := u32(Blue)
 	A := u32(Alpha)
 
-	Output =  (A << 24 ) | (R << 16) | (G << 8) | B
+	Output =  (A << 24) | (R << 16) | (G << 8) | B
 
 	return Output
+}
+
+WritePixel :: proc(Image : image_u32, X, Y : i32, PixelColor : v3)
+{
+	Out := Image.Pixels
+	Color : v3
+
+	Color.r = LinearTosRGB(PixelColor.r)
+	Color.g = LinearTosRGB(PixelColor.g)
+	Color.b = LinearTosRGB(PixelColor.b)
+
+	Red := u8(f32(255.999) * Color.r)
+	Green := u8(f32(255.999) * Color.g)
+	Blue := u8(f32(255.999) * Color.b)
+
+	Out = mem.ptr_offset(Out, X + Y * Image.Width)
+	Out^ = PackRGBA(Red, Green, Blue, 0)
 }
 
