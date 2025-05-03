@@ -40,6 +40,17 @@ plane :: struct
 	MatIndex : u32,
 };
 
+quad :: struct
+{
+	Q : v3,
+	u : v3,
+	v : v3,
+	MatIndex : u32,
+	N : v3,
+	d : f32,
+	w : v3,
+};
+
 RandomUnilateral :: proc() -> f32
 {
 	return rand.float32()
@@ -78,6 +89,56 @@ RandomOnHemisphere :: proc(Normal : v3) -> v3
 	{
 		return -OnUnitSphere
 	}
+}
+
+CreateQuad :: proc(Q, u, v : v3, MatIndex : u32) -> quad
+{
+	Quad : quad
+
+	Quad.Q = Q
+	Quad.u = u
+	Quad.v = v
+	Quad.MatIndex = MatIndex
+
+	N := Cross(u, v)
+
+	Quad.N = Normalize(N)
+	Quad.d = Dot(Quad.N, Q)
+	Quad.w = N / Dot(N, N)
+
+	return Quad
+}
+
+RayIntersectQuad :: proc(Ray : ray, Quad : quad) -> f32
+{
+	t : f32 = F32_MAX
+	Tol : f32 = 1e-8
+	Denom : f32 = Dot(Quad.N, Ray.Direction)
+
+	if Abs(Denom) > Tol
+	{
+		t = (Quad.d - Dot(Quad.N, Ray.Origin)) / Denom
+
+		Intersection := Ray.Origin + t * Ray.Direction
+		PlanarHitPointVector := Intersection - Quad.Q
+
+		Alpha : f32 = Dot(Quad.w, Cross(PlanarHitPointVector, Quad.v))
+		Beta : f32 = Dot(Quad.w, Cross(Quad.u, PlanarHitPointVector))
+
+		if !(Alpha >= 0 && Alpha <= 1) || !(Beta >= 0 && Beta <= 1)
+		{
+			t = F32_MAX
+		}
+	}
+
+	return t
+}
+
+SetFaceNormal :: proc(Ray : ray, Normal : v3) -> v3
+{
+	IsFrontFace := Dot(Ray.Direction, Normal) < 0
+
+	return IsFrontFace ? Normal : -Normal
 }
 
 RayIntersectSphere :: proc(Ray : ray, Sphere : sphere) -> f32

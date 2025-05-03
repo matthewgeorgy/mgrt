@@ -20,10 +20,12 @@ world :: struct
 	Materials : [16]material,
 	Spheres : [16]sphere,
 	Planes : [16]plane,
+	Quads : [16]quad,
 
 	MaterialCount : u32,
 	SphereCount : u32,
 	PlaneCount : u32,
+	QuadCount : u32,
 };
 
 main :: proc()
@@ -36,8 +38,8 @@ main :: proc()
 	FocalLength : f32 = 1.0
 	ViewportHeight : f32 = 2
 	ViewportWidth : f32 = 2//ViewportHeight * f32(Image.Width) / f32(Image.Height)
-	LookFrom := v3{0, 0, 1}
-	LookAt := v3{0, 0, -1}
+	LookFrom := v3{0, 0, 9}
+	LookAt := v3{0, 0, 0}
 	CameraCenter := LookFrom
 
 	if (Image.Width > Image.Height)
@@ -69,18 +71,20 @@ main :: proc()
 	World : world
 
 	World.Materials[0].Color = v3{0.1, 0.1, 0.1}
-	World.Materials[1].Color = v3{1, 0, 0}
-	World.Materials[2].Color = v3{0.2, 0.3, 0.7}
-	World.Materials[3].Color = v3{0.2, 0.8, 0.1}
-	World.MaterialCount = 4
+	World.Materials[1].Color = v3{1.0, 0.2, 0.2}
+	World.Materials[2].Color = v3{0.2, 1.0, 0.2}
+	World.Materials[3].Color = v3{0.2, 0.2, 1.0}
+	World.Materials[4].Color = v3{1.0, 0.5, 0.0}
+	World.Materials[5].Color = v3{0.2, 0.8, 0.8}
+	World.MaterialCount = 6
 
-	World.Spheres[0] = sphere{v3{0, 0, -1}, 0.5, 1}
-	World.Spheres[1] = sphere{v3{0, -100.5, -1}, 100, 2}
-	World.SphereCount = 1
-
-	World.Planes[0] = plane{v3{0, 1, 0}, 0.5, 3}
-	World.PlaneCount = 1
-
+	World.Quads[0] = CreateQuad(v3{-3, -2, 5}, v3{0, 0, -4}, v3{0, 4,  0}, 1)
+	World.Quads[1] = CreateQuad(v3{-2, -2, 0}, v3{4, 0,  0}, v3{0, 4,  0}, 2)
+	World.Quads[2] = CreateQuad(v3{ 3, -2, 1}, v3{0, 0,  4}, v3{0, 4,  0}, 3)
+	World.Quads[3] = CreateQuad(v3{-2,  3, 1}, v3{4, 0,  0}, v3{0, 0,  4}, 4)
+	World.Quads[4] = CreateQuad(v3{-2, -3, 5}, v3{4, 0,  0}, v3{0, 0, -4}, 5)
+	World.QuadCount = 5
+	
 	Out : ^u32 = Image.Pixels
 
 	for Y := i32(0); Y < Image.Height; Y += 1
@@ -167,6 +171,20 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 			HitDistance = Record.t
 			Record.MaterialIndex = Plane.MatIndex
 			Record.SurfaceNormal = Normalize(Plane.N)
+		}
+	}
+
+	for QuadIndex : u32 = 0; QuadIndex < World.QuadCount; QuadIndex += 1
+	{
+		Quad := World.Quads[QuadIndex]
+
+		Record.t = RayIntersectQuad(Ray, Quad)
+		if (Record.t > 0.0001 && Record.t < HitDistance)
+		{
+			HitSomething = true
+			HitDistance = Record.t
+			Record.MaterialIndex = Quad.MatIndex
+			Record.SurfaceNormal = SetFaceNormal(Ray, Quad.N)
 		}
 	}
 
