@@ -29,5 +29,13 @@ sphere :: struct
 {
 	Center : v3,
 	Radius : f32,
+	MatIndex : u32,
+};
+
+plane :: struct
+{
+	N : v3,
+	d : f32,
+	MatIndex : u32,
 };
 

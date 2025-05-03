@@ -3,6 +3,22 @@ package main
 import fmt	"core:fmt"
 import mem	"core:mem"
 
+material :: struct
+{
+	Color : v3
+};
+
+world :: struct
+{
+	Materials : [16]material,
+	Spheres : [16]sphere,
+	Planes : [16]plane,
+
+	MaterialCount : u32,
+	SphereCount : u32,
+	PlaneCount : u32,
+};
+
 main :: proc()
 {
 	Image := AllocateImage(1280, 720)
@@ -25,6 +41,18 @@ main :: proc()
 	ViewportUpperLeft := CameraCenter - v3{0, 0, FocalLength} - (ViewportU / 2) - (ViewportV / 2)
 	FirstPixel := ViewportUpperLeft + 0.5 * (PixelDeltaU + PixelDeltaV)
 
+	// World setup
+	World : world
+
+	World.Materials[0].Color = v3{1, 0, 0}
+	World.Materials[1].Color = v3{0, 1, 0}
+	World.Materials[2].Color = v3{0, 0, 1}
+	World.MaterialCount = 3
+
+	World.Spheres[0] = sphere{v3{0, 0, -1}, 0.5, 0}
+	World.Spheres[1] = sphere{v3{0, 1, -2}, 0.5, 1}
+	World.SphereCount = 2
+
 	Out : ^u32 = Image.Pixels
 
 	for Y := i32(0); Y < Image.Height; Y += 1
@@ -35,7 +63,7 @@ main :: proc()
 
 			Ray := ray{CameraCenter, PixelCenter - CameraCenter}
 
-			Color := CastRay(Ray)
+			Color := CastRay(Ray, &World)
 
 			Red := u8(f32(255.999) * Color.r)
 			Green := u8(f32(255.999) * Color.g)
@@ -49,31 +77,47 @@ main :: proc()
 	WriteImage(Image, string("test.bmp"))
 }
 
-RayIntersectSphere :: proc(Ray : ray, Sphere : sphere) -> bool
+RayIntersectSphere :: proc(Ray : ray, Sphere : sphere) -> f32
 {
+	t := f32(F32_MAX)
 	OC := Sphere.Center - Ray.Origin
 	a := Dot(Ray.Direction, Ray.Direction)
 	b := -2.0 * Dot(Ray.Direction, OC)
 	c := Dot(OC, OC) - Sphere.Radius * Sphere.Radius
 	Discriminant := b * b - 4 * a * c
 
-	return Discriminant >= 0
+	if Discriminant >= 0
+	{
+		t = (-b - SquareRoot(Discriminant) / (2 * a))
+	}
+
+	return t
 }
 
-CastRay :: proc(Ray : ray) -> v3
+CastRay :: proc(Ray : ray, World : ^world) -> v3
 {
-	Sphere := sphere{v3{0, 0, -1}, 0.5}
-	Color : v3
+	UnitDirection := Normalize(Ray.Direction)
+	A := 0.5 * (UnitDirection.y + 1)
+	Color := (1 - A) * v3{1, 1, 1} + A * v3{0.5, 0.7, 1}
 
-	if RayIntersectSphere(Ray, Sphere)
+	HitDistance : f32 = F32_MAX
+	MatIndex : u32
+
+	for SphereIndex : u32 = 0; SphereIndex < World.SphereCount; SphereIndex += 1
 	{
-		Color = v3{1, 0, 0}
+		Sphere := World.Spheres[SphereIndex]
+
+		ThisDistance := RayIntersectSphere(Ray, Sphere)
+		if ThisDistance < HitDistance
+		{
+			HitDistance = ThisDistance
+			MatIndex = Sphere.MatIndex
+		}
 	}
-	else
+
+	if HitDistance < F32_MAX
 	{
-		UnitDirection := Normalize(Ray.Direction)
-		A := 0.5 * (UnitDirection.y + 1)
-		Color = (1 - A) * v3{1, 1, 1} + A * v3{0.5, 0.7, 1}
+		Color = World.Materials[MatIndex].Color
 	}
 
 	return Color
