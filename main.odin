@@ -46,12 +46,11 @@ world :: struct
 	Planes : [dynamic]plane,
 	Quads : [dynamic]quad,
 	Triangles : [dynamic]triangle,
+	BVH : bvh,
 
 	SamplesPerPixel : u32,
 	MaxDepth : int,
 };
-
-Triangles : []triangle
 
 main :: proc()
 {
@@ -62,8 +61,6 @@ main :: proc()
 	Filename := string("assets/suzanne.obj")
 	Mesh := LoadMesh(Filename)
 	fmt.println("Loaded mesh:", Filename, "with", len(Mesh.Triangles), "triangles")
-	Triangles = Mesh.Triangles[:]
-	BuildBVH()
 
 	// Camera
 	Camera : camera
@@ -82,6 +79,7 @@ main :: proc()
 	append(&World.Materials, material{material_type.COLOR, v3{0.8, 0.4, 0.2}})
 
 	World.Triangles = Mesh.Triangles
+	World.BVH = BuildBVH(Mesh.Triangles)
 
 	World.SamplesPerPixel = 1
 	World.MaxDepth = 2
@@ -222,7 +220,7 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 	{
 		ShotRay := Ray
 
-		RayIntersectBVH(&ShotRay, RootNodeIndex)
+		RayIntersectBVH(&ShotRay, World.BVH, World.BVH.RootNodeIndex)
 		if ShotRay.t < F32_MAX
 		{
 			HitSomething = true

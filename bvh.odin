@@ -16,37 +16,48 @@ MaxV3 :: proc(A, B : v3) -> v3
 	return v3{Max(A.x, B.x), Max(A.y, B.y), Max(A.z, B.z)}
 }
 
-// NOTE(matthew): globals for now, will put into a BVH struct later
-Centroids : [dynamic]v3
-Nodes : [dynamic]bvh_node
-RootNodeIndex : u32 = 0
-NodesUsed : u32 = 1
-TriangleIndices : [dynamic]u32
-
-BuildBVH :: proc()
+bvh :: struct
 {
+	Nodes : [dynamic]bvh_node,
+	Triangles : [dynamic]triangle,
+	TriangleIndices : [dynamic]u32,
+	Centroids : [dynamic]v3,
+	RootNodeIndex : u32,
+	NodesUsed : u32,
+};
+
+BuildBVH :: proc(Triangles : [dynamic]triangle) -> bvh
+{
+	BVH : bvh
+
+	BVH.RootNodeIndex = 0
+	BVH.NodesUsed = 1
+	BVH.Triangles = Triangles
+
 	for Triangle, Index in Triangles
 	{
 		Centroid := (1.0 / 3.0) * (Triangle.Vertices[0] + Triangle.Vertices[1] + Triangle.Vertices[2])
 
-		append(&Centroids, Centroid)
-		append(&TriangleIndices, u32(Index))
+		append(&BVH.Centroids, Centroid)
+		append(&BVH.TriangleIndices, u32(Index))
 	}
 
-	Nodes = make([dynamic]bvh_node, 2 * len(Triangles) - 1)
+	BVH.Nodes = make([dynamic]bvh_node, 2 * len(Triangles))
 
-	Root := &Nodes[RootNodeIndex]
+	Root := &BVH.Nodes[BVH.RootNodeIndex]
 
 	Root.FirstTriangleIndex = 0
 	Root.TriangleCount = u32(len(Triangles))
 
-	UpdateNodeBounds(RootNodeIndex)
-	Subdivide(RootNodeIndex)
+	UpdateNodeBounds(&BVH, BVH.RootNodeIndex)
+	Subdivide(&BVH, BVH.RootNodeIndex)
+
+	return BVH
 }
 
-UpdateNodeBounds :: proc(NodeIndex : u32)
+UpdateNodeBounds :: proc(BVH : ^bvh, NodeIndex : u32)
 {
-	Node := &Nodes[NodeIndex]
+	Node := &BVH.Nodes[NodeIndex]
 
 	Node.AABBMin = v3{ F32_MAX,  F32_MAX,  F32_MAX}
 	Node.AABBMax = v3{-F32_MAX, -F32_MAX, -F32_MAX}
@@ -54,8 +65,8 @@ UpdateNodeBounds :: proc(NodeIndex : u32)
 	First := Node.FirstTriangleIndex
 	for I : u32 = 0; I < Node.TriangleCount; I += 1
 	{
-		LeafTriangleIndex := TriangleIndices[First + I]
-		LeafTriangle := Triangles[LeafTriangleIndex]
+		LeafTriangleIndex := BVH.TriangleIndices[First + I]
+		LeafTriangle := BVH.Triangles[LeafTriangleIndex]
 
 		Node.AABBMin = MinV3(Node.AABBMin, LeafTriangle.Vertices[0])
 		Node.AABBMin = MinV3(Node.AABBMin, LeafTriangle.Vertices[1])
@@ -66,9 +77,9 @@ UpdateNodeBounds :: proc(NodeIndex : u32)
 	}
 }
 
-Subdivide :: proc(NodeIndex : u32)
+Subdivide :: proc(BVH : ^bvh, NodeIndex : u32)
 {
-	Node := &Nodes[NodeIndex]
+	Node := &BVH.Nodes[NodeIndex]
 
 	// Termiante if only two triangles left in this node
 	if Node.TriangleCount <= 2
@@ -97,16 +108,16 @@ Subdivide :: proc(NodeIndex : u32)
 
 	for I <= J
 	{
-		if Centroids[TriangleIndices[I]][Axis] < SplitPos
+		if BVH.Centroids[BVH.TriangleIndices[I]][Axis] < SplitPos
 		{
 			I += 1
 		}
 		else
 		{
 			// Swap
-			Temp := TriangleIndices[I]
-			TriangleIndices[I] = TriangleIndices[J]
-			TriangleIndices[J] = Temp
+			Temp := BVH.TriangleIndices[I]
+			BVH.TriangleIndices[I] = BVH.TriangleIndices[J]
+			BVH.TriangleIndices[J] = Temp
 			J -= 1
 		}
 	}
@@ -119,24 +130,24 @@ Subdivide :: proc(NodeIndex : u32)
 	}
 
 	// Create child nodes
-	LeftChildIndex := NodesUsed
-	RightChildIndex := NodesUsed + 1
-	NodesUsed += 2
+	LeftChildIndex := BVH.NodesUsed
+	RightChildIndex := BVH.NodesUsed + 1
+	BVH.NodesUsed += 2
 
-	Nodes[LeftChildIndex].FirstTriangleIndex = Node.FirstTriangleIndex
-	Nodes[LeftChildIndex].TriangleCount = LeftCount
-	Nodes[RightChildIndex].FirstTriangleIndex = I
-	Nodes[RightChildIndex].TriangleCount = Node.TriangleCount - LeftCount
+	BVH.Nodes[LeftChildIndex].FirstTriangleIndex = Node.FirstTriangleIndex
+	BVH.Nodes[LeftChildIndex].TriangleCount = LeftCount
+	BVH.Nodes[RightChildIndex].FirstTriangleIndex = I
+	BVH.Nodes[RightChildIndex].TriangleCount = Node.TriangleCount - LeftCount
 
 	Node.LeftNode = LeftChildIndex
 	Node.TriangleCount = 0
 
-	UpdateNodeBounds(LeftChildIndex)
-	UpdateNodeBounds(RightChildIndex)
+	UpdateNodeBounds(BVH, LeftChildIndex)
+	UpdateNodeBounds(BVH, RightChildIndex)
 
 	// Recurse
-	Subdivide(LeftChildIndex)
-	Subdivide(RightChildIndex)
+	Subdivide(BVH, LeftChildIndex)
+	Subdivide(BVH, RightChildIndex)
 }
 
 IsLeaf :: proc(Node : bvh_node) -> b32
@@ -167,9 +178,9 @@ RayIntersectAABB :: proc(Ray : ray, BoxMin, BoxMax : v3) -> b32
 	return (tMax >= tMin) && (tMin < Ray.t) && (tMax > 0)
 }
 
-RayIntersectBVH :: proc(Ray : ^ray, NodeIndex : u32)
+RayIntersectBVH :: proc(Ray : ^ray, BVH : bvh, NodeIndex : u32)
 {
-	Node := Nodes[NodeIndex]
+	Node := BVH.Nodes[NodeIndex]
 
 	if !RayIntersectAABB(Ray^, Node.AABBMin, Node.AABBMax)
 	{
@@ -183,14 +194,14 @@ RayIntersectBVH :: proc(Ray : ^ray, NodeIndex : u32)
 		FirstIndex := Node.FirstTriangleIndex
 		for I : u32 = 0; I < Node.TriangleCount; I += 1
 		{
-			TriangleIndex := TriangleIndices[FirstIndex + I]
-			RayIntersectTriangle(Ray, Triangles[TriangleIndex])
+			TriangleIndex := BVH.TriangleIndices[FirstIndex + I]
+			RayIntersectTriangle(Ray, BVH.Triangles[TriangleIndex])
 		}
 	}
 	else
 	{
-		RayIntersectBVH(Ray, Node.LeftNode)
-		RayIntersectBVH(Ray, Node.LeftNode + 1)
+		RayIntersectBVH(Ray, BVH, Node.LeftNode)
+		RayIntersectBVH(Ray, BVH, Node.LeftNode + 1)
 	}
 }
 
