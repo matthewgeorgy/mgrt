@@ -57,10 +57,24 @@ main :: proc()
 	// Image
 	Image := AllocateImage(640, 640)
 
+	// Counters
+	StartCounter, EndCounter, Frequency, ElapsedTime: win32.LARGE_INTEGER
+
+	win32.QueryPerformanceFrequency(&Frequency)
+
 	// Mesh
 	Filename := string("assets/suzanne.obj")
 	Mesh := LoadMesh(Filename)
 	fmt.println("Loaded mesh:", Filename, "with", len(Mesh.Triangles), "triangles")
+
+	win32.QueryPerformanceCounter(&StartCounter)
+
+	BVH := BuildBVH(Mesh.Triangles)
+
+	win32.QueryPerformanceCounter(&EndCounter)
+
+	ElapsedTime = (EndCounter - StartCounter) * 1000
+	fmt.println("BVH construction took", ElapsedTime / Frequency, "ms")
 
 	// Camera
 	Camera : camera
@@ -79,7 +93,7 @@ main :: proc()
 	append(&World.Materials, material{material_type.COLOR, v3{0.8, 0.4, 0.2}})
 
 	World.Triangles = Mesh.Triangles
-	World.BVH = BuildBVH(Mesh.Triangles)
+	World.BVH = BVH
 
 	World.SamplesPerPixel = 1
 	World.MaxDepth = 2
@@ -109,7 +123,6 @@ main :: proc()
 	THREADCOUNT :: 8
 	ThreadData : thread_data
 	Threads : [THREADCOUNT]^thread.Thread
-	StartCounter, EndCounter, Frequency : win32.LARGE_INTEGER
 
 	ThreadData.Queue = &Queue
 	ThreadData.Camera = &Camera
@@ -120,7 +133,6 @@ main :: proc()
 	libc.printf("%d cores with %d %dx%d (%dk/tile) tiles\n", THREADCOUNT, Queue.EntryCount, TileWidth, TileHeight, TileWidth * TileHeight * 4 / 1024)
 	libc.printf("Quality: %u samples/pixel, %d bounces (max) per ray\n", World.SamplesPerPixel, World.MaxDepth)
 
-	win32.QueryPerformanceFrequency(&Frequency)
 	win32.QueryPerformanceCounter(&StartCounter)
 
 	for I := 0; I < THREADCOUNT; I += 1
@@ -132,7 +144,7 @@ main :: proc()
 
 	win32.QueryPerformanceCounter(&EndCounter)
 
-	ElapsedTime := (EndCounter - StartCounter) * 1000
+	ElapsedTime = (EndCounter - StartCounter) * 1000
 
 	fmt.println("Render took", ElapsedTime / Frequency, "ms")
 
