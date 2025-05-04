@@ -22,6 +22,7 @@ hit_record :: struct
 	t : f32,
 	MaterialIndex  : u32,
 	SurfaceNormal : v3,
+	HitPoint : v3,kgkw
 };
 
 camera :: struct
@@ -198,6 +199,7 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 			HitDistance = Record.t
 			Record.MaterialIndex = Quad.MatIndex
 			Record.SurfaceNormal = SetFaceNormal(Ray, Quad.N)
+			Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
 		}
 	}
 
@@ -221,7 +223,7 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 		Attenuation = SurfaceMaterial.Color
 	}
 
-	NewRay.Origin = Ray.Origin + HitDistance * Ray.Direction
+	NewRay.Origin = Record.HitPoint
 	NewRay.Direction = RandomOnHemisphere(Record.SurfaceNormal)
 
 	ScatteredColor = Attenuation * CastRay(NewRay, World, Depth - 1)
