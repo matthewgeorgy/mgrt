@@ -165,6 +165,8 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 {
 	Record : hit_record
 
+	Record.t = F32_MAX
+
 	HitDistance : f32 = F32_MAX
 	HitSomething := false
 
@@ -230,10 +232,8 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 
 	if UseBVH
 	{
-		ShotRay := Ray
-
-		RayIntersectBVH(&ShotRay, World.BVH, World.BVH.RootNodeIndex)
-		if ShotRay.t < F32_MAX
+		RayIntersectBVH(Ray, &Record, World.BVH, World.BVH.RootNodeIndex)
+		if Record.t < F32_MAX
 		{
 			HitSomething = true
 		}
@@ -242,15 +242,13 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 	{
 		for Triangle in World.Triangles
 		{
-			ShotRay := Ray
-
-			Record.t = RayIntersectTriangle(&ShotRay, Triangle)
+			RayIntersectTriangle(Ray, &Record, Triangle)
 			if (Record.t > 0.0001 && Record.t < HitDistance)
 			{
 				HitSomething = true
 				HitDistance = Record.t
-				Record.MaterialIndex = 1 // TODO(matthew): set this in the world!
-				Record.SurfaceNormal = v3{0, 0, 0} // TODO(matthew): set this!
+				// Record.MaterialIndex = 1 // TODO(matthew): set this in the world!
+				// Record.SurfaceNormal = v3{0, 0, 0} // TODO(matthew): set this!
 			}
 		}
 	}

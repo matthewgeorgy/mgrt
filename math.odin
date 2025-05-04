@@ -30,7 +30,6 @@ ray :: struct
 {
 	Origin : v3,
 	Direction : v3,
-	t : f32,
 };
 
 sphere :: struct
@@ -228,7 +227,7 @@ RayIntersectPlane :: proc(Ray : ray, Plane : plane) -> f32
 }
 
 // Moller-Trumbore interesection algorithm
-RayIntersectTriangle :: proc(Ray : ^ray, Triangle : triangle) -> f32
+RayIntersectTriangle :: proc(Ray : ray, Record : ^hit_record, Triangle : triangle)
 {
 	t : f32 = F32_MAX
 	Tol : f32 = 1e-8
@@ -256,11 +255,11 @@ RayIntersectTriangle :: proc(Ray : ^ray, Triangle : triangle) -> f32
 			if !(v < 0 || u + v > 1)
 			{
 				t = f * Dot(Edge2, Q)
-				Ray.t = Min(t, Ray.t)
+
+				Record.t = Min(t, Record.t)
+				Record.SurfaceNormal = Normalize(Cross(Edge1, Edge2))
 			}
 		}
 	}
-
-	return t
 }
 

@@ -155,7 +155,7 @@ IsLeaf :: proc(Node : bvh_node) -> b32
 	return Node.TriangleCount > 0
 }
 
-RayIntersectAABB :: proc(Ray : ray, BoxMin, BoxMax : v3) -> b32
+RayIntersectAABB :: proc(Ray : ray, Record : ^hit_record, BoxMin, BoxMax : v3) -> b32
 {
 	tx1 := (BoxMin.x - Ray.Origin.x) / Ray.Direction.x
 	tx2 := (BoxMax.x - Ray.Origin.x) / Ray.Direction.x
@@ -175,14 +175,14 @@ RayIntersectAABB :: proc(Ray : ray, BoxMin, BoxMax : v3) -> b32
 	tMin = Max(tMin, Min(tz1, tz2))
 	tMax = Min(tMax, Max(tz1, tz2))
 
-	return (tMax >= tMin) && (tMin < Ray.t) && (tMax > 0)
+	return (tMax >= tMin) && (tMin < Record.t) && (tMax > 0)
 }
 
-RayIntersectBVH :: proc(Ray : ^ray, BVH : bvh, NodeIndex : u32)
+RayIntersectBVH :: proc(Ray : ray, Record : ^hit_record, BVH : bvh, NodeIndex : u32)
 {
 	Node := BVH.Nodes[NodeIndex]
 
-	if !RayIntersectAABB(Ray^, Node.AABBMin, Node.AABBMax)
+	if !RayIntersectAABB(Ray, Record, Node.AABBMin, Node.AABBMax)
 	{
 		return
 	}
@@ -195,13 +195,13 @@ RayIntersectBVH :: proc(Ray : ^ray, BVH : bvh, NodeIndex : u32)
 		for I : u32 = 0; I < Node.TriangleCount; I += 1
 		{
 			TriangleIndex := BVH.TriangleIndices[FirstIndex + I]
-			RayIntersectTriangle(Ray, BVH.Triangles[TriangleIndex])
+			RayIntersectTriangle(Ray, Record, BVH.Triangles[TriangleIndex])
 		}
 	}
 	else
 	{
-		RayIntersectBVH(Ray, BVH, Node.LeftNode)
-		RayIntersectBVH(Ray, BVH, Node.LeftNode + 1)
+		RayIntersectBVH(Ray, Record, BVH, Node.LeftNode)
+		RayIntersectBVH(Ray, Record, BVH, Node.LeftNode + 1)
 	}
 }
 
