@@ -51,6 +51,8 @@ world :: struct
 	MaxDepth : int,
 };
 
+Triangles : []triangle
+
 main :: proc()
 {
 	// Image
@@ -60,6 +62,7 @@ main :: proc()
 	Filename := string("assets/fish.obj")
 	Mesh := LoadMesh(Filename)
 	fmt.println("Loaded mesh:", Filename, "with", len(Mesh.Triangles), "triangles")
+	Triangles = Mesh.Triangles[:]
 
 	// Camera
 	Camera : camera
