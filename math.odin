@@ -261,8 +261,11 @@ RayIntersectTriangle :: proc(Ray : ray, Record : ^hit_record, Triangle : triangl
 			{
 				t = f * Dot(Edge2, Q)
 
-				Record.t = Min(t, Record.t)
-				Record.SurfaceNormal = Normalize(Cross(Edge1, Edge2))
+				if t > 0.0001 && t < Record.t
+				{
+					Record.t = t
+					Record.SurfaceNormal = Normalize(Cross(Edge1, Edge2))
+				}
 			}
 		}
 	}

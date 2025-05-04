@@ -79,7 +79,7 @@ main :: proc()
 	// Camera
 	Camera : camera
 
-	Camera.LookFrom = v3{0, 2, 5}
+	Camera.LookFrom = v3{0, 1, 3}
 	Camera.LookAt = v3{0, 0, 0}
 	Camera.FocusDist = 1
 	Camera.FOV = 90
@@ -89,14 +89,16 @@ main :: proc()
 	// World
 	World : world
 
-	append(&World.Materials, material{material_type.COLOR, v3{0.8, 0.8, 0.8}})
-	append(&World.Materials, material{material_type.COLOR, v3{0.8, 0.4, 0.2}})
+	append(&World.Materials, material{material_type.COLOR, v3{0.2, 0.2, 0.2}})
+	append(&World.Materials, material{material_type.COLOR, v3{0.8, 0.2, 0.2}})
+	append(&World.Materials, material{material_type.COLOR, v3{0.2, 0.6, 0.8}})
+	append(&World.Planes, plane{v3{0, 1, 0}, 5, 2})
 
 	World.Triangles = Mesh.Triangles
 	World.BVH = BVH
 
-	World.SamplesPerPixel = 1
-	World.MaxDepth = 2
+	World.SamplesPerPixel = 10
+	World.MaxDepth = 10
 
 	// Work queue
 	Queue : work_queue
@@ -175,118 +177,121 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 		return v3{0, 0, 0}
 	}
 
-	for Quad in World.Quads
+	// for Quad in World.Quads
+	// {
+	// 	OffsetRay := Ray
+	// 	OffsetRay.Origin -= Quad.Translation
+
+	// 	SinTheta := Sin(Quad.Rotation)
+	// 	CosTheta := Cos(Quad.Rotation)
+
+	// 	RotatedRay := OffsetRay
+
+	// 	RotatedRay.Origin = v3{
+            // (CosTheta * OffsetRay.Origin.x) - (SinTheta * OffsetRay.Origin.z),
+            // OffsetRay.Origin.y,
+            // (SinTheta * OffsetRay.Origin.x) + (CosTheta * OffsetRay.Origin.z)
+        // }
+
+	// 	RotatedRay.Direction = v3{
+	// 		(CosTheta * OffsetRay.Direction.x) - (SinTheta * OffsetRay.Direction.z),
+            // OffsetRay.Direction.y,
+            // (SinTheta * OffsetRay.Direction.x) + (CosTheta * OffsetRay.Direction.z)
+	// 	}
+
+	// 	Record.t = RayIntersectQuad(RotatedRay, Quad)
+	// 	if (Record.t > 0.0001 && Record.t < HitDistance)
+	// 	{
+	// 		HitSomething = true
+	// 		HitDistance = Record.t
+	// 		Record.MaterialIndex = Quad.MatIndex
+	// 		Record.SurfaceNormal = SetFaceNormal(RotatedRay, Quad.N)
+	// 		Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
+
+	// 		if (Quad.Rotation != 0)
+	// 		{
+	// 			Record.HitPoint = v3{
+	// 				(CosTheta * Record.HitPoint.x) + (SinTheta * Record.HitPoint.z),
+	// 				Record.HitPoint.y,
+	// 				(-SinTheta * Record.HitPoint.x) + (CosTheta * Record.HitPoint.z)
+	// 			}
+
+	// 			Record.SurfaceNormal = v3{
+	// 				(CosTheta * Record.SurfaceNormal.x) + (SinTheta * Record.SurfaceNormal.z),
+	// 				Record.SurfaceNormal.y,
+	// 				(-SinTheta * Record.SurfaceNormal.x) + (CosTheta * Record.SurfaceNormal.z)
+	// 			}
+	// 		}
+
+	// 		if (Quad.Translation != v3{0, 0, 0})
+	// 		{
+	// 			Record.HitPoint += Quad.Translation
+	// 		}
+	// 	}
+	// }
+
+	TraverseBVH(Ray, &Record, World.BVH, World.BVH.RootNodeIndex)
+	if Record.t > 0.0001 && Record.t < HitDistance
 	{
-		OffsetRay := Ray
-		OffsetRay.Origin -= Quad.Translation
+		HitSomething = true
+		HitDistance = Record.t
+		Record.MaterialIndex = 1
+		Record.SurfaceNormal = SetFaceNormal(Ray, Record.SurfaceNormal)
+		Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
+	}
 
-		SinTheta := Sin(Quad.Rotation)
-		CosTheta := Cos(Quad.Rotation)
+	for Plane in World.Planes
+	{
+		Record.t = RayIntersectPlane(Ray, Plane)
 
-		RotatedRay := OffsetRay
-
-		RotatedRay.Origin = v3{
-            (CosTheta * OffsetRay.Origin.x) - (SinTheta * OffsetRay.Origin.z),
-            OffsetRay.Origin.y,
-            (SinTheta * OffsetRay.Origin.x) + (CosTheta * OffsetRay.Origin.z)
-        }
-
-		RotatedRay.Direction = v3{
-			(CosTheta * OffsetRay.Direction.x) - (SinTheta * OffsetRay.Direction.z),
-            OffsetRay.Direction.y,
-            (SinTheta * OffsetRay.Direction.x) + (CosTheta * OffsetRay.Direction.z)
-		}
-
-		Record.t = RayIntersectQuad(RotatedRay, Quad)
-		if (Record.t > 0.0001 && Record.t < HitDistance)
+		if Record.t > 0.0001 && Record.t < HitDistance
 		{
 			HitSomething = true
 			HitDistance = Record.t
-			Record.MaterialIndex = Quad.MatIndex
-			Record.SurfaceNormal = SetFaceNormal(RotatedRay, Quad.N)
-			Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
-
-			if (Quad.Rotation != 0)
-			{
-				Record.HitPoint = v3{
-					(CosTheta * Record.HitPoint.x) + (SinTheta * Record.HitPoint.z),
-					Record.HitPoint.y,
-					(-SinTheta * Record.HitPoint.x) + (CosTheta * Record.HitPoint.z)
-				}
-
-				Record.SurfaceNormal = v3{
-					(CosTheta * Record.SurfaceNormal.x) + (SinTheta * Record.SurfaceNormal.z),
-					Record.SurfaceNormal.y,
-					(-SinTheta * Record.SurfaceNormal.x) + (CosTheta * Record.SurfaceNormal.z)
-				}
-			}
-
-			if (Quad.Translation != v3{0, 0, 0})
-			{
-				Record.HitPoint += Quad.Translation
-			}
+			Record.MaterialIndex = Plane.MatIndex
+			Record.SurfaceNormal = SetFaceNormal(Ray, Plane.N)
+			Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
 		}
 	}
 
-	UseBVH := true
+	// for Triangle in World.Triangles
+	// {
+	// 	RayIntersectTriangle(Ray, &Record, Triangle)
+	// 	if (Record.t > 0.0001 && Record.t < HitDistance)
+	// 	{
+	// 		HitSomething = true
+	// 		HitDistance = Record.t
+	// 		// Record.MaterialIndex = 1 // TODO(matthew): set this in the world!
+	// 		// Record.SurfaceNormal = v3{0, 0, 0} // TODO(matthew): set this!
+	// 	}
+	// }
 
-	if UseBVH
-	{
-		TraverseBVH(Ray, &Record, World.BVH, World.BVH.RootNodeIndex)
-		if Record.t < F32_MAX
-		{
-			HitSomething = true
-		}
-	}
-	else
-	{
-		for Triangle in World.Triangles
-		{
-			RayIntersectTriangle(Ray, &Record, Triangle)
-			if (Record.t > 0.0001 && Record.t < HitDistance)
-			{
-				HitSomething = true
-				HitDistance = Record.t
-				// Record.MaterialIndex = 1 // TODO(matthew): set this in the world!
-				// Record.SurfaceNormal = v3{0, 0, 0} // TODO(matthew): set this!
-			}
-		}
-	}
-
-	if HitSomething
-	{
-		return World.Materials[1].Color
-	}
-	else
+	if !HitSomething
 	{
 		return World.Materials[0].Color
 	}
-	// if !HitSomething
-	// {
-	// 	return World.Materials[0].Color
-	// }
 
-	// NewRay : ray
-	// ScatteredColor : v3
-	// EmittedColor : v3
-	// Attenuation : v3
-	// SurfaceMaterial := World.Materials[Record.MaterialIndex]
+	NewRay : ray
+	ScatteredColor : v3
+	EmittedColor : v3
+	Attenuation : v3
+	SurfaceMaterial := World.Materials[Record.MaterialIndex]
 
-	// if SurfaceMaterial.Type == material_type.LIGHT
-	// {
-	// 	EmittedColor = SurfaceMaterial.Color
-	// }
-	// else
-	// {
-	// 	Attenuation = SurfaceMaterial.Color
-	// }
+	if SurfaceMaterial.Type == material_type.LIGHT
+	{
+		EmittedColor = SurfaceMaterial.Color
+	}
+	else
+	{
+		Attenuation = SurfaceMaterial.Color
+	}
 
-	// NewRay.Origin = Record.HitPoint
-	// NewRay.Direction = Record.SurfaceNormal + RandomUnitVector()//RandomOnHemisphere(Record.SurfaceNormal)
+	NewRay.Origin = Record.HitPoint
+	NewRay.Direction = Record.SurfaceNormal + RandomUnitVector()//RandomOnHemisphere(Record.SurfaceNormal)
 
-	// ScatteredColor = Attenuation * CastRay(NewRay, World, Depth - 1)
+	ScatteredColor = Attenuation * CastRay(NewRay, World, Depth - 1)
 
-	// return EmittedColor + ScatteredColor
+	return EmittedColor + ScatteredColor
 }
 
 InitializeCamera :: proc(Camera : ^camera, ImageWidth, ImageHeight : i32)
