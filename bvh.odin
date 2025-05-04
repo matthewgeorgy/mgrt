@@ -2,7 +2,7 @@ package main
 
 bvh_node :: struct
 {
-	AABBMin, AABBMax : v3,
+	AABB : aabb,
 	LeftFirst, TriangleCount : u32,
 };
 
@@ -59,8 +59,8 @@ UpdateNodeBounds :: proc(BVH : ^bvh, NodeIndex : u32)
 {
 	Node := &BVH.Nodes[NodeIndex]
 
-	Node.AABBMin = v3{ F32_MAX,  F32_MAX,  F32_MAX}
-	Node.AABBMax = v3{-F32_MAX, -F32_MAX, -F32_MAX}
+	Node.AABB.Min = v3{ F32_MAX,  F32_MAX,  F32_MAX}
+	Node.AABB.Max = v3{-F32_MAX, -F32_MAX, -F32_MAX}
 
 	First := Node.LeftFirst
 	for I : u32 = 0; I < Node.TriangleCount; I += 1
@@ -68,12 +68,12 @@ UpdateNodeBounds :: proc(BVH : ^bvh, NodeIndex : u32)
 		LeafTriangleIndex := BVH.TriangleIndices[First + I]
 		LeafTriangle := BVH.Triangles[LeafTriangleIndex]
 
-		Node.AABBMin = MinV3(Node.AABBMin, LeafTriangle.Vertices[0])
-		Node.AABBMin = MinV3(Node.AABBMin, LeafTriangle.Vertices[1])
-		Node.AABBMin = MinV3(Node.AABBMin, LeafTriangle.Vertices[2])
-		Node.AABBMax = MaxV3(Node.AABBMax, LeafTriangle.Vertices[0])
-		Node.AABBMax = MaxV3(Node.AABBMax, LeafTriangle.Vertices[1])
-		Node.AABBMax = MaxV3(Node.AABBMax, LeafTriangle.Vertices[2])
+		Node.AABB.Min = MinV3(Node.AABB.Min, LeafTriangle.Vertices[0])
+		Node.AABB.Min = MinV3(Node.AABB.Min, LeafTriangle.Vertices[1])
+		Node.AABB.Min = MinV3(Node.AABB.Min, LeafTriangle.Vertices[2])
+		Node.AABB.Max = MaxV3(Node.AABB.Max, LeafTriangle.Vertices[0])
+		Node.AABB.Max = MaxV3(Node.AABB.Max, LeafTriangle.Vertices[1])
+		Node.AABB.Max = MaxV3(Node.AABB.Max, LeafTriangle.Vertices[2])
 	}
 }
 
@@ -88,7 +88,7 @@ Subdivide :: proc(BVH : ^bvh, NodeIndex : u32)
 	}
 
 	// Determine (the longest) split axis and position
-	Extent := Node.AABBMax - Node.AABBMin
+	Extent := Node.AABB.Max - Node.AABB.Min
 	Axis : u32 = 0
 
 	if Extent.y > Extent.x
@@ -100,7 +100,7 @@ Subdivide :: proc(BVH : ^bvh, NodeIndex : u32)
 		Axis = 2
 	}
 
-	SplitPos : f32 = Node.AABBMin[Axis] + 0.5 * Extent[Axis]
+	SplitPos : f32 = Node.AABB.Min[Axis] + 0.5 * Extent[Axis]
 
 	// Partition in-place
 	I := Node.LeftFirst
@@ -155,34 +155,11 @@ IsLeaf :: proc(Node : bvh_node) -> b32
 	return Node.TriangleCount > 0
 }
 
-RayIntersectAABB :: proc(Ray : ray, Record : ^hit_record, BoxMin, BoxMax : v3) -> b32
-{
-	tx1 := (BoxMin.x - Ray.Origin.x) / Ray.Direction.x
-	tx2 := (BoxMax.x - Ray.Origin.x) / Ray.Direction.x
-
-	tMin := Min(tx1, tx2)
-	tMax := Max(tx1, tx2)
-
-	ty1 := (BoxMin.y - Ray.Origin.y) / Ray.Direction.y
-	ty2 := (BoxMax.y - Ray.Origin.y) / Ray.Direction.y
-
-	tMin = Max(tMin, Min(ty1, ty2))
-	tMax = Min(tMax, Max(ty1, ty2))
-
-	tz1 := (BoxMin.z - Ray.Origin.z) / Ray.Direction.z
-	tz2 := (BoxMax.z - Ray.Origin.z) / Ray.Direction.z
-
-	tMin = Max(tMin, Min(tz1, tz2))
-	tMax = Min(tMax, Max(tz1, tz2))
-
-	return (tMax >= tMin) && (tMin < Record.t) && (tMax > 0)
-}
-
-RayIntersectBVH :: proc(Ray : ray, Record : ^hit_record, BVH : bvh, NodeIndex : u32)
+TraverseBVH :: proc(Ray : ray, Record : ^hit_record, BVH : bvh, NodeIndex : u32)
 {
 	Node := BVH.Nodes[NodeIndex]
 
-	if !RayIntersectAABB(Ray, Record, Node.AABBMin, Node.AABBMax)
+	if !RayIntersectAABB(Ray, Record, Node.AABB)
 	{
 		return
 	}
@@ -200,8 +177,8 @@ RayIntersectBVH :: proc(Ray : ray, Record : ^hit_record, BVH : bvh, NodeIndex : 
 	}
 	else
 	{
-		RayIntersectBVH(Ray, Record, BVH, Node.LeftFirst)
-		RayIntersectBVH(Ray, Record, BVH, Node.LeftFirst + 1)
+		TraverseBVH(Ray, Record, BVH, Node.LeftFirst)
+		TraverseBVH(Ray, Record, BVH, Node.LeftFirst + 1)
 	}
 }
 

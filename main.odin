@@ -232,7 +232,7 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 
 	if UseBVH
 	{
-		RayIntersectBVH(Ray, &Record, World.BVH, World.BVH.RootNodeIndex)
+		TraverseBVH(Ray, &Record, World.BVH, World.BVH.RootNodeIndex)
 		if Record.t < F32_MAX
 		{
 			HitSomething = true

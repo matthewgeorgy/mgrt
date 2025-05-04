@@ -65,6 +65,11 @@ triangle :: struct
 	Vertices : [3]v3,
 };
 
+aabb :: struct
+{
+	Min, Max : v3
+};
+
 RandomUnilateral :: proc() -> f32
 {
 	return rand.float32()
@@ -261,5 +266,31 @@ RayIntersectTriangle :: proc(Ray : ray, Record : ^hit_record, Triangle : triangl
 			}
 		}
 	}
+}
+
+RayIntersectAABB :: proc(Ray : ray, Record : ^hit_record, AABB : aabb) -> b32
+{
+	BoxMin := AABB.Min
+	BoxMax := AABB.Max
+
+	tx1 := (BoxMin.x - Ray.Origin.x) / Ray.Direction.x
+	tx2 := (BoxMax.x - Ray.Origin.x) / Ray.Direction.x
+
+	tMin := Min(tx1, tx2)
+	tMax := Max(tx1, tx2)
+
+	ty1 := (BoxMin.y - Ray.Origin.y) / Ray.Direction.y
+	ty2 := (BoxMax.y - Ray.Origin.y) / Ray.Direction.y
+
+	tMin = Max(tMin, Min(ty1, ty2))
+	tMax = Min(tMax, Max(ty1, ty2))
+
+	tz1 := (BoxMin.z - Ray.Origin.z) / Ray.Direction.z
+	tz2 := (BoxMax.z - Ray.Origin.z) / Ray.Direction.z
+
+	tMin = Max(tMin, Min(tz1, tz2))
+	tMax = Min(tMax, Max(tz1, tz2))
+
+	return (tMax >= tMin) && (tMin < Record.t) && (tMax > 0)
 }
 
