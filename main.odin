@@ -4,6 +4,8 @@ import fmt		"core:fmt"
 import thread	"core:thread"
 import win32	"core:sys/windows"
 import libc		"core:c/libc"
+import os		"core:os"
+import strings	"core:strings"
 
 material_type :: enum
 {
@@ -43,6 +45,7 @@ world :: struct
 	Spheres : [dynamic]sphere,
 	Planes : [dynamic]plane,
 	Quads : [dynamic]quad,
+	Triangles : [dynamic]triangle,
 
 	SamplesPerPixel : u32,
 	MaxDepth : int,
@@ -53,11 +56,88 @@ main :: proc()
 	// Image
 	Image := AllocateImage(640, 640)
 
-	// World & camera
-	World : world
+	// Triangles
+	Filename := string("assets/cube.obj")
+	File, ok := os.read_entire_file(Filename)
+	if !ok
+	{
+		fmt.println("Failed to load", Filename)
+		return
+	}
+
+	StringFile := string(File)
+	Vertices : [dynamic]v3
+	Normals : [dynamic]v3
+	Faces : [dynamic]v3i
+	Triangles : [dynamic]triangle
+
+	for Line in strings.split_lines_iterator(&StringFile)
+	{
+		Tokens := strings.split(Line, " ")
+
+		Header := Tokens[0]
+		Components := Tokens[1 : len(Tokens)]
+
+		if strings.compare(Header, "v") == 0 // Vertex
+		{
+			V0 := f32(libc.atof(strings.clone_to_cstring(Components[0])))
+			V1 := f32(libc.atof(strings.clone_to_cstring(Components[1])))
+			V2 := f32(libc.atof(strings.clone_to_cstring(Components[2])))
+
+			append(&Vertices, v3{V0, V1, V2})
+		}
+		else if strings.compare(Header, "vn") == 0 // Normal
+		{
+			N0 := f32(libc.atof(strings.clone_to_cstring(Components[0])))
+			N1 := f32(libc.atof(strings.clone_to_cstring(Components[1])))
+			N2 := f32(libc.atof(strings.clone_to_cstring(Components[2])))
+
+			append(&Normals, v3{N0, N1, N2})
+		}
+		else if strings.compare(Header, "f") == 0 // Face
+		{
+			Point0 := strings.split(Components[0], "/")
+			Point1 := strings.split(Components[1], "/")
+			Point2 := strings.split(Components[2], "/")
+
+			I0 := libc.atoi(strings.clone_to_cstring(Point0[0]))
+			I1 := libc.atoi(strings.clone_to_cstring(Point1[0]))
+			I2 := libc.atoi(strings.clone_to_cstring(Point2[0]))
+
+			append(&Faces, v3i{I0, I1, I2})
+		}
+	}
+
+	for Face in Faces
+	{
+		V0 := Vertices[Face.x - 1]
+		V1 := Vertices[Face.y - 1]
+		V2 := Vertices[Face.z - 1]
+
+		Triangle := triangle{ Vertices = {V0, V1, V2}}
+
+		append(&Triangles, Triangle)
+	}
+
+	// Camera
 	Camera : camera
 
-	CornellBoxScene(&World, &Camera, Image.Width, Image.Height)
+	Camera.LookFrom = v3{0, 2, 5}
+	Camera.LookAt = v3{0, 0, 0}
+	Camera.FocusDist = 1
+
+	InitializeCamera(&Camera, Image.Width, Image.Height)
+
+	// World
+	World : world
+
+	append(&World.Materials, material{material_type.COLOR, v3{0.8, 0.8, 0.8}})
+	append(&World.Materials, material{material_type.COLOR, v3{0.8, 0.4, 0.2}})
+
+	World.Triangles = Triangles
+
+	World.SamplesPerPixel = 10
+	World.MaxDepth = 10
 
 	// Work queue
 	Queue : work_queue
@@ -189,32 +269,52 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 		}
 	}
 
-	if !HitSomething
+	for Triangle in World.Triangles
 	{
-		return World.Materials[0].Color
+		Record.t = RayIntersectTriangle(Ray, Triangle)
+		if (Record.t > 0.0001 && Record.t < HitDistance)
+		{
+			HitSomething = true
+			HitDistance = Record.t
+			Record.MaterialIndex = 1 // TODO(matthew): set this in the world!
+			Record.SurfaceNormal = v3{0, 0, 0} // TODO(matthew): set this!
+		}
 	}
 
-	NewRay : ray
-	ScatteredColor : v3
-	EmittedColor : v3
-	Attenuation : v3
-	SurfaceMaterial := World.Materials[Record.MaterialIndex]
-
-	if SurfaceMaterial.Type == material_type.LIGHT
+	if HitSomething
 	{
-		EmittedColor = SurfaceMaterial.Color
+		return World.Materials[1].Color
 	}
 	else
 	{
-		Attenuation = SurfaceMaterial.Color
+		return World.Materials[0].Color
 	}
+	// if !HitSomething
+	// {
+	// 	return World.Materials[0].Color
+	// }
 
-	NewRay.Origin = Record.HitPoint
-	NewRay.Direction = Record.SurfaceNormal + RandomUnitVector()//RandomOnHemisphere(Record.SurfaceNormal)
+	// NewRay : ray
+	// ScatteredColor : v3
+	// EmittedColor : v3
+	// Attenuation : v3
+	// SurfaceMaterial := World.Materials[Record.MaterialIndex]
 
-	ScatteredColor = Attenuation * CastRay(NewRay, World, Depth - 1)
+	// if SurfaceMaterial.Type == material_type.LIGHT
+	// {
+	// 	EmittedColor = SurfaceMaterial.Color
+	// }
+	// else
+	// {
+	// 	Attenuation = SurfaceMaterial.Color
+	// }
 
-	return EmittedColor + ScatteredColor
+	// NewRay.Origin = Record.HitPoint
+	// NewRay.Direction = Record.SurfaceNormal + RandomUnitVector()//RandomOnHemisphere(Record.SurfaceNormal)
+
+	// ScatteredColor = Attenuation * CastRay(NewRay, World, Depth - 1)
+
+	// return EmittedColor + ScatteredColor
 }
 
 InitializeCamera :: proc(Camera : ^camera, ImageWidth, ImageHeight : i32)
@@ -281,6 +381,5 @@ CornellBoxScene :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeigh
 
 	World.SamplesPerPixel = 200
 	World.MaxDepth = 50
-
 }
 

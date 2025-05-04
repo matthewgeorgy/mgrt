@@ -60,6 +60,11 @@ quad :: struct
 	Rotation : f32,
 };
 
+triangle :: struct
+{
+	Vertices : [3]v3,
+};
+
 RandomUnilateral :: proc() -> f32
 {
 	return rand.float32()
@@ -192,7 +197,7 @@ RayIntersectSphere :: proc(Ray : ray, Sphere : sphere) -> f32
 		tp := (-b + SquareRoot(Discriminant)) / (2 * a)
 		tn := (-b - SquareRoot(Discriminant)) / (2 * a)
 		t = tp
-		
+
 		if tn > 0.0001 && tn < tp
 		{
 			t = tn
@@ -217,7 +222,43 @@ RayIntersectPlane :: proc(Ray : ray, Plane : plane) -> f32
 	{
 		t = (-Plane.d - Dot(Plane.N, Ray.Origin)) / Denom
 	}
-	
+
+	return t
+}
+
+// Moller-Trumbore interesection algorithm
+RayIntersectTriangle :: proc(Ray : ray, Triangle : triangle) -> f32
+{
+	t : f32 = F32_MAX
+	Tol : f32 = 1e-8
+
+	V0 := Triangle.Vertices[0]
+	V1 := Triangle.Vertices[1]
+	V2 := Triangle.Vertices[2]
+
+	Edge1 := V1 - V0
+	Edge2 := V2 - V0
+	h := Cross(Ray.Direction, Edge2)
+	a := Dot(Edge1, h)
+
+	if Abs(a) > Tol
+	{
+		f : f32 = 1 / a
+		S := Ray.Origin - V0
+		u : f32 = f * Dot(S, h)
+
+		if !(u < 0 || u > 1)
+		{
+			Q := Cross(S, Edge1)
+			v : f32 = f * Dot(Ray.Direction, Q)
+
+			if !(v < 0 || u + v > 1)
+			{
+				t = f * Dot(Edge2, Q)
+			}
+		}
+	}
+
 	return t
 }
 
