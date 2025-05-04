@@ -56,7 +56,9 @@ main :: proc()
 	Image := AllocateImage(640, 640)
 
 	// Mesh
-	Mesh := LoadMesh(string("assets/cube.obj"))
+	Filename := string("assets/cube.obj")
+	Mesh := LoadMesh(Filename)
+	fmt.println("Loaded mesh:", Filename, "with", len(Mesh.Triangles), "triangles")
 
 	// Camera
 	Camera : camera
@@ -75,8 +77,8 @@ main :: proc()
 
 	World.Triangles = Mesh.Triangles
 
-	World.SamplesPerPixel = 10
-	World.MaxDepth = 10
+	World.SamplesPerPixel = 1
+	World.MaxDepth = 2
 
 	// Work queue
 	Queue : work_queue
