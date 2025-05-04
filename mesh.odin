@@ -24,10 +24,25 @@ LoadMesh :: proc(Filename : string) -> mesh
 
         for Line in strings.split_lines_iterator(&StringFile)
         {
-            Tokens := strings.split(Line, " ")
+            Tokens := strings.split(strings.trim_right(Line, " "), " ")
 
             Header := Tokens[0]
-            Components := Tokens[1 : len(Tokens)]
+            Parts := Tokens[1 : len(Tokens)]
+
+			Components : [dynamic]string
+
+			// TODO(matthew): bullet proof this somehow...
+			// Things breaks without this if we havve leading whitespace before
+			// the components, eg:
+			// v 1.000 2.000 3.000		This works
+			// v  1.000 2.000 3.000		This doesn't!
+			for Part in Parts
+			{
+				if len(Part) != 0
+				{
+					append(&Components, Part)
+				}
+			}
 
             if strings.compare(Header, "v") == 0 // Vertex
             {

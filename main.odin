@@ -63,7 +63,7 @@ main :: proc()
 	win32.QueryPerformanceFrequency(&Frequency)
 
 	// Mesh
-	Filename := string("assets/suzanne.obj")
+	Filename := string("assets/bunny.obj")
 	Mesh := LoadMesh(Filename)
 	fmt.println("Loaded mesh:", Filename, "with", len(Mesh.Triangles), "triangles")
 
@@ -76,10 +76,28 @@ main :: proc()
 	ElapsedTime = (EndCounter - StartCounter) * 1000
 	fmt.println("BVH construction took", ElapsedTime / Frequency, "ms")
 
+	MinX : f32 = F32_MAX
+	MaxY : f32 = -F32_MAX
+	MaxZ : f32 = -F32_MAX
+	for Triangle in Mesh.Triangles
+	{
+		MinX = Min(MinX, Triangle.Vertices[0].x)
+		MinX = Min(MinX, Triangle.Vertices[1].x)
+		MinX = Min(MinX, Triangle.Vertices[2].x)
+
+		MaxY = Max(MaxY, Triangle.Vertices[0].y)
+		MaxY = Max(MaxY, Triangle.Vertices[1].y)
+		MaxY = Max(MaxY, Triangle.Vertices[2].y)
+
+		MaxZ = Max(MaxZ, Triangle.Vertices[0].z)
+		MaxZ = Max(MaxZ, Triangle.Vertices[1].z)
+		MaxZ = Max(MaxZ, Triangle.Vertices[2].z)
+	}
+
 	// Camera
 	Camera : camera
 
-	Camera.LookFrom = v3{0, 1, 3}
+	Camera.LookFrom = v3{0, 1, 4}
 	Camera.LookAt = v3{0, 0, 0}
 	Camera.FocusDist = 1
 	Camera.FOV = 90
@@ -92,7 +110,9 @@ main :: proc()
 	append(&World.Materials, material{material_type.COLOR, v3{0.2, 0.2, 0.2}})
 	append(&World.Materials, material{material_type.COLOR, v3{0.8, 0.2, 0.2}})
 	append(&World.Materials, material{material_type.COLOR, v3{0.2, 0.6, 0.8}})
-	append(&World.Planes, plane{v3{0, 1, 0}, 5, 2})
+	append(&World.Materials, material{material_type.LIGHT, v3{1, 1, 1}})
+	append(&World.Planes, plane{v3{0, 1, 0}, 0, 2})
+	append(&World.Quads, CreateQuad(v3{MinX, MaxY + 0.5, MaxZ}, v3{2, 0, 0}, v3{0, 0, 2}, 3))
 
 	World.Triangles = Mesh.Triangles
 	World.BVH = BVH
@@ -177,58 +197,58 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 		return v3{0, 0, 0}
 	}
 
-	// for Quad in World.Quads
-	// {
-	// 	OffsetRay := Ray
-	// 	OffsetRay.Origin -= Quad.Translation
+	for Quad in World.Quads
+	{
+		OffsetRay := Ray
+		OffsetRay.Origin -= Quad.Translation
 
-	// 	SinTheta := Sin(Quad.Rotation)
-	// 	CosTheta := Cos(Quad.Rotation)
+		SinTheta := Sin(Quad.Rotation)
+		CosTheta := Cos(Quad.Rotation)
 
-	// 	RotatedRay := OffsetRay
+		RotatedRay := OffsetRay
 
-	// 	RotatedRay.Origin = v3{
-            // (CosTheta * OffsetRay.Origin.x) - (SinTheta * OffsetRay.Origin.z),
-            // OffsetRay.Origin.y,
-            // (SinTheta * OffsetRay.Origin.x) + (CosTheta * OffsetRay.Origin.z)
-        // }
+		RotatedRay.Origin = v3{
+            (CosTheta * OffsetRay.Origin.x) - (SinTheta * OffsetRay.Origin.z),
+            OffsetRay.Origin.y,
+            (SinTheta * OffsetRay.Origin.x) + (CosTheta * OffsetRay.Origin.z)
+        }
 
-	// 	RotatedRay.Direction = v3{
-	// 		(CosTheta * OffsetRay.Direction.x) - (SinTheta * OffsetRay.Direction.z),
-            // OffsetRay.Direction.y,
-            // (SinTheta * OffsetRay.Direction.x) + (CosTheta * OffsetRay.Direction.z)
-	// 	}
+		RotatedRay.Direction = v3{
+			(CosTheta * OffsetRay.Direction.x) - (SinTheta * OffsetRay.Direction.z),
+            OffsetRay.Direction.y,
+            (SinTheta * OffsetRay.Direction.x) + (CosTheta * OffsetRay.Direction.z)
+		}
 
-	// 	Record.t = RayIntersectQuad(RotatedRay, Quad)
-	// 	if (Record.t > 0.0001 && Record.t < HitDistance)
-	// 	{
-	// 		HitSomething = true
-	// 		HitDistance = Record.t
-	// 		Record.MaterialIndex = Quad.MatIndex
-	// 		Record.SurfaceNormal = SetFaceNormal(RotatedRay, Quad.N)
-	// 		Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
+		Record.t = RayIntersectQuad(RotatedRay, Quad)
+		if (Record.t > 0.0001 && Record.t < HitDistance)
+		{
+			HitSomething = true
+			HitDistance = Record.t
+			Record.MaterialIndex = Quad.MatIndex
+			Record.SurfaceNormal = SetFaceNormal(RotatedRay, Quad.N)
+			Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
 
-	// 		if (Quad.Rotation != 0)
-	// 		{
-	// 			Record.HitPoint = v3{
-	// 				(CosTheta * Record.HitPoint.x) + (SinTheta * Record.HitPoint.z),
-	// 				Record.HitPoint.y,
-	// 				(-SinTheta * Record.HitPoint.x) + (CosTheta * Record.HitPoint.z)
-	// 			}
+			if (Quad.Rotation != 0)
+			{
+				Record.HitPoint = v3{
+					(CosTheta * Record.HitPoint.x) + (SinTheta * Record.HitPoint.z),
+					Record.HitPoint.y,
+					(-SinTheta * Record.HitPoint.x) + (CosTheta * Record.HitPoint.z)
+				}
 
-	// 			Record.SurfaceNormal = v3{
-	// 				(CosTheta * Record.SurfaceNormal.x) + (SinTheta * Record.SurfaceNormal.z),
-	// 				Record.SurfaceNormal.y,
-	// 				(-SinTheta * Record.SurfaceNormal.x) + (CosTheta * Record.SurfaceNormal.z)
-	// 			}
-	// 		}
+				Record.SurfaceNormal = v3{
+					(CosTheta * Record.SurfaceNormal.x) + (SinTheta * Record.SurfaceNormal.z),
+					Record.SurfaceNormal.y,
+					(-SinTheta * Record.SurfaceNormal.x) + (CosTheta * Record.SurfaceNormal.z)
+				}
+			}
 
-	// 		if (Quad.Translation != v3{0, 0, 0})
-	// 		{
-	// 			Record.HitPoint += Quad.Translation
-	// 		}
-	// 	}
-	// }
+			if (Quad.Translation != v3{0, 0, 0})
+			{
+				Record.HitPoint += Quad.Translation
+			}
+		}
+	}
 
 	TraverseBVH(Ray, &Record, World.BVH, World.BVH.RootNodeIndex)
 	if Record.t > 0.0001 && Record.t < HitDistance
@@ -299,7 +319,7 @@ InitializeCamera :: proc(Camera : ^camera, ImageWidth, ImageHeight : i32)
 	// TODO(matthew): Bulletproof this. Might still be having issues depending
 	// on aspect ratios, etc, but it seems to be fine right now.
 	Theta : f32 = Degs2Rads(Camera.FOV)
-	h : f32 = Tan(Theta / 2)
+	h : f32 = 1//Tan(Theta / 2)
 	ViewportHeight : f32 = 2 * h * Camera.FocusDist
 	ViewportWidth : f32 = ViewportHeight * f32(ImageWidth) / f32(ImageHeight)
 	Camera.Center = Camera.LookFrom
