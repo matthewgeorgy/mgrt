@@ -78,8 +78,8 @@ main :: proc()
 	append(&World.Quads, CreateQuad(v3{555, 555, 555}, v3{-555, 0, 0}, v3{0, 0, -555}, 2))
 	append(&World.Quads, CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}, 2))
 
-	CreateBox(v3{0, 0, 0}, v3{165, 330, 165}, 2, v3{265, 0, 295}, &World)
-	CreateBox(v3{0, 0, 0}, v3{165, 165, 165}, 2, v3{130, 0, 65}, &World)
+	CreateBox(v3{0, 0, 0}, v3{165, 330, 165}, 2, v3{265, 0, 295}, 15, &World)
+	CreateBox(v3{0, 0, 0}, v3{165, 165, 165}, 2, v3{130, 0, 65}, -18, &World)
 	
 	World.SamplesPerPixel = 200
 	World.MaxDepth = 50
@@ -195,14 +195,46 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 		OffsetRay := Ray
 		OffsetRay.Origin -= Quad.Translation
 
-		Record.t = RayIntersectQuad(OffsetRay, Quad)
+		SinTheta := Sin(Quad.Rotation)
+		CosTheta := Cos(Quad.Rotation)
+
+		RotatedRay := OffsetRay 
+
+		RotatedRay.Origin = v3{
+            (CosTheta * OffsetRay.Origin.x) - (SinTheta * OffsetRay.Origin.z),
+            OffsetRay.Origin.y,
+            (SinTheta * OffsetRay.Origin.x) + (CosTheta * OffsetRay.Origin.z)
+        }
+
+		RotatedRay.Direction = v3{
+			(CosTheta * OffsetRay.Direction.x) - (SinTheta * OffsetRay.Direction.z),
+            OffsetRay.Direction.y,
+            (SinTheta * OffsetRay.Direction.x) + (CosTheta * OffsetRay.Direction.z)
+		}
+
+		Record.t = RayIntersectQuad(RotatedRay, Quad)
 		if (Record.t > 0.0001 && Record.t < HitDistance)
 		{
 			HitSomething = true
 			HitDistance = Record.t
 			Record.MaterialIndex = Quad.MatIndex
-			Record.SurfaceNormal = SetFaceNormal(OffsetRay, Quad.N)
-			Record.HitPoint = OffsetRay.Origin + HitDistance * OffsetRay.Direction
+			Record.SurfaceNormal = SetFaceNormal(RotatedRay, Quad.N)
+			Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
+
+			if (Quad.Rotation != 0)
+			{
+				Record.HitPoint = v3{
+					(CosTheta * Record.HitPoint.x) + (SinTheta * Record.HitPoint.z),
+					Record.HitPoint.y,
+					(-SinTheta * Record.HitPoint.x) + (CosTheta * Record.HitPoint.z)
+				}
+
+				Record.SurfaceNormal = v3{
+					(CosTheta * Record.SurfaceNormal.x) + (SinTheta * Record.SurfaceNormal.z),
+					Record.SurfaceNormal.y,
+					(-SinTheta * Record.SurfaceNormal.x) + (CosTheta * Record.SurfaceNormal.z)
+				}
+			}
 
 			if (Quad.Translation != v3{0, 0, 0})
 			{
@@ -232,7 +264,7 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 	}
 
 	NewRay.Origin = Record.HitPoint
-	NewRay.Direction = RandomOnHemisphere(Record.SurfaceNormal)
+	NewRay.Direction = Record.SurfaceNormal + RandomUnitVector()//RandomOnHemisphere(Record.SurfaceNormal)
 
 	ScatteredColor = Attenuation * CastRay(NewRay, World, Depth - 1)
 
