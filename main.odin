@@ -22,7 +22,7 @@ hit_record :: struct
 	t : f32,
 	MaterialIndex  : u32,
 	SurfaceNormal : v3,
-	HitPoint : v3,kgkw
+	HitPoint : v3,
 };
 
 camera :: struct
@@ -77,10 +77,10 @@ main :: proc()
 	append(&World.Quads, CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, 555}, 2))
 	append(&World.Quads, CreateQuad(v3{555, 555, 555}, v3{-555, 0, 0}, v3{0, 0, -555}, 2))
 	append(&World.Quads, CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}, 2))
-	
-	CreateBox(v3{130, 0, 65}, v3{295, 165, 230}, 2, &World)
-	CreateBox(v3{265, 0, 295}, v3{430, 330, 460}, 2, &World)
 
+	CreateBox(v3{0, 0, 0}, v3{165, 330, 165}, 2, v3{265, 0, 295}, &World)
+	CreateBox(v3{0, 0, 0}, v3{165, 165, 165}, 2, v3{130, 0, 65}, &World)
+	
 	World.SamplesPerPixel = 200
 	World.MaxDepth = 50
 
@@ -192,14 +192,22 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 
 	for Quad in World.Quads
 	{
-		Record.t = RayIntersectQuad(Ray, Quad)
+		OffsetRay := Ray
+		OffsetRay.Origin -= Quad.Translation
+
+		Record.t = RayIntersectQuad(OffsetRay, Quad)
 		if (Record.t > 0.0001 && Record.t < HitDistance)
 		{
 			HitSomething = true
 			HitDistance = Record.t
 			Record.MaterialIndex = Quad.MatIndex
-			Record.SurfaceNormal = SetFaceNormal(Ray, Quad.N)
-			Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
+			Record.SurfaceNormal = SetFaceNormal(OffsetRay, Quad.N)
+			Record.HitPoint = OffsetRay.Origin + HitDistance * OffsetRay.Direction
+
+			if (Quad.Translation != v3{0, 0, 0})
+			{
+				Record.HitPoint += Quad.Translation
+			}
 		}
 	}
 

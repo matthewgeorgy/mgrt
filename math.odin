@@ -55,6 +55,8 @@ quad :: struct
 	N : v3,
 	d : f32,
 	w : v3,
+
+	Translation : v3,
 };
 
 RandomUnilateral :: proc() -> f32
@@ -115,7 +117,16 @@ CreateQuad :: proc(Q, u, v : v3, MatIndex : u32) -> quad
 	return Quad
 }
 
-CreateBox :: proc(A, B : v3, MaterialIndex : u32, World : ^world)
+CreateQuadTranslated :: proc(Q, u, v : v3, MatIndex : u32, Translation : v3) -> quad
+{
+	Quad := CreateQuad(Q, u, v, MatIndex)
+
+	Quad.Translation = Translation
+
+	return Quad
+}
+
+CreateBox :: proc(A, B : v3, MaterialIndex : u32, Translation : v3, World : ^world)
 {
 	MinCoord := v3{Min(A.x, B.x), Min(A.y, B.y), Min(A.z, B.z)}
 	MaxCoord := v3{Max(A.x, B.x), Max(A.y, B.y), Max(A.z, B.z)}
@@ -124,12 +135,12 @@ CreateBox :: proc(A, B : v3, MaterialIndex : u32, World : ^world)
 	DeltaY := v3{0, MaxCoord.y - MinCoord.y, 0}
 	DeltaZ := v3{0, 0, MaxCoord.z - MinCoord.z}
 
-    append(&World.Quads, CreateQuad(v3{MinCoord.x, MinCoord.y, MaxCoord.z},  DeltaX,  DeltaY, MaterialIndex)) // front
-    append(&World.Quads, CreateQuad(v3{MaxCoord.x, MinCoord.y, MaxCoord.z}, -DeltaZ,  DeltaY, MaterialIndex)) // right
-    append(&World.Quads, CreateQuad(v3{MaxCoord.x, MinCoord.y, MinCoord.z}, -DeltaX,  DeltaY, MaterialIndex)) // back
-    append(&World.Quads, CreateQuad(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaZ,  DeltaY, MaterialIndex)) // left
-    append(&World.Quads, CreateQuad(v3{MinCoord.x, MaxCoord.y, MaxCoord.z},  DeltaX, -DeltaZ, MaterialIndex)) // top
-    append(&World.Quads, CreateQuad(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaX,  DeltaZ, MaterialIndex)) // bottom
+    append(&World.Quads, CreateQuadTranslated(v3{MinCoord.x, MinCoord.y, MaxCoord.z},  DeltaX,  DeltaY, MaterialIndex, Translation)) // front
+    append(&World.Quads, CreateQuadTranslated(v3{MaxCoord.x, MinCoord.y, MaxCoord.z}, -DeltaZ,  DeltaY, MaterialIndex, Translation)) // right
+    append(&World.Quads, CreateQuadTranslated(v3{MaxCoord.x, MinCoord.y, MinCoord.z}, -DeltaX,  DeltaY, MaterialIndex, Translation)) // back
+    append(&World.Quads, CreateQuadTranslated(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaZ,  DeltaY, MaterialIndex, Translation)) // left
+    append(&World.Quads, CreateQuadTranslated(v3{MinCoord.x, MaxCoord.y, MaxCoord.z},  DeltaX, -DeltaZ, MaterialIndex, Translation)) // top
+    append(&World.Quads, CreateQuadTranslated(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaX,  DeltaZ, MaterialIndex, Translation)) // bottom
 }
 
 RayIntersectQuad :: proc(Ray : ray, Quad : quad) -> f32
