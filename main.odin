@@ -53,36 +53,11 @@ main :: proc()
 	// Image
 	Image := AllocateImage(640, 640)
 
-	// Camera
+	// World & camera
+	World : world
 	Camera : camera
 
-	Camera.LookFrom = v3{278, 278, -800}
-	Camera.LookAt = v3{278, 278, 0}
-	Camera.FocusDist = 10
-
-	InitializeCamera(&Camera, Image.Width, Image.Height)
-
-	// World setup
-	World : world
-
-	append(&World.Materials, material{material_type.COLOR, v3{0.0, 0.0, 0.0}})
-	append(&World.Materials, material{material_type.COLOR, v3{0.65, 0.05, 0.05}})
-	append(&World.Materials, material{material_type.COLOR, v3{0.73, 0.73, 0.73}})
-	append(&World.Materials, material{material_type.COLOR, v3{0.12, 0.45, 0.15}})
-	append(&World.Materials, material{material_type.LIGHT, v3{15, 15, 15}})
-
-	append(&World.Quads, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, 3))
-	append(&World.Quads, CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, 1))
-	append(&World.Quads, CreateQuad(v3{343, 554, 332}, v3{-130, 0, 0}, v3{0, 0, -105}, 4))
-	append(&World.Quads, CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, 555}, 2))
-	append(&World.Quads, CreateQuad(v3{555, 555, 555}, v3{-555, 0, 0}, v3{0, 0, -555}, 2))
-	append(&World.Quads, CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}, 2))
-
-	CreateBox(v3{0, 0, 0}, v3{165, 330, 165}, 2, v3{265, 0, 295}, 15, &World)
-	CreateBox(v3{0, 0, 0}, v3{165, 165, 165}, 2, v3{130, 0, 65}, -18, &World)
-	
-	World.SamplesPerPixel = 200
-	World.MaxDepth = 50
+	CornellBoxScene(&World, &Camera, Image.Width, Image.Height)
 
 	// Work queue
 	Queue : work_queue
@@ -154,41 +129,12 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 	Record : hit_record
 
 	HitDistance : f32 = F32_MAX
-	MatIndex : u32
 	HitSomething := false
 
 	if Depth <= 0
 	{
 		return v3{0, 0, 0}
 	}
-
-	// for SphereIndex : u32 = 0; SphereIndex < World.SphereCount; SphereIndex += 1
-	// {
-	// 	Sphere := World.Spheres[SphereIndex]
-
-	// 	Record.t = RayIntersectSphere(Ray, Sphere)
-	// 	if (Record.t > 0.0001 && Record.t < HitDistance)
-	// 	{
-	// 		HitSomething = true
-	// 		HitDistance = Record.t
-	// 		Record.MaterialIndex = Sphere.MatIndex
-	// 		Record.SurfaceNormal = Normalize(Ray.Origin + Record.t * Ray.Direction - Sphere.Center)
-	// 	}
-	// }
-
-	// for PlaneIndex : u32 = 0; PlaneIndex < World.PlaneCount; PlaneIndex += 1
-	// {
-	// 	Plane := World.Planes[PlaneIndex]
-
-	// 	Record.t = RayIntersectPlane(Ray, Plane)
-	// 	if (Record.t > 0.0001 && Record.t < HitDistance)
-	// 	{
-	// 		HitSomething = true
-	// 		HitDistance = Record.t
-	// 		Record.MaterialIndex = Plane.MatIndex
-	// 		Record.SurfaceNormal = Normalize(Plane.N)
-	// 	}
-	// }
 
 	for Quad in World.Quads
 	{
@@ -198,7 +144,7 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 		SinTheta := Sin(Quad.Rotation)
 		CosTheta := Cos(Quad.Rotation)
 
-		RotatedRay := OffsetRay 
+		RotatedRay := OffsetRay
 
 		RotatedRay.Origin = v3{
             (CosTheta * OffsetRay.Origin.x) - (SinTheta * OffsetRay.Origin.z),
@@ -305,5 +251,36 @@ InitializeCamera :: proc(Camera : ^camera, ImageWidth, ImageHeight : i32)
 	// First pixel
 	ViewportUpperLeft := Camera.Center - (Camera.FocusDist * CameraW) - (ViewportU / 2) - (ViewportV / 2)
 	Camera.FirstPixel = ViewportUpperLeft + 0.5 * (Camera.PixelDeltaU + Camera.PixelDeltaV)
+}
+
+CornellBoxScene :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight : i32)
+{
+	// Camera
+	Camera.LookFrom = v3{278, 278, -800}
+	Camera.LookAt = v3{278, 278, 0}
+	Camera.FocusDist = 10
+
+	InitializeCamera(Camera, ImageWidth, ImageHeight)
+
+	// World setup
+	append(&World.Materials, material{material_type.COLOR, v3{0.0, 0.0, 0.0}})
+	append(&World.Materials, material{material_type.COLOR, v3{0.65, 0.05, 0.05}})
+	append(&World.Materials, material{material_type.COLOR, v3{0.73, 0.73, 0.73}})
+	append(&World.Materials, material{material_type.COLOR, v3{0.12, 0.45, 0.15}})
+	append(&World.Materials, material{material_type.LIGHT, v3{15, 15, 15}})
+
+	append(&World.Quads, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, 3))
+	append(&World.Quads, CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, 1))
+	append(&World.Quads, CreateQuad(v3{343, 554, 332}, v3{-130, 0, 0}, v3{0, 0, -105}, 4))
+	append(&World.Quads, CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, 555}, 2))
+	append(&World.Quads, CreateQuad(v3{555, 555, 555}, v3{-555, 0, 0}, v3{0, 0, -555}, 2))
+	append(&World.Quads, CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}, 2))
+
+	CreateBox(v3{0, 0, 0}, v3{165, 330, 165}, 2, v3{265, 0, 295}, 15, World)
+	CreateBox(v3{0, 0, 0}, v3{165, 165, 165}, 2, v3{130, 0, 65}, -18, World)
+
+	World.SamplesPerPixel = 200
+	World.MaxDepth = 50
+
 }
 
