@@ -57,68 +57,11 @@ main :: proc()
 	// Image
 	Image := AllocateImage(640, 640)
 
-	// Counters
-	StartCounter, EndCounter, Frequency, ElapsedTime: win32.LARGE_INTEGER
-
-	win32.QueryPerformanceFrequency(&Frequency)
-
-	// Mesh
-	Filename := string("assets/bunny.obj")
-	Mesh := LoadMesh(Filename)
-	fmt.println("Loaded mesh:", Filename, "with", len(Mesh.Triangles), "triangles")
-
-	win32.QueryPerformanceCounter(&StartCounter)
-
-	BVH := BuildBVH(Mesh.Triangles)
-
-	win32.QueryPerformanceCounter(&EndCounter)
-
-	ElapsedTime = (EndCounter - StartCounter) * 1000
-	fmt.println("BVH construction took", ElapsedTime / Frequency, "ms")
-
-	MinX : f32 = F32_MAX
-	MaxY : f32 = -F32_MAX
-	MaxZ : f32 = -F32_MAX
-	for Triangle in Mesh.Triangles
-	{
-		MinX = Min(MinX, Triangle.Vertices[0].x)
-		MinX = Min(MinX, Triangle.Vertices[1].x)
-		MinX = Min(MinX, Triangle.Vertices[2].x)
-
-		MaxY = Max(MaxY, Triangle.Vertices[0].y)
-		MaxY = Max(MaxY, Triangle.Vertices[1].y)
-		MaxY = Max(MaxY, Triangle.Vertices[2].y)
-
-		MaxZ = Max(MaxZ, Triangle.Vertices[0].z)
-		MaxZ = Max(MaxZ, Triangle.Vertices[1].z)
-		MaxZ = Max(MaxZ, Triangle.Vertices[2].z)
-	}
-
-	// Camera
+	// World & camera
+	World : world
 	Camera : camera
 
-	Camera.LookFrom = v3{0, 1, 4}
-	Camera.LookAt = v3{0, 0, 0}
-	Camera.FocusDist = 1
-	Camera.FOV = 90
-
-	InitializeCamera(&Camera, Image.Width, Image.Height)
-
-	// World
-	World : world
-
-	append(&World.Materials, material{material_type.COLOR, v3{0.2, 0.2, 0.2}})
-	append(&World.Materials, material{material_type.COLOR, v3{0.8, 0.2, 0.2}})
-	append(&World.Materials, material{material_type.COLOR, v3{0.2, 0.6, 0.8}})
-	append(&World.Materials, material{material_type.LIGHT, v3{1, 1, 1}})
-	append(&World.Planes, plane{v3{0, 1, 0}, 0, 2})
-	append(&World.Quads, CreateQuad(v3{MinX, MaxY + 0.5, MaxZ}, v3{2, 0, 0}, v3{0, 0, 2}, 3))
-
-	World.Triangles = Mesh.Triangles
-	World.BVH = BVH
-
-	World.SamplesPerPixel = 10
-	World.MaxDepth = 10
+	BunnyPlaneLampScene(&World, &Camera, Image.Width, Image.Height)
 
 	// Work queue
 	Queue : work_queue
@@ -140,6 +83,11 @@ main :: proc()
 			PushWorkOrder(&Queue, Top, Left, Bottom, Right)
 		}
 	}
+
+	// Counters
+	StartCounter, EndCounter, Frequency, ElapsedTime: win32.LARGE_INTEGER
+
+	win32.QueryPerformanceFrequency(&Frequency)
 
 	// Threading
 	THREADCOUNT :: 8
@@ -348,35 +296,5 @@ InitializeCamera :: proc(Camera : ^camera, ImageWidth, ImageHeight : i32)
 	// First pixel
 	ViewportUpperLeft := Camera.Center - (Camera.FocusDist * CameraW) - (ViewportU / 2) - (ViewportV / 2)
 	Camera.FirstPixel = ViewportUpperLeft + 0.5 * (Camera.PixelDeltaU + Camera.PixelDeltaV)
-}
-
-CornellBoxScene :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight : i32)
-{
-	// Camera
-	Camera.LookFrom = v3{278, 278, -800}
-	Camera.LookAt = v3{278, 278, 0}
-	Camera.FocusDist = 10
-
-	InitializeCamera(Camera, ImageWidth, ImageHeight)
-
-	// World setup
-	append(&World.Materials, material{material_type.COLOR, v3{0.0, 0.0, 0.0}})
-	append(&World.Materials, material{material_type.COLOR, v3{0.65, 0.05, 0.05}})
-	append(&World.Materials, material{material_type.COLOR, v3{0.73, 0.73, 0.73}})
-	append(&World.Materials, material{material_type.COLOR, v3{0.12, 0.45, 0.15}})
-	append(&World.Materials, material{material_type.LIGHT, v3{15, 15, 15}})
-
-	append(&World.Quads, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, 3))
-	append(&World.Quads, CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, 1))
-	append(&World.Quads, CreateQuad(v3{343, 554, 332}, v3{-130, 0, 0}, v3{0, 0, -105}, 4))
-	append(&World.Quads, CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, 555}, 2))
-	append(&World.Quads, CreateQuad(v3{555, 555, 555}, v3{-555, 0, 0}, v3{0, 0, -555}, 2))
-	append(&World.Quads, CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}, 2))
-
-	CreateBox(v3{0, 0, 0}, v3{165, 330, 165}, 2, v3{265, 0, 295}, 15, World)
-	CreateBox(v3{0, 0, 0}, v3{165, 165, 165}, 2, v3{130, 0, 65}, -18, World)
-
-	World.SamplesPerPixel = 200
-	World.MaxDepth = 50
 }
 
