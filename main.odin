@@ -76,6 +76,9 @@ main :: proc()
 	append(&World.Quads, CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, 555}, 2))
 	append(&World.Quads, CreateQuad(v3{555, 555, 555}, v3{-555, 0, 0}, v3{0, 0, -555}, 2))
 	append(&World.Quads, CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}, 2))
+	
+	CreateBox(v3{130, 0, 65}, v3{295, 165, 230}, 2, &World)
+	CreateBox(v3{265, 0, 295}, v3{430, 330, 460}, 2, &World)
 
 	World.SamplesPerPixel = 200
 	World.MaxDepth = 50

@@ -115,6 +115,23 @@ CreateQuad :: proc(Q, u, v : v3, MatIndex : u32) -> quad
 	return Quad
 }
 
+CreateBox :: proc(A, B : v3, MaterialIndex : u32, World : ^world)
+{
+	MinCoord := v3{Min(A.x, B.x), Min(A.y, B.y), Min(A.z, B.z)}
+	MaxCoord := v3{Max(A.x, B.x), Max(A.y, B.y), Max(A.z, B.z)}
+
+	DeltaX := v3{MaxCoord.x - MinCoord.x, 0, 0}
+	DeltaY := v3{0, MaxCoord.y - MinCoord.y, 0}
+	DeltaZ := v3{0, 0, MaxCoord.z - MinCoord.z}
+
+    append(&World.Quads, CreateQuad(v3{MinCoord.x, MinCoord.y, MaxCoord.z},  DeltaX,  DeltaY, MaterialIndex)) // front
+    append(&World.Quads, CreateQuad(v3{MaxCoord.x, MinCoord.y, MaxCoord.z}, -DeltaZ,  DeltaY, MaterialIndex)) // right
+    append(&World.Quads, CreateQuad(v3{MaxCoord.x, MinCoord.y, MinCoord.z}, -DeltaX,  DeltaY, MaterialIndex)) // back
+    append(&World.Quads, CreateQuad(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaZ,  DeltaY, MaterialIndex)) // left
+    append(&World.Quads, CreateQuad(v3{MinCoord.x, MaxCoord.y, MaxCoord.z},  DeltaX, -DeltaZ, MaterialIndex)) // top
+    append(&World.Quads, CreateQuad(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaX,  DeltaZ, MaterialIndex)) // bottom
+}
+
 RayIntersectQuad :: proc(Ray : ray, Quad : quad) -> f32
 {
 	t : f32 = F32_MAX
