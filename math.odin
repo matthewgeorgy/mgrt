@@ -1,5 +1,6 @@
 package main
 
+import math		"core:math"
 import linalg	"core:math/linalg"
 import rand		"core:math/rand"
 
@@ -17,6 +18,11 @@ SquareRoot 		:: linalg.sqrt
 Abs 			:: abs
 Min 			:: min
 Max 			:: max
+Sin				:: math.sin
+Cos				:: math.cos
+Tan				:: math.tan
+Degs2Rads		:: math.to_radians_f32
+Rads2Degs		:: math.to_degrees_f32
 
 F32_MAX 		:: 3.402823466e+38
 

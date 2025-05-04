@@ -26,6 +26,7 @@ camera :: struct
 
 	LookFrom : v3,
 	LookAt : v3,
+	FocusDist : f32,
 };
 
 world :: struct
@@ -47,13 +48,14 @@ world :: struct
 main :: proc()
 {
 	// Image
-	Image := AllocateImage(1280, 720)
+	Image := AllocateImage(640, 640)
 
 	// Camera
 	Camera : camera
 
-	Camera.LookFrom = v3{0, 0, 9}
-	Camera.LookAt = v3{0, 0, 0}
+	Camera.LookFrom = v3{278, 278, -800}
+	Camera.LookAt = v3{278, 278, 0}
+	Camera.FocusDist = 10
 
 	InitializeCamera(&Camera, Image.Width, Image.Height)
 
@@ -61,19 +63,19 @@ main :: proc()
 	World : world
 
 	World.Materials[0].Color = v3{0.1, 0.1, 0.1}
-	World.Materials[1].Color = v3{1.0, 0.2, 0.2}
-	World.Materials[2].Color = v3{0.2, 1.0, 0.2}
-	World.Materials[3].Color = v3{0.2, 0.2, 1.0}
-	World.Materials[4].Color = v3{1.0, 0.5, 0.0}
-	World.Materials[5].Color = v3{0.2, 0.8, 0.8}
-	World.MaterialCount = 6
+	World.Materials[1].Color = v3{0.65, 0.05, 0.05}
+	World.Materials[2].Color = v3{0.73, 0.73, 0.73}
+	World.Materials[3].Color = v3{0.12, 0.45, 0.15}
+	World.Materials[4].Color = v3{15, 15, 15}
+	World.MaterialCount = 5
 
-	World.Quads[0] = CreateQuad(v3{-3, -2, 5}, v3{0, 0, -4}, v3{0, 4,  0}, 1)
-	World.Quads[1] = CreateQuad(v3{-2, -2, 0}, v3{4, 0,  0}, v3{0, 4,  0}, 2)
-	World.Quads[2] = CreateQuad(v3{ 3, -2, 1}, v3{0, 0,  4}, v3{0, 4,  0}, 3)
-	World.Quads[3] = CreateQuad(v3{-2,  3, 1}, v3{4, 0,  0}, v3{0, 0,  4}, 4)
-	World.Quads[4] = CreateQuad(v3{-2, -3, 5}, v3{4, 0,  0}, v3{0, 0, -4}, 5)
-	World.QuadCount = 5
+	World.Quads[0] = CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, 3)
+	World.Quads[1] = CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, 1)
+	World.Quads[2] = CreateQuad(v3{343, 554, 332}, v3{-130, 0, 0}, v3{0, 0, -105}, 4)
+	World.Quads[3] = CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, 555}, 2)
+	World.Quads[4] = CreateQuad(v3{555, 555, 555}, v3{-555, 0, 0}, v3{0, 0, -555}, 2)
+	World.Quads[5] = CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}, 2)
+	World.QuadCount = 6
 
 	World.SamplesPerPixel = 8
 	World.MaxDepth = 10
@@ -221,9 +223,10 @@ InitializeCamera :: proc(Camera : ^camera, ImageWidth, ImageHeight : i32)
 {
 	// TODO(matthew): Bulletproof this. Might still be having issues depending
 	// on aspect ratios, etc, but it seems to be fine right now.
-	FocalLength : f32 = 1.0
-	ViewportHeight : f32 = 2
-	ViewportWidth : f32 = 2//ViewportHeight * f32(Image.Width) / f32(Image.Height)
+	Theta : f32 = Degs2Rads(40)
+	h : f32 = Tan(Theta / 2)
+	ViewportHeight : f32 = 2 * h * Camera.FocusDist
+	ViewportWidth : f32 = ViewportHeight * f32(ImageWidth) / f32(ImageHeight)
 	Camera.Center = Camera.LookFrom
 
 	if (ImageWidth > ImageHeight)
@@ -248,7 +251,7 @@ InitializeCamera :: proc(Camera : ^camera, ImageWidth, ImageHeight : i32)
 	Camera.PixelDeltaV = ViewportV / f32(ImageHeight)
 
 	// First pixel
-	ViewportUpperLeft := Camera.Center - v3{0, 0, FocalLength} - (ViewportU / 2) - (ViewportV / 2)
+	ViewportUpperLeft := Camera.Center - (Camera.FocusDist * CameraW) - (ViewportU / 2) - (ViewportV / 2)
 	Camera.FirstPixel = ViewportUpperLeft + 0.5 * (Camera.PixelDeltaU + Camera.PixelDeltaV)
 }
 
