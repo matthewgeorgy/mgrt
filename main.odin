@@ -38,15 +38,10 @@ camera :: struct
 
 world :: struct
 {
-	Materials : [16]material,
-	Spheres : [16]sphere,
-	Planes : [16]plane,
-	Quads : [16]quad,
-
-	MaterialCount : u32,
-	SphereCount : u32,
-	PlaneCount : u32,
-	QuadCount : u32,
+	Materials : [dynamic]material,
+	Spheres : [dynamic]sphere,
+	Planes : [dynamic]plane,
+	Quads : [dynamic]quad,
 
 	SamplesPerPixel : u32,
 	MaxDepth : int,
@@ -69,20 +64,18 @@ main :: proc()
 	// World setup
 	World : world
 
-	World.Materials[0] = material{material_type.COLOR, v3{0.1, 0.1, 0.1}}
-	World.Materials[1] = material{material_type.COLOR, v3{0.65, 0.05, 0.05}}
-	World.Materials[2] = material{material_type.COLOR, v3{0.73, 0.73, 0.73}}
-	World.Materials[3] = material{material_type.COLOR, v3{0.12, 0.45, 0.15}}
-	World.Materials[4] = material{material_type.LIGHT, v3{15, 15, 15}}
-	World.MaterialCount = 5
+	append(&World.Materials, material{material_type.COLOR, v3{0.0, 0.0, 0.0}})
+	append(&World.Materials, material{material_type.COLOR, v3{0.65, 0.05, 0.05}})
+	append(&World.Materials, material{material_type.COLOR, v3{0.73, 0.73, 0.73}})
+	append(&World.Materials, material{material_type.COLOR, v3{0.12, 0.45, 0.15}})
+	append(&World.Materials, material{material_type.LIGHT, v3{15, 15, 15}})
 
-	World.Quads[0] = CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, 3)
-	World.Quads[1] = CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, 1)
-	World.Quads[2] = CreateQuad(v3{343, 554, 332}, v3{-130, 0, 0}, v3{0, 0, -105}, 4)
-	World.Quads[3] = CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, 555}, 2)
-	World.Quads[4] = CreateQuad(v3{555, 555, 555}, v3{-555, 0, 0}, v3{0, 0, -555}, 2)
-	World.Quads[5] = CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}, 2)
-	World.QuadCount = 6
+	append(&World.Quads, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, 3))
+	append(&World.Quads, CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, 1))
+	append(&World.Quads, CreateQuad(v3{343, 554, 332}, v3{-130, 0, 0}, v3{0, 0, -105}, 4))
+	append(&World.Quads, CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, 555}, 2))
+	append(&World.Quads, CreateQuad(v3{555, 555, 555}, v3{-555, 0, 0}, v3{0, 0, -555}, 2))
+	append(&World.Quads, CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}, 2))
 
 	World.SamplesPerPixel = 200
 	World.MaxDepth = 50
@@ -165,38 +158,36 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 		return v3{0, 0, 0}
 	}
 
-	for SphereIndex : u32 = 0; SphereIndex < World.SphereCount; SphereIndex += 1
+	// for SphereIndex : u32 = 0; SphereIndex < World.SphereCount; SphereIndex += 1
+	// {
+	// 	Sphere := World.Spheres[SphereIndex]
+
+	// 	Record.t = RayIntersectSphere(Ray, Sphere)
+	// 	if (Record.t > 0.0001 && Record.t < HitDistance)
+	// 	{
+	// 		HitSomething = true
+	// 		HitDistance = Record.t
+	// 		Record.MaterialIndex = Sphere.MatIndex
+	// 		Record.SurfaceNormal = Normalize(Ray.Origin + Record.t * Ray.Direction - Sphere.Center)
+	// 	}
+	// }
+
+	// for PlaneIndex : u32 = 0; PlaneIndex < World.PlaneCount; PlaneIndex += 1
+	// {
+	// 	Plane := World.Planes[PlaneIndex]
+
+	// 	Record.t = RayIntersectPlane(Ray, Plane)
+	// 	if (Record.t > 0.0001 && Record.t < HitDistance)
+	// 	{
+	// 		HitSomething = true
+	// 		HitDistance = Record.t
+	// 		Record.MaterialIndex = Plane.MatIndex
+	// 		Record.SurfaceNormal = Normalize(Plane.N)
+	// 	}
+	// }
+
+	for Quad in World.Quads
 	{
-		Sphere := World.Spheres[SphereIndex]
-
-		Record.t = RayIntersectSphere(Ray, Sphere)
-		if (Record.t > 0.0001 && Record.t < HitDistance)
-		{
-			HitSomething = true
-			HitDistance = Record.t
-			Record.MaterialIndex = Sphere.MatIndex
-			Record.SurfaceNormal = Normalize(Ray.Origin + Record.t * Ray.Direction - Sphere.Center)
-		}
-	}
-
-	for PlaneIndex : u32 = 0; PlaneIndex < World.PlaneCount; PlaneIndex += 1
-	{
-		Plane := World.Planes[PlaneIndex]
-
-		Record.t = RayIntersectPlane(Ray, Plane)
-		if (Record.t > 0.0001 && Record.t < HitDistance)
-		{
-			HitSomething = true
-			HitDistance = Record.t
-			Record.MaterialIndex = Plane.MatIndex
-			Record.SurfaceNormal = Normalize(Plane.N)
-		}
-	}
-
-	for QuadIndex : u32 = 0; QuadIndex < World.QuadCount; QuadIndex += 1
-	{
-		Quad := World.Quads[QuadIndex]
-
 		Record.t = RayIntersectQuad(Ray, Quad)
 		if (Record.t > 0.0001 && Record.t < HitDistance)
 		{
