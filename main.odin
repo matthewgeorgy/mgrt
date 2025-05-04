@@ -59,10 +59,11 @@ main :: proc()
 	Image := AllocateImage(640, 640)
 
 	// Mesh
-	Filename := string("assets/fish.obj")
+	Filename := string("assets/suzanne.obj")
 	Mesh := LoadMesh(Filename)
 	fmt.println("Loaded mesh:", Filename, "with", len(Mesh.Triangles), "triangles")
 	Triangles = Mesh.Triangles[:]
+	BuildBVH()
 
 	// Camera
 	Camera : camera
@@ -215,15 +216,32 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 		}
 	}
 
-	for Triangle in World.Triangles
+	UseBVH := true
+
+	if UseBVH
 	{
-		Record.t = RayIntersectTriangle(Ray, Triangle)
-		if (Record.t > 0.0001 && Record.t < HitDistance)
+		ShotRay := Ray
+
+		RayIntersectBVH(&ShotRay, RootNodeIndex)
+		if ShotRay.t < F32_MAX
 		{
 			HitSomething = true
-			HitDistance = Record.t
-			Record.MaterialIndex = 1 // TODO(matthew): set this in the world!
-			Record.SurfaceNormal = v3{0, 0, 0} // TODO(matthew): set this!
+		}
+	}
+	else
+	{
+		for Triangle in World.Triangles
+		{
+			ShotRay := Ray
+
+			Record.t = RayIntersectTriangle(&ShotRay, Triangle)
+			if (Record.t > 0.0001 && Record.t < HitDistance)
+			{
+				HitSomething = true
+				HitDistance = Record.t
+				Record.MaterialIndex = 1 // TODO(matthew): set this in the world!
+				Record.SurfaceNormal = v3{0, 0, 0} // TODO(matthew): set this!
+			}
 		}
 	}
 

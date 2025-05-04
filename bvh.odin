@@ -33,6 +33,8 @@ BuildBVH :: proc()
 		append(&TriangleIndices, u32(Index))
 	}
 
+	Nodes = make([dynamic]bvh_node, 2 * len(Triangles) - 1)
+
 	Root := &Nodes[RootNodeIndex]
 
 	Root.FirstTriangleIndex = 0
@@ -105,6 +107,7 @@ Subdivide :: proc(NodeIndex : u32)
 			Temp := TriangleIndices[I]
 			TriangleIndices[I] = TriangleIndices[J]
 			TriangleIndices[J] = Temp
+			J -= 1
 		}
 	}
 
@@ -134,5 +137,60 @@ Subdivide :: proc(NodeIndex : u32)
 	// Recurse
 	Subdivide(LeftChildIndex)
 	Subdivide(RightChildIndex)
+}
+
+IsLeaf :: proc(Node : bvh_node) -> b32
+{
+	return Node.TriangleCount > 0
+}
+
+RayIntersectAABB :: proc(Ray : ray, BoxMin, BoxMax : v3) -> b32
+{
+	tx1 := (BoxMin.x - Ray.Origin.x) / Ray.Direction.x
+	tx2 := (BoxMax.x - Ray.Origin.x) / Ray.Direction.x
+
+	tMin := Min(tx1, tx2)
+	tMax := Max(tx1, tx2)
+
+	ty1 := (BoxMin.y - Ray.Origin.y) / Ray.Direction.y
+	ty2 := (BoxMax.y - Ray.Origin.y) / Ray.Direction.y
+
+	tMin = Max(tMin, Min(ty1, ty2))
+	tMax = Min(tMax, Max(ty1, ty2))
+
+	tz1 := (BoxMin.z - Ray.Origin.z) / Ray.Direction.z
+	tz2 := (BoxMax.z - Ray.Origin.z) / Ray.Direction.z
+
+	tMin = Max(tMin, Min(tz1, tz2))
+	tMax = Min(tMax, Max(tz1, tz2))
+
+	return (tMax >= tMin) && (tMin < Ray.t) && (tMax > 0)
+}
+
+RayIntersectBVH :: proc(Ray : ^ray, NodeIndex : u32)
+{
+	Node := Nodes[NodeIndex]
+
+	if !RayIntersectAABB(Ray^, Node.AABBMin, Node.AABBMax)
+	{
+		return
+	}
+
+	if IsLeaf(Node)
+	{
+		HitDistance : f32 = F32_MAX
+
+		FirstIndex := Node.FirstTriangleIndex
+		for I : u32 = 0; I < Node.TriangleCount; I += 1
+		{
+			TriangleIndex := TriangleIndices[FirstIndex + I]
+			RayIntersectTriangle(Ray, Triangles[TriangleIndex])
+		}
+	}
+	else
+	{
+		RayIntersectBVH(Ray, Node.LeftNode)
+		RayIntersectBVH(Ray, Node.LeftNode + 1)
+	}
 }
 

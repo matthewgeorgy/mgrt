@@ -97,6 +97,7 @@ RenderTile :: proc(WorkOrder : work_order, Camera : ^camera, World : ^world, Ima
 
 				Ray.Origin = Camera.Center
 				Ray.Direction = PixelCenter - Ray.Origin
+				Ray.t = F32_MAX
 
 				PixelColor += CastRay(Ray, World, World.MaxDepth)
 			}
