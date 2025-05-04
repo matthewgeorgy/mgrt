@@ -3,7 +3,7 @@ package main
 bvh_node :: struct
 {
 	AABBMin, AABBMax : v3,
-	LeftNode, FirstTriangleIndex, TriangleCount : u32,
+	LeftFirst, TriangleCount : u32,
 };
 
 MinV3 :: proc(A, B : v3) -> v3
@@ -46,7 +46,7 @@ BuildBVH :: proc(Triangles : [dynamic]triangle) -> bvh
 
 	Root := &BVH.Nodes[BVH.RootNodeIndex]
 
-	Root.FirstTriangleIndex = 0
+	Root.LeftFirst = 0
 	Root.TriangleCount = u32(len(Triangles))
 
 	UpdateNodeBounds(&BVH, BVH.RootNodeIndex)
@@ -62,7 +62,7 @@ UpdateNodeBounds :: proc(BVH : ^bvh, NodeIndex : u32)
 	Node.AABBMin = v3{ F32_MAX,  F32_MAX,  F32_MAX}
 	Node.AABBMax = v3{-F32_MAX, -F32_MAX, -F32_MAX}
 
-	First := Node.FirstTriangleIndex
+	First := Node.LeftFirst
 	for I : u32 = 0; I < Node.TriangleCount; I += 1
 	{
 		LeafTriangleIndex := BVH.TriangleIndices[First + I]
@@ -103,7 +103,7 @@ Subdivide :: proc(BVH : ^bvh, NodeIndex : u32)
 	SplitPos : f32 = Node.AABBMin[Axis] + 0.5 * Extent[Axis]
 
 	// Partition in-place
-	I := Node.FirstTriangleIndex
+	I := Node.LeftFirst
 	J := I + Node.TriangleCount - 1
 
 	for I <= J
@@ -123,7 +123,7 @@ Subdivide :: proc(BVH : ^bvh, NodeIndex : u32)
 	}
 
 	// Abort the split if one of the sides is empty
-	LeftCount := I - Node.FirstTriangleIndex
+	LeftCount := I - Node.LeftFirst
 	if LeftCount == 0 || LeftCount == Node.TriangleCount
 	{
 		return
@@ -134,12 +134,12 @@ Subdivide :: proc(BVH : ^bvh, NodeIndex : u32)
 	RightChildIndex := BVH.NodesUsed + 1
 	BVH.NodesUsed += 2
 
-	BVH.Nodes[LeftChildIndex].FirstTriangleIndex = Node.FirstTriangleIndex
+	BVH.Nodes[LeftChildIndex].LeftFirst = Node.LeftFirst
 	BVH.Nodes[LeftChildIndex].TriangleCount = LeftCount
-	BVH.Nodes[RightChildIndex].FirstTriangleIndex = I
+	BVH.Nodes[RightChildIndex].LeftFirst = I
 	BVH.Nodes[RightChildIndex].TriangleCount = Node.TriangleCount - LeftCount
 
-	Node.LeftNode = LeftChildIndex
+	Node.LeftFirst = LeftChildIndex
 	Node.TriangleCount = 0
 
 	UpdateNodeBounds(BVH, LeftChildIndex)
@@ -191,7 +191,7 @@ RayIntersectBVH :: proc(Ray : ray, Record : ^hit_record, BVH : bvh, NodeIndex : 
 	{
 		HitDistance : f32 = F32_MAX
 
-		FirstIndex := Node.FirstTriangleIndex
+		FirstIndex := Node.LeftFirst
 		for I : u32 = 0; I < Node.TriangleCount; I += 1
 		{
 			TriangleIndex := BVH.TriangleIndices[FirstIndex + I]
@@ -200,8 +200,8 @@ RayIntersectBVH :: proc(Ray : ray, Record : ^hit_record, BVH : bvh, NodeIndex : 
 	}
 	else
 	{
-		RayIntersectBVH(Ray, Record, BVH, Node.LeftNode)
-		RayIntersectBVH(Ray, Record, BVH, Node.LeftNode + 1)
+		RayIntersectBVH(Ray, Record, BVH, Node.LeftFirst)
+		RayIntersectBVH(Ray, Record, BVH, Node.LeftFirst + 1)
 	}
 }
 
