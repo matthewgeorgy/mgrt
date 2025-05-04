@@ -36,6 +36,7 @@ camera :: struct
 	LookFrom : v3,
 	LookAt : v3,
 	FocusDist : f32,
+	FOV : f32,
 };
 
 world :: struct
@@ -56,7 +57,7 @@ main :: proc()
 	Image := AllocateImage(640, 640)
 
 	// Mesh
-	Filename := string("assets/cube.obj")
+	Filename := string("assets/fish.obj")
 	Mesh := LoadMesh(Filename)
 	fmt.println("Loaded mesh:", Filename, "with", len(Mesh.Triangles), "triangles")
 
@@ -66,6 +67,7 @@ main :: proc()
 	Camera.LookFrom = v3{0, 2, 5}
 	Camera.LookAt = v3{0, 0, 0}
 	Camera.FocusDist = 1
+	Camera.FOV = 90
 
 	InitializeCamera(&Camera, Image.Width, Image.Height)
 
@@ -262,7 +264,7 @@ InitializeCamera :: proc(Camera : ^camera, ImageWidth, ImageHeight : i32)
 {
 	// TODO(matthew): Bulletproof this. Might still be having issues depending
 	// on aspect ratios, etc, but it seems to be fine right now.
-	Theta : f32 = Degs2Rads(40)
+	Theta : f32 = Degs2Rads(Camera.FOV)
 	h : f32 = Tan(Theta / 2)
 	ViewportHeight : f32 = 2 * h * Camera.FocusDist
 	ViewportWidth : f32 = ViewportHeight * f32(ImageWidth) / f32(ImageHeight)
