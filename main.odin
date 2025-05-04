@@ -5,9 +5,16 @@ import thread	"core:thread"
 import win32	"core:sys/windows"
 import libc		"core:c/libc"
 
+material_type :: enum
+{
+	COLOR,
+	LIGHT
+};
+
 material :: struct
 {
-	Color : v3
+	Type : material_type,
+	Color : v3,
 };
 
 hit_record :: struct
@@ -62,11 +69,11 @@ main :: proc()
 	// World setup
 	World : world
 
-	World.Materials[0].Color = v3{0.1, 0.1, 0.1}
-	World.Materials[1].Color = v3{0.65, 0.05, 0.05}
-	World.Materials[2].Color = v3{0.73, 0.73, 0.73}
-	World.Materials[3].Color = v3{0.12, 0.45, 0.15}
-	World.Materials[4].Color = v3{15, 15, 15}
+	World.Materials[0] = material{material_type.COLOR, v3{0.1, 0.1, 0.1}}
+	World.Materials[1] = material{material_type.COLOR, v3{0.65, 0.05, 0.05}}
+	World.Materials[2] = material{material_type.COLOR, v3{0.73, 0.73, 0.73}}
+	World.Materials[3] = material{material_type.COLOR, v3{0.12, 0.45, 0.15}}
+	World.Materials[4] = material{material_type.LIGHT, v3{15, 15, 15}}
 	World.MaterialCount = 5
 
 	World.Quads[0] = CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, 3)
@@ -77,8 +84,8 @@ main :: proc()
 	World.Quads[5] = CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}, 2)
 	World.QuadCount = 6
 
-	World.SamplesPerPixel = 8
-	World.MaxDepth = 10
+	World.SamplesPerPixel = 200
+	World.MaxDepth = 50
 
 	// Work queue
 	Queue : work_queue
@@ -206,17 +213,26 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 	}
 
 	NewRay : ray
-	Color : v3
+	ScatteredColor : v3
+	EmittedColor : v3
 	Attenuation : v3
+	SurfaceMaterial := World.Materials[Record.MaterialIndex]
+
+	if SurfaceMaterial.Type == material_type.LIGHT
+	{
+		EmittedColor = SurfaceMaterial.Color
+	}
+	else
+	{
+		Attenuation = SurfaceMaterial.Color
+	}
 
 	NewRay.Origin = Ray.Origin + HitDistance * Ray.Direction
 	NewRay.Direction = RandomOnHemisphere(Record.SurfaceNormal)
 
-	Attenuation = World.Materials[Record.MaterialIndex].Color
+	ScatteredColor = Attenuation * CastRay(NewRay, World, Depth - 1)
 
-	Color = Attenuation * CastRay(NewRay, World, Depth - 1)
-
-	return Color
+	return EmittedColor + ScatteredColor
 }
 
 InitializeCamera :: proc(Camera : ^camera, ImageWidth, ImageHeight : i32)

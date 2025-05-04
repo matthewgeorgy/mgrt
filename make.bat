@@ -1,4 +1,4 @@
 @echo off
 
-odin build . -out:main.exe
+odin build . -out:main.exe -o:speed
 
