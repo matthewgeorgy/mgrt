@@ -3,6 +3,58 @@ package main
 import fmt		"core:fmt"
 import win32	"core:sys/windows"
 
+CornellBunny  :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight : i32)
+{
+	StartCounter, EndCounter, Frequency : win32.LARGE_INTEGER
+	win32.QueryPerformanceFrequency(&Frequency)
+
+	// Mesh
+	FileName := string("assets/bunny.obj")
+	Mesh := LoadMesh(FileName, 200)
+	fmt.println("Loaded mesh:", FileName, "with", len(Mesh.Triangles), "triangles")
+
+	win32.QueryPerformanceCounter(&StartCounter)
+
+	BVH := BuildBVH(Mesh.Triangles)
+
+	win32.QueryPerformanceCounter(&EndCounter)
+	ElapsedTime := (EndCounter - StartCounter) * 1000
+	fmt.println("BVH construction took", ElapsedTime / Frequency, "ms")
+
+	// Camera
+	Camera.LookFrom = v3{278, 278, 800}
+	Camera.LookAt = v3{278, 278, 0}
+	Camera.FOV = 40
+	Camera.FocusDist = 10
+
+	InitializeCamera(Camera, ImageWidth, ImageHeight)
+
+	// World setup
+	// TODO(matthew): do this with a proper bounding box so that we can get
+	// other models in here!
+	BVH.Translation = v3{-300, 0, 300}
+	BVH.MatIndex = 5
+
+	World.BVH = BVH
+
+	append(&World.Materials, lambertian{v3{0.0, 0.0, 0.0}})
+	append(&World.Materials, lambertian{v3{0.65, 0.05, 0.05}})
+	append(&World.Materials, lambertian{v3{0.73, 0.73, 0.73}})
+	append(&World.Materials, lambertian{v3{0.12, 0.45, 0.15}})
+	append(&World.Materials, light{v3{15, 15, 15}})
+	append(&World.Materials, lambertian{v3{0.05, 0.05, 0.85}})
+
+	append(&World.Quads, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, -555}, 1)) 		// right
+	append(&World.Quads, CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, -555}, 3)) 			// left
+	append(&World.Quads, CreateQuad(v3{343, 554, -332}, v3{-130, 0, 0}, v3{0, 0, 105}, 4))	// light
+	append(&World.Quads, CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, -555}, 2)) 			// bottom
+	append(&World.Quads, CreateQuad(v3{555, 555, -555}, v3{-555, 0, 0}, v3{0, 0, 555}, 2))	// top
+	append(&World.Quads, CreateQuad(v3{0, 0, -555}, v3{555, 0, 0}, v3{0, 555, 0}, 2))		// back
+	
+	World.SamplesPerPixel = 50
+	World.MaxDepth = 10
+}
+
 GlassSuzanne :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight : i32)
 {
 	StartCounter, EndCounter, Frequency, ElapsedTime: win32.LARGE_INTEGER
@@ -78,7 +130,7 @@ GlassSuzanne :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight :
 	World.MaxDepth = 10
 }
 
-SpheresMaterialScene :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight : i32)
+SpheresMaterial :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight : i32)
 {
 	Camera.LookFrom = v3{0, 0, -3}
 	Camera.LookAt = v3{0, 0, 0}
@@ -104,7 +156,7 @@ SpheresMaterialScene :: proc(World : ^world, Camera : ^camera, ImageWidth, Image
 	World.MaxDepth = 50
 }
 
-BunnyPlaneLampScene :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight : i32)
+BunnyPlaneLamp :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight : i32)
 {
 	StartCounter, EndCounter, Frequency, ElapsedTime: win32.LARGE_INTEGER
 	win32.QueryPerformanceFrequency(&Frequency)
@@ -164,7 +216,7 @@ BunnyPlaneLampScene :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageH
 	World.MaxDepth = 10
 }
 
-CornellBoxScene :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight : i32)
+CornellBox :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight : i32)
 {
 	// Camera
 	Camera.LookFrom = v3{278, 278, -800}

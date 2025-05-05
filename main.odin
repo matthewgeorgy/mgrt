@@ -53,7 +53,7 @@ main :: proc()
 	World : world
 	Camera : camera
 
-	GlassSuzanne(&World, &Camera, Image.Width, Image.Height)
+	CornellBunny(&World, &Camera, Image.Width, Image.Height)
 
 	// Work queue
 	Queue : work_queue

@@ -13,7 +13,7 @@ mesh :: struct
     Triangles : [dynamic]triangle,
 };
 
-LoadMesh :: proc(Filename : string) -> mesh
+LoadMesh :: proc(Filename : string, Scale : f32 = 1) -> mesh
 {
     Mesh : mesh
 
@@ -94,9 +94,9 @@ LoadMesh :: proc(Filename : string) -> mesh
 
         for Face in Mesh.Faces
         {
-            V0 := Mesh.Vertices[Face.x - 1]
-            V1 := Mesh.Vertices[Face.y - 1]
-            V2 := Mesh.Vertices[Face.z - 1]
+            V0 := Mesh.Vertices[Face.x - 1] * Scale
+            V1 := Mesh.Vertices[Face.y - 1] * Scale
+            V2 := Mesh.Vertices[Face.z - 1] * Scale
 
             Triangle := triangle{ Vertices = {V0, V1, V2}}
 
