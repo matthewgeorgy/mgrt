@@ -46,9 +46,24 @@ ScatterDielectric :: proc(Material : dielectric, Ray : ray, Record : hit_record)
 	Ri := Record.IsFrontFace ? (1.0 / Material.RefractionIndex) : Material.RefractionIndex
 
 	UnitDirection := Normalize(Ray.Direction)
-	Refracted := Refract(UnitDirection, Record.SurfaceNormal, Ri)
 
-	NewRay := ray{Record.HitPoint, Refracted}
+	// For handling total internal reflection
+	CosTheta := Min(Dot(-UnitDirection, Record.SurfaceNormal), 1)
+	SinTheta := SquareRoot(1.0 - CosTheta * CosTheta)
+
+	NewDirection : v3
+	CannotRefract := Ri * SinTheta > 1.0
+
+	if CannotRefract
+	{
+		NewDirection = Reflect(UnitDirection, Record.SurfaceNormal)
+	}
+	else
+	{
+		NewDirection = Refract(UnitDirection, Record.SurfaceNormal, Ri)
+	}
+
+	NewRay := ray{Record.HitPoint, NewDirection}
 
 	return NewRay, Attenuation, true
 }
