@@ -29,20 +29,64 @@ material :: union
 	light,
 };
 
-ScatterMetal :: proc(Metal : metal, Ray : ray, Record : hit_record) -> (ray, v3, bool)
+scatter_record :: struct
 {
-	Reflected := Reflect(Ray.Direction, Record.SurfaceNormal)
-	Reflected = Normalize(Reflected) + (Metal.Fuzz * RandomUnitVector())
-	NewRay := ray{Record.HitPoint, Reflected}
-	Attenuation := Metal.Color
-	ScatterAgain := Dot(NewRay.Direction, Record.SurfaceNormal) > 0
+	NewRay : ray,
+	EmittedColor : v3,
+	Attenuation : v3,
+	ScatterAgain : bool,
+};
 
-	return NewRay, Attenuation, ScatterAgain
+Scatter :: proc(SurfaceMaterial : material, Ray : ray, Record : hit_record) -> scatter_record
+{
+	SRecord : scatter_record
+
+	switch Type in SurfaceMaterial
+	{
+		case lambertian:
+		{
+			SRecord.Attenuation = SurfaceMaterial.(lambertian).Color
+			SRecord.NewRay.Origin = Record.HitPoint
+			SRecord.NewRay.Direction = Record.SurfaceNormal + RandomUnitVector()//RandomOnHemisphere(Record.SurfaceNormal)
+			SRecord.ScatterAgain = true
+		}
+		case metal:
+		{
+			SRecord = ScatterMetal(SurfaceMaterial.(metal), Ray, Record)
+		}
+		case dielectric:
+		{
+			SRecord = ScatterDielectric(SurfaceMaterial.(dielectric), Ray, Record)
+		}
+		case light:
+		{
+			SRecord.EmittedColor = SurfaceMaterial.(light).Color
+			SRecord.NewRay.Origin = Record.HitPoint
+			SRecord.NewRay.Direction = Record.SurfaceNormal + RandomUnitVector()//RandomOnHemisphere(Record.SurfaceNormal)
+			SRecord.ScatterAgain = true
+		}
+	}
+
+	return SRecord
 }
 
-ScatterDielectric :: proc(Material : dielectric, Ray : ray, Record : hit_record) -> (ray, v3, bool)
+ScatterMetal :: proc(Metal : metal, Ray : ray, Record : hit_record) -> scatter_record
 {
-	Attenuation := v3{1, 1, 1}
+	SRecord : scatter_record
+
+	Reflected := Reflect(Ray.Direction, Record.SurfaceNormal)
+	Reflected = Normalize(Reflected) + (Metal.Fuzz * RandomUnitVector())
+	SRecord.NewRay = ray{Record.HitPoint, Reflected}
+	SRecord.Attenuation = Metal.Color
+	SRecord.ScatterAgain = Dot(SRecord.NewRay.Direction, Record.SurfaceNormal) > 0
+
+	return SRecord
+}
+
+ScatterDielectric :: proc(Material : dielectric, Ray : ray, Record : hit_record) -> scatter_record
+{
+	SRecord : scatter_record
+
 	Ri := Record.IsFrontFace ? (1.0 / Material.RefractionIndex) : Material.RefractionIndex
 
 	UnitDirection := Normalize(Ray.Direction)
@@ -63,8 +107,10 @@ ScatterDielectric :: proc(Material : dielectric, Ray : ray, Record : hit_record)
 		NewDirection = Refract(UnitDirection, Record.SurfaceNormal, Ri)
 	}
 
-	NewRay := ray{Record.HitPoint, NewDirection}
+	SRecord.Attenuation = v3{1, 1, 1}
+	SRecord.NewRay = ray{Record.HitPoint, NewDirection}
+	SRecord.ScatterAgain = true
 
-	return NewRay, Attenuation, true
+	return SRecord
 }
 

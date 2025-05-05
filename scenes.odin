@@ -50,7 +50,7 @@ CornellBunny  :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight 
 	append(&World.Quads, CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, -555}, 2)) 			// bottom
 	append(&World.Quads, CreateQuad(v3{555, 555, -555}, v3{-555, 0, 0}, v3{0, 0, 555}, 2))	// top
 	append(&World.Quads, CreateQuad(v3{0, 0, -555}, v3{555, 0, 0}, v3{0, 555, 0}, 2))		// back
-	
+
 	World.SamplesPerPixel = 50
 	World.MaxDepth = 10
 }
@@ -151,7 +151,7 @@ SpheresMaterial :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeigh
     append(&World.Spheres, sphere{v3{-1.0,    0.0, -1.0},   0.5, 3})
     append(&World.Spheres, sphere{v3{-1.0,    0.0, -1.0},   0.4, 4})
     append(&World.Spheres, sphere{v3{ 1.0,    0.0, -1.0},   0.5, 5})
-	
+
 	World.SamplesPerPixel = 100
 	World.MaxDepth = 50
 }

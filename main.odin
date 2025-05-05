@@ -146,39 +146,16 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 	Attenuation : v3
 	SurfaceMaterial := World.Materials[Record.MaterialIndex]
 
-	switch Type in SurfaceMaterial
-	{
-		case lambertian:
-		{
-			Attenuation = SurfaceMaterial.(lambertian).Color
-			NewRay.Origin = Record.HitPoint
-			NewRay.Direction = Record.SurfaceNormal + RandomUnitVector()//RandomOnHemisphere(Record.SurfaceNormal)
-		}
-		case metal:
-		{
-			ScatterAgain : bool
-			NewRay, Attenuation, ScatterAgain = ScatterMetal(SurfaceMaterial.(metal), Ray, Record)
+	ScatterRecord := Scatter(SurfaceMaterial, Ray, Record)
 
-			if !ScatterAgain
-			{
-				return v3{0, 0, 0}
-			}
-		}
-		case dielectric:
-		{
-			NewRay, Attenuation, _ = ScatterDielectric(SurfaceMaterial.(dielectric), Ray, Record)
-		}
-		case light:
-		{
-			EmittedColor = SurfaceMaterial.(light).Color
-			NewRay.Origin = Record.HitPoint
-			NewRay.Direction = Record.SurfaceNormal + RandomUnitVector()//RandomOnHemisphere(Record.SurfaceNormal)
-		}
+	if !ScatterRecord.ScatterAgain
+	{
+		return v3{0, 0, 0}
 	}
 
-	ScatteredColor = Attenuation * CastRay(NewRay, World, Depth - 1)
+	ScatteredColor = ScatterRecord.Attenuation * CastRay(ScatterRecord.NewRay, World, Depth - 1)
 
-	return EmittedColor + ScatteredColor
+	return ScatterRecord.EmittedColor + ScatteredColor
 }
 
 GetIntersection :: proc(Ray : ray, World : ^world, Record : ^hit_record) -> bool
