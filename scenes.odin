@@ -13,7 +13,16 @@ GlassSuzanne :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight :
 	Mesh := LoadMesh(Filename)
 	fmt.println("Loaded mesh:", Filename, "with", len(Mesh.Triangles), "triangles")
 
+	win32.QueryPerformanceCounter(&StartCounter)
+
+	BVH := BuildBVH(Mesh.Triangles)
+
+	win32.QueryPerformanceCounter(&EndCounter)
+	ElapsedTime = (EndCounter - StartCounter) * 1000
+	fmt.println("BVH construction took", ElapsedTime / Frequency, "ms")
+
 	AABB := aabb{v3{F32_MAX, F32_MAX, F32_MAX}, v3{-F32_MAX, -F32_MAX, -F32_MAX}}
+	Centroid : v3
 
 	for Triangle in Mesh.Triangles
 	{
@@ -23,7 +32,11 @@ GlassSuzanne :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight :
 		AABB.Max = MaxV3(AABB.Max, Triangle.Vertices[0])
 		AABB.Max = MaxV3(AABB.Max, Triangle.Vertices[1])
 		AABB.Max = MaxV3(AABB.Max, Triangle.Vertices[2])
+
+		Centroid = Centroid + (Triangle.Vertices[0] + Triangle.Vertices[1] + Triangle.Vertices[2])
 	}
+
+	Centroid /= f32(len(Mesh.Triangles))
 
 	Extents := AABB.Max - AABB.Min
 
@@ -34,20 +47,13 @@ GlassSuzanne :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight :
 	// 	Triangle.Vertices[2] -= AABB.Min
 	// }
 
-	win32.QueryPerformanceCounter(&StartCounter)
-
-	BVH := BuildBVH(Mesh.Triangles)
-
-	win32.QueryPerformanceCounter(&EndCounter)
-	ElapsedTime = (EndCounter - StartCounter) * 1000
-	fmt.println("BVH construction took", ElapsedTime / Frequency, "ms")
-
 	fmt.println("AABB:", AABB)
 	fmt.println("Extents:", Extents)
+	fmt.println("Centroid:", Centroid)
 
 	// Camera
-	Camera.LookFrom = v3{Extents.x / 2 - 1, Extents.y / 2, -2}
-	Camera.LookAt = v3{0, 0, 1}
+	Camera.LookFrom = Centroid//v3{4, 0, -3}
+	Camera.LookAt = v3{0, 0, 0}
 	Camera.FocusDist = 1
 	Camera.FOV = 90
 
@@ -58,13 +64,15 @@ GlassSuzanne :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight :
 	append(&World.Materials, lambertian{v3{0.8, 0.2, 0.2}})
 	append(&World.Materials, lambertian{v3{0.2, 0.6, 0.8}})
 	append(&World.Materials, light{v3{1, 1, 1}})
-	append(&World.Materials, dielectric{1.5})
+	append(&World.Materials, dielectric{1.33})
 	append(&World.Planes, plane{v3{0, 1, 0}, -10 * AABB.Min.y, 2})
 	append(&World.Quads, CreateQuad(AABB.Max / 2 + v3{0, 2, 0}, v3{2, 0, 0}, v3{0, 0, 2}, 3))
 
 	World.Triangles = Mesh.Triangles
 	World.BVH = BVH
 	World.BVH.MatIndex = 4
+	//World.BVH.Translation = -Centroid;
+	// World.BVH.Rotation = 190
 
 	World.SamplesPerPixel = 10
 	World.MaxDepth = 10

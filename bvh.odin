@@ -25,6 +25,9 @@ bvh :: struct
 	RootNodeIndex : u32,
 	NodesUsed : u32,
 	MatIndex : u32,
+
+	Translation : v3,
+	Rotation : f32,
 };
 
 BuildBVH :: proc(Triangles : [dynamic]triangle) -> bvh

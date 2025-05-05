@@ -192,14 +192,49 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 
 	if World.BVH.NodesUsed != 0
 	{
-		TraverseBVH(Ray, &Record, World.BVH, World.BVH.RootNodeIndex)
+		TranslatedRay := Ray
+
+		TranslatedRay.Origin += World.BVH.Translation
+
+		SinTheta := Sin(World.BVH.Rotation)
+		CosTheta := Cos(World.BVH.Rotation)
+
+		RotatedRay := TranslatedRay
+
+		RotatedRay.Origin = v3{
+            (CosTheta * TranslatedRay.Origin.x) - (SinTheta * TranslatedRay.Origin.z),
+            TranslatedRay.Origin.y,
+            (SinTheta * TranslatedRay.Origin.x) + (CosTheta * TranslatedRay.Origin.z)
+        }
+
+		RotatedRay.Direction = v3{
+			(CosTheta * TranslatedRay.Direction.x) - (SinTheta * TranslatedRay.Direction.z),
+            TranslatedRay.Direction.y,
+            (SinTheta * TranslatedRay.Direction.x) + (CosTheta * TranslatedRay.Direction.z)
+		}
+
+		TraverseBVH(RotatedRay, &Record, World.BVH, World.BVH.RootNodeIndex)
 		if Record.t > 0.0001 && Record.t < HitDistance
 		{
 			HitSomething = true
 			HitDistance = Record.t
 			Record.MaterialIndex = World.BVH.MatIndex
-			SetFaceNormal(Ray, Record.SurfaceNormal, &Record)
-			Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
+			SetFaceNormal(RotatedRay, Record.SurfaceNormal, &Record)
+			Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
+
+			Record.HitPoint = v3{
+				(CosTheta * Record.HitPoint.x) + (SinTheta * Record.HitPoint.z),
+				Record.HitPoint.y,
+				(-SinTheta * Record.HitPoint.x) + (CosTheta * Record.HitPoint.z)
+			}
+
+			Record.SurfaceNormal = v3{
+				(CosTheta * Record.SurfaceNormal.x) + (SinTheta * Record.SurfaceNormal.z),
+				Record.SurfaceNormal.y,
+				(-SinTheta * Record.SurfaceNormal.x) + (CosTheta * Record.SurfaceNormal.z)
+			}
+
+			Record.HitPoint -= World.BVH.Translation
 		}
 	}
 
