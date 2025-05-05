@@ -128,170 +128,12 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 {
 	Record : hit_record
 
-	Record.t = F32_MAX
-
-	HitDistance : f32 = F32_MAX
-	HitSomething := false
-
 	if Depth <= 0
 	{
 		return v3{0, 0, 0}
 	}
 
-	for Quad in World.Quads
-	{
-		OffsetRay := Ray
-		OffsetRay.Origin -= Quad.Translation
-
-		SinTheta := Sin(Degs2Rads(Quad.Rotation))
-		CosTheta := Cos(Degs2Rads(Quad.Rotation))
-
-		RotatedRay := OffsetRay
-
-		RotatedRay.Origin = v3{
-            (CosTheta * OffsetRay.Origin.x) - (SinTheta * OffsetRay.Origin.z),
-            OffsetRay.Origin.y,
-            (SinTheta * OffsetRay.Origin.x) + (CosTheta * OffsetRay.Origin.z)
-        }
-
-		RotatedRay.Direction = v3{
-			(CosTheta * OffsetRay.Direction.x) - (SinTheta * OffsetRay.Direction.z),
-            OffsetRay.Direction.y,
-            (SinTheta * OffsetRay.Direction.x) + (CosTheta * OffsetRay.Direction.z)
-		}
-
-		Record.t = RayIntersectQuad(RotatedRay, Quad)
-		if (Record.t > 0.0001 && Record.t < HitDistance)
-		{
-			HitSomething = true
-			HitDistance = Record.t
-			Record.MaterialIndex = Quad.MatIndex
-			SetFaceNormal(RotatedRay, Quad.N, &Record)
-			Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
-
-			if (Quad.Rotation != 0)
-			{
-				Record.HitPoint = v3{
-					(CosTheta * Record.HitPoint.x) + (SinTheta * Record.HitPoint.z),
-					Record.HitPoint.y,
-					(-SinTheta * Record.HitPoint.x) + (CosTheta * Record.HitPoint.z)
-				}
-
-				Record.SurfaceNormal = v3{
-					(CosTheta * Record.SurfaceNormal.x) + (SinTheta * Record.SurfaceNormal.z),
-					Record.SurfaceNormal.y,
-					(-SinTheta * Record.SurfaceNormal.x) + (CosTheta * Record.SurfaceNormal.z)
-				}
-			}
-
-			if (Quad.Translation != v3{0, 0, 0})
-			{
-				Record.HitPoint += Quad.Translation
-			}
-		}
-	}
-
-	if World.BVH.NodesUsed != 0
-	{
-		TranslatedRay := Ray
-
-		TranslatedRay.Origin += World.BVH.Translation
-
-		SinTheta := Sin(World.BVH.Rotation)
-		CosTheta := Cos(World.BVH.Rotation)
-
-		RotatedRay := TranslatedRay
-
-		RotatedRay.Origin = v3{
-            (CosTheta * TranslatedRay.Origin.x) - (SinTheta * TranslatedRay.Origin.z),
-            TranslatedRay.Origin.y,
-            (SinTheta * TranslatedRay.Origin.x) + (CosTheta * TranslatedRay.Origin.z)
-        }
-
-		RotatedRay.Direction = v3{
-			(CosTheta * TranslatedRay.Direction.x) - (SinTheta * TranslatedRay.Direction.z),
-            TranslatedRay.Direction.y,
-            (SinTheta * TranslatedRay.Direction.x) + (CosTheta * TranslatedRay.Direction.z)
-		}
-
-		TraverseBVH(RotatedRay, &Record, World.BVH, World.BVH.RootNodeIndex)
-		if Record.t > 0.0001 && Record.t < HitDistance
-		{
-			HitSomething = true
-			HitDistance = Record.t
-
-			// Compute surface normal from the best triangle intersection
-			{
-				Triangle := World.BVH.Triangles[Record.BestTriangleIndex]
-
-				V0 := Triangle.Vertices[0]
-				V1 := Triangle.Vertices[1]
-				V2 := Triangle.Vertices[2]
-
-				Record.SurfaceNormal = Normalize(Cross(V1 - V0, V2 - V0))
-			}
-
-			Record.MaterialIndex = World.BVH.MatIndex
-			SetFaceNormal(RotatedRay, Record.SurfaceNormal, &Record)
-			Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
-
-			Record.HitPoint = v3{
-				(CosTheta * Record.HitPoint.x) + (SinTheta * Record.HitPoint.z),
-				Record.HitPoint.y,
-				(-SinTheta * Record.HitPoint.x) + (CosTheta * Record.HitPoint.z)
-			}
-
-			Record.SurfaceNormal = v3{
-				(CosTheta * Record.SurfaceNormal.x) + (SinTheta * Record.SurfaceNormal.z),
-				Record.SurfaceNormal.y,
-				(-SinTheta * Record.SurfaceNormal.x) + (CosTheta * Record.SurfaceNormal.z)
-			}
-
-			Record.HitPoint -= World.BVH.Translation
-		}
-	}
-
-	for Plane in World.Planes
-	{
-		Record.t = RayIntersectPlane(Ray, Plane)
-
-		if Record.t > 0.0001 && Record.t < HitDistance
-		{
-			HitSomething = true
-			HitDistance = Record.t
-			Record.MaterialIndex = Plane.MatIndex
-			SetFaceNormal(Ray, Plane.N, &Record)
-			Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
-		}
-	}
-
-	for Sphere in World.Spheres
-	{
-		Record.t = RayIntersectSphere(Ray, Sphere)
-
-		if Record.t > 0.0001 && Record.t < HitDistance
-		{
-			HitSomething = true
-			HitDistance = Record.t
-			Record.MaterialIndex = Sphere.MatIndex
-			Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
-			OutwardNormal := Normalize(Record.HitPoint - Sphere.Center)
-
-			SetFaceNormal(Ray, OutwardNormal, &Record)
-		}
-	}
-
-	// for Triangle in World.Triangles
-	// {
-	// 	RayIntersectTriangle(Ray, &Record, Triangle)
-	// 	if (Record.t > 0.0001 && Record.t < HitDistance)
-	// 	{
-	// 		HitSomething = true
-	// 		HitDistance = Record.t
-	// 		// Record.MaterialIndex = 1 // TODO(matthew): set this in the world!
-	// 		// Record.SurfaceNormal = v3{0, 0, 0} // TODO(matthew): set this!
-	// 	}
-	// }
+	HitSomething := GetIntersection(Ray, World, &Record)
 
 	if !HitSomething
 	{
@@ -337,6 +179,171 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 	ScatteredColor = Attenuation * CastRay(NewRay, World, Depth - 1)
 
 	return EmittedColor + ScatteredColor
+}
+
+GetIntersection :: proc(Ray : ray, World : ^world, Record : ^hit_record) -> bool
+{
+	Record.t = F32_MAX
+
+	HitDistance : f32 = F32_MAX
+	HitSomething := false
+
+	for Quad in World.Quads
+	{
+		OffsetRay := Ray
+		OffsetRay.Origin -= Quad.Translation
+
+		SinTheta := Sin(Quad.Rotation)
+		CosTheta := Cos(Quad.Rotation)
+
+		RotatedRay := OffsetRay
+
+		RotatedRay.Origin = v3{
+            (CosTheta * OffsetRay.Origin.x) - (SinTheta * OffsetRay.Origin.z),
+            OffsetRay.Origin.y,
+            (SinTheta * OffsetRay.Origin.x) + (CosTheta * OffsetRay.Origin.z)
+        }
+
+		RotatedRay.Direction = v3{
+			(CosTheta * OffsetRay.Direction.x) - (SinTheta * OffsetRay.Direction.z),
+            OffsetRay.Direction.y,
+            (SinTheta * OffsetRay.Direction.x) + (CosTheta * OffsetRay.Direction.z)
+		}
+
+		Record.t = RayIntersectQuad(RotatedRay, Quad)
+		if (Record.t > 0.0001 && Record.t < HitDistance)
+		{
+			HitSomething = true
+			HitDistance = Record.t
+			Record.MaterialIndex = Quad.MatIndex
+			SetFaceNormal(RotatedRay, Quad.N, Record)
+			Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
+
+			if (Quad.Rotation != 0)
+			{
+				Record.HitPoint = v3{
+					(CosTheta * Record.HitPoint.x) + (SinTheta * Record.HitPoint.z),
+					Record.HitPoint.y,
+					(-SinTheta * Record.HitPoint.x) + (CosTheta * Record.HitPoint.z)
+				}
+
+				Record.SurfaceNormal = v3{
+					(CosTheta * Record.SurfaceNormal.x) + (SinTheta * Record.SurfaceNormal.z),
+					Record.SurfaceNormal.y,
+					(-SinTheta * Record.SurfaceNormal.x) + (CosTheta * Record.SurfaceNormal.z)
+				}
+			}
+
+			if (Quad.Translation != v3{0, 0, 0})
+			{
+				Record.HitPoint += Quad.Translation
+			}
+		}
+	}
+
+	if World.BVH.NodesUsed != 0
+	{
+		TranslatedRay := Ray
+
+		TranslatedRay.Origin += World.BVH.Translation
+
+		SinTheta := Sin(Degs2Rads(World.BVH.Rotation))
+		CosTheta := Cos(Degs2Rads(World.BVH.Rotation))
+
+		RotatedRay := TranslatedRay
+
+		RotatedRay.Origin = v3{
+            (CosTheta * TranslatedRay.Origin.x) - (SinTheta * TranslatedRay.Origin.z),
+            TranslatedRay.Origin.y,
+            (SinTheta * TranslatedRay.Origin.x) + (CosTheta * TranslatedRay.Origin.z)
+        }
+
+		RotatedRay.Direction = v3{
+			(CosTheta * TranslatedRay.Direction.x) - (SinTheta * TranslatedRay.Direction.z),
+            TranslatedRay.Direction.y,
+            (SinTheta * TranslatedRay.Direction.x) + (CosTheta * TranslatedRay.Direction.z)
+		}
+
+		TraverseBVH(RotatedRay, Record, World.BVH, World.BVH.RootNodeIndex)
+		if Record.t > 0.0001 && Record.t < HitDistance
+		{
+			HitSomething = true
+			HitDistance = Record.t
+
+			// Compute surface normal from the best triangle intersection
+			{
+				Triangle := World.BVH.Triangles[Record.BestTriangleIndex]
+
+				V0 := Triangle.Vertices[0]
+				V1 := Triangle.Vertices[1]
+				V2 := Triangle.Vertices[2]
+
+				Record.SurfaceNormal = Normalize(Cross(V1 - V0, V2 - V0))
+			}
+
+			Record.MaterialIndex = World.BVH.MatIndex
+			SetFaceNormal(RotatedRay, Record.SurfaceNormal, Record)
+			Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
+
+			Record.HitPoint = v3{
+				(CosTheta * Record.HitPoint.x) + (SinTheta * Record.HitPoint.z),
+				Record.HitPoint.y,
+				(-SinTheta * Record.HitPoint.x) + (CosTheta * Record.HitPoint.z)
+			}
+
+			Record.SurfaceNormal = v3{
+				(CosTheta * Record.SurfaceNormal.x) + (SinTheta * Record.SurfaceNormal.z),
+				Record.SurfaceNormal.y,
+				(-SinTheta * Record.SurfaceNormal.x) + (CosTheta * Record.SurfaceNormal.z)
+			}
+
+			Record.HitPoint -= World.BVH.Translation
+		}
+	}
+
+	for Plane in World.Planes
+	{
+		Record.t = RayIntersectPlane(Ray, Plane)
+
+		if Record.t > 0.0001 && Record.t < HitDistance
+		{
+			HitSomething = true
+			HitDistance = Record.t
+			Record.MaterialIndex = Plane.MatIndex
+			SetFaceNormal(Ray, Plane.N, Record)
+			Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
+		}
+	}
+
+	for Sphere in World.Spheres
+	{
+		Record.t = RayIntersectSphere(Ray, Sphere)
+
+		if Record.t > 0.0001 && Record.t < HitDistance
+		{
+			HitSomething = true
+			HitDistance = Record.t
+			Record.MaterialIndex = Sphere.MatIndex
+			Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
+			OutwardNormal := Normalize(Record.HitPoint - Sphere.Center)
+
+			SetFaceNormal(Ray, OutwardNormal, Record)
+		}
+	}
+
+	// for Triangle in World.Triangles
+	// {
+	// 	RayIntersectTriangle(Ray, &Record, Triangle)
+	// 	if (Record.t > 0.0001 && Record.t < HitDistance)
+	// 	{
+	// 		HitSomething = true
+	// 		HitDistance = Record.t
+	// 		// Record.MaterialIndex = 1 // TODO(matthew): set this in the world!
+	// 		// Record.SurfaceNormal = v3{0, 0, 0} // TODO(matthew): set this!
+	// 	}
+	// }
+
+	return HitSomething
 }
 
 InitializeCamera :: proc(Camera : ^camera, ImageWidth, ImageHeight : i32)

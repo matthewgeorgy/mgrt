@@ -211,6 +211,7 @@ BunnyPlaneLamp :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight
 
 	World.Triangles = Mesh.Triangles
 	World.BVH = BVH
+	World.BVH.MatIndex = 1
 
 	World.SamplesPerPixel = 10
 	World.MaxDepth = 10
