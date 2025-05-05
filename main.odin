@@ -142,8 +142,8 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 		OffsetRay := Ray
 		OffsetRay.Origin -= Quad.Translation
 
-		SinTheta := Sin(Quad.Rotation)
-		CosTheta := Cos(Quad.Rotation)
+		SinTheta := Sin(Degs2Rads(Quad.Rotation))
+		CosTheta := Cos(Degs2Rads(Quad.Rotation))
 
 		RotatedRay := OffsetRay
 

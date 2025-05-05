@@ -71,8 +71,8 @@ GlassSuzanne :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight :
 	World.Triangles = Mesh.Triangles
 	World.BVH = BVH
 	World.BVH.MatIndex = 4
-	//World.BVH.Translation = -Centroid;
-	// World.BVH.Rotation = 190
+	// World.BVH.Translation = -Centroid;
+	World.BVH.Rotation = 45
 
 	World.SamplesPerPixel = 10
 	World.MaxDepth = 10
