@@ -255,7 +255,7 @@ RayIntersectPlane :: proc(Ray : ray, Plane : plane) -> f32
 }
 
 // Moller-Trumbore interesection algorithm
-RayIntersectTriangle :: proc(Ray : ray, Record : ^hit_record, Triangle : triangle)
+RayIntersectTriangle :: proc(Ray : ray, Triangle : triangle) -> f32
 {
 	t : f32 = F32_MAX
 	Tol : f32 = 1e-8
@@ -283,15 +283,11 @@ RayIntersectTriangle :: proc(Ray : ray, Record : ^hit_record, Triangle : triangl
 			if !(v < 0 || u + v > 1)
 			{
 				t = f * Dot(Edge2, Q)
-
-				if t > 0.0001 && t < Record.t
-				{
-					Record.t = t
-					Record.SurfaceNormal = Normalize(Cross(Edge1, Edge2))
-				}
 			}
 		}
 	}
+
+	return t
 }
 
 RayIntersectAABB :: proc(Ray : ray, Record : ^hit_record, AABB : aabb) -> b32

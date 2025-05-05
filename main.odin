@@ -13,6 +13,7 @@ hit_record :: struct
 	SurfaceNormal : v3,
 	HitPoint : v3,
 	IsFrontFace : bool,
+	BestTriangleIndex : u32,
 };
 
 camera :: struct
@@ -218,6 +219,18 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 		{
 			HitSomething = true
 			HitDistance = Record.t
+
+			// Compute surface normal from the best triangle intersection
+			{
+				Triangle := World.BVH.Triangles[Record.BestTriangleIndex]
+
+				V0 := Triangle.Vertices[0]
+				V1 := Triangle.Vertices[1]
+				V2 := Triangle.Vertices[2]
+
+				Record.SurfaceNormal = Normalize(Cross(V1 - V0, V2 - V0))
+			}
+
 			Record.MaterialIndex = World.BVH.MatIndex
 			SetFaceNormal(RotatedRay, Record.SurfaceNormal, &Record)
 			Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction

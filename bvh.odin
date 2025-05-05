@@ -170,13 +170,18 @@ TraverseBVH :: proc(Ray : ray, Record : ^hit_record, BVH : bvh, NodeIndex : u32)
 
 	if IsLeaf(Node)
 	{
-		HitDistance : f32 = F32_MAX
-
 		FirstIndex := Node.LeftFirst
 		for I : u32 = 0; I < Node.TriangleCount; I += 1
 		{
 			TriangleIndex := BVH.TriangleIndices[FirstIndex + I]
-			RayIntersectTriangle(Ray, Record, BVH.Triangles[TriangleIndex])
+			Triangle := BVH.Triangles[TriangleIndex]
+			Distance := RayIntersectTriangle(Ray, Triangle)
+
+			if Distance > 0.0001 && Distance < Record.t
+			{
+				Record.t = Distance 
+				Record.BestTriangleIndex = TriangleIndex
+			}
 		}
 	}
 	else
