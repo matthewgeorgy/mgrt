@@ -12,6 +12,7 @@ hit_record :: struct
 	MaterialIndex  : u32,
 	SurfaceNormal : v3,
 	HitPoint : v3,
+	IsFrontFace : bool,
 };
 
 camera :: struct
@@ -164,7 +165,7 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 			HitSomething = true
 			HitDistance = Record.t
 			Record.MaterialIndex = Quad.MatIndex
-			Record.SurfaceNormal = SetFaceNormal(RotatedRay, Quad.N)
+			SetFaceNormal(RotatedRay, Quad.N, &Record)
 			Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
 
 			if (Quad.Rotation != 0)
@@ -197,7 +198,7 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 			HitSomething = true
 			HitDistance = Record.t
 			Record.MaterialIndex = 1
-			Record.SurfaceNormal = SetFaceNormal(Ray, Record.SurfaceNormal)
+			SetFaceNormal(Ray, Record.SurfaceNormal, &Record)
 			Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
 		}
 	}
@@ -211,7 +212,7 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 			HitSomething = true
 			HitDistance = Record.t
 			Record.MaterialIndex = Plane.MatIndex
-			Record.SurfaceNormal = SetFaceNormal(Ray, Plane.N)
+			SetFaceNormal(Ray, Plane.N, &Record)
 			Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
 		}
 	}
@@ -226,7 +227,9 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 			HitDistance = Record.t
 			Record.MaterialIndex = Sphere.MatIndex
 			Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
-			Record.SurfaceNormal = Normalize(Record.HitPoint - Sphere.Center)
+			OutwardNormal := Normalize(Record.HitPoint - Sphere.Center)
+
+			SetFaceNormal(Ray, OutwardNormal, &Record)
 		}
 	}
 
@@ -270,6 +273,10 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 			{
 				return v3{0, 0, 0}
 			}
+		}
+		case dielectric:
+		{
+			NewRay, Attenuation, _ = ScatterDielectric(SurfaceMaterial.(dielectric), Ray, Record)
 		}
 		case light:
 		{

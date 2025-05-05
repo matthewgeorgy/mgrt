@@ -16,10 +16,16 @@ light :: struct
 	Color : v3,
 };
 
+dielectric :: struct
+{
+	RefractionIndex : f32,
+};
+
 material :: union
 {
 	lambertian,
 	metal,
+	dielectric,
 	light,
 };
 
@@ -32,5 +38,18 @@ ScatterMetal :: proc(Metal : metal, Ray : ray, Record : hit_record) -> (ray, v3,
 	ScatterAgain := Dot(NewRay.Direction, Record.SurfaceNormal) > 0
 
 	return NewRay, Attenuation, ScatterAgain
+}
+
+ScatterDielectric :: proc(Material : dielectric, Ray : ray, Record : hit_record) -> (ray, v3, bool)
+{
+	Attenuation := v3{1, 1, 1}
+	Ri := Record.IsFrontFace ? (1.0 / Material.RefractionIndex) : Material.RefractionIndex
+
+	UnitDirection := Normalize(Ray.Direction)
+	Refracted := Refract(UnitDirection, Record.SurfaceNormal, Ri)
+
+	NewRay := ray{Record.HitPoint, Refracted}
+
+	return NewRay, Attenuation, true
 }
 

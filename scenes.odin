@@ -15,7 +15,7 @@ SpheresMaterialScene :: proc(World : ^world, Camera : ^camera, ImageWidth, Image
 	append(&World.Materials, lambertian{v3{0.5, 0.7, 1.0}})
 	append(&World.Materials, lambertian{v3{0.8, 0.8, 0.0}})
     append(&World.Materials, lambertian{v3{0.1, 0.2, 0.5}})
-    append(&World.Materials, metal{v3{0.8, 0.8, 0.8}, 0.3})
+    append(&World.Materials, dielectric{1.5})
     append(&World.Materials, metal{v3{0.8, 0.6, 0.2}, 1.0})
 
     append(&World.Spheres, sphere{v3{ 0.0, -100.5, -1.0}, 100.0, 1})

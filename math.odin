@@ -180,16 +180,24 @@ RayIntersectQuad :: proc(Ray : ray, Quad : quad) -> f32
 	return t
 }
 
-SetFaceNormal :: proc(Ray : ray, Normal : v3) -> v3
+SetFaceNormal :: proc(Ray : ray, Normal : v3, Record : ^hit_record)
 {
-	IsFrontFace := Dot(Ray.Direction, Normal) < 0
-
-	return IsFrontFace ? Normal : -Normal
+	Record.IsFrontFace = Dot(Ray.Direction, Normal) < 0
+	Record.SurfaceNormal = Record.IsFrontFace ? Normal : -Normal
 }
 
 Reflect :: proc(Vector, Normal : v3) -> v3
 {
 	return Vector - 2 * Dot(Vector, Normal) * Normal
+}
+
+Refract :: proc(UV, Normal : v3, AngleRatio : f32) -> v3
+{
+	CosTheta := Min(Dot(-UV, Normal), 1)
+	Perpendicular := AngleRatio * (UV + CosTheta * Normal)
+	Parallel := -SquareRoot(Abs(1 - LengthSquared(Perpendicular))) * Normal
+
+	return Perpendicular + Parallel
 }
 
 RayIntersectSphere :: proc(Ray : ray, Sphere : sphere) -> f32
