@@ -3,6 +3,26 @@ package main
 import fmt		"core:fmt"
 import win32	"core:sys/windows"
 
+SpheresMaterialScene :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight : i32)
+{
+	Camera.LookFrom = v3{0, 0, -2}
+	Camera.LookAt = v3{0, 0, 1}
+	Camera.FOV = 90
+	Camera.FocusDist = 1
+
+	InitializeCamera(Camera, ImageWidth, ImageHeight)
+
+	append(&World.Materials, lambertian{v3{0.2, 0.2, 0.2}})
+	append(&World.Materials, lambertian{v3{1, 0, 0}})
+	append(&World.Materials, lambertian{v3{0, 1, 0}})
+
+	append(&World.Spheres, sphere{v3{0, 0, -1}, 0.5, 1})
+	append(&World.Spheres, sphere{v3{0, -100.5, -1}, 100, 2})
+
+	World.SamplesPerPixel = 100
+	World.MaxDepth = 50
+}
+
 BunnyPlaneLampScene :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight : i32)
 {
 	StartCounter, EndCounter, Frequency, ElapsedTime: win32.LARGE_INTEGER
@@ -49,10 +69,10 @@ BunnyPlaneLampScene :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageH
 	InitializeCamera(Camera, ImageWidth, ImageHeight)
 
 	// World
-	append(&World.Materials, material{material_type.COLOR, v3{0.2, 0.2, 0.2}})
-	append(&World.Materials, material{material_type.COLOR, v3{0.8, 0.2, 0.2}})
-	append(&World.Materials, material{material_type.COLOR, v3{0.2, 0.6, 0.8}})
-	append(&World.Materials, material{material_type.LIGHT, v3{1, 1, 1}})
+	append(&World.Materials, lambertian{v3{0.2, 0.2, 0.2}})
+	append(&World.Materials, lambertian{v3{0.8, 0.2, 0.2}})
+	append(&World.Materials, lambertian{v3{0.2, 0.6, 0.8}})
+	append(&World.Materials, light{v3{1, 1, 1}})
 	append(&World.Planes, plane{v3{0, 1, 0}, 0, 2})
 	append(&World.Quads, CreateQuad(v3{MinX, MaxY + 0.5, MaxZ}, v3{2, 0, 0}, v3{0, 0, 2}, 3))
 
@@ -69,15 +89,16 @@ CornellBoxScene :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeigh
 	Camera.LookFrom = v3{278, 278, -800}
 	Camera.LookAt = v3{278, 278, 0}
 	Camera.FocusDist = 10
+	Camera.FOV = 40
 
 	InitializeCamera(Camera, ImageWidth, ImageHeight)
 
 	// World setup
-	append(&World.Materials, material{material_type.COLOR, v3{0.0, 0.0, 0.0}})
-	append(&World.Materials, material{material_type.COLOR, v3{0.65, 0.05, 0.05}})
-	append(&World.Materials, material{material_type.COLOR, v3{0.73, 0.73, 0.73}})
-	append(&World.Materials, material{material_type.COLOR, v3{0.12, 0.45, 0.15}})
-	append(&World.Materials, material{material_type.LIGHT, v3{15, 15, 15}})
+	append(&World.Materials, lambertian{v3{0.0, 0.0, 0.0}})
+	append(&World.Materials, lambertian{v3{0.65, 0.05, 0.05}})
+	append(&World.Materials, lambertian{v3{0.73, 0.73, 0.73}})
+	append(&World.Materials, lambertian{v3{0.12, 0.45, 0.15}})
+	append(&World.Materials, light{v3{15, 15, 15}})
 
 	append(&World.Quads, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, 3))
 	append(&World.Quads, CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, 1))

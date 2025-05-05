@@ -6,18 +6,6 @@ import win32	"core:sys/windows"
 import libc		"core:c/libc"
 import strings	"core:strings"
 
-material_type :: enum
-{
-	COLOR,
-	LIGHT
-};
-
-material :: struct
-{
-	Type : material_type,
-	Color : v3,
-};
-
 hit_record :: struct
 {
 	t : f32,
@@ -52,6 +40,9 @@ world :: struct
 	MaxDepth : int,
 };
 
+SCR_WIDTH :: 800
+SCR_HEIGHT :: 800
+
 main :: proc()
 {
 	// Image
@@ -61,7 +52,7 @@ main :: proc()
 	World : world
 	Camera : camera
 
-	BunnyPlaneLampScene(&World, &Camera, Image.Width, Image.Height)
+	SpheresMaterialScene(&World, &Camera, Image.Width, Image.Height)
 
 	// Work queue
 	Queue : work_queue
@@ -198,14 +189,17 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 		}
 	}
 
-	TraverseBVH(Ray, &Record, World.BVH, World.BVH.RootNodeIndex)
-	if Record.t > 0.0001 && Record.t < HitDistance
+	if World.BVH.NodesUsed != 0
 	{
-		HitSomething = true
-		HitDistance = Record.t
-		Record.MaterialIndex = 1
-		Record.SurfaceNormal = SetFaceNormal(Ray, Record.SurfaceNormal)
-		Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
+		TraverseBVH(Ray, &Record, World.BVH, World.BVH.RootNodeIndex)
+		if Record.t > 0.0001 && Record.t < HitDistance
+		{
+			HitSomething = true
+			HitDistance = Record.t
+			Record.MaterialIndex = 1
+			Record.SurfaceNormal = SetFaceNormal(Ray, Record.SurfaceNormal)
+			Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
+		}
 	}
 
 	for Plane in World.Planes
@@ -219,6 +213,20 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 			Record.MaterialIndex = Plane.MatIndex
 			Record.SurfaceNormal = SetFaceNormal(Ray, Plane.N)
 			Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
+		}
+	}
+
+	for Sphere in World.Spheres
+	{
+		Record.t = RayIntersectSphere(Ray, Sphere)
+
+		if Record.t > 0.0001 && Record.t < HitDistance
+		{
+			HitSomething = true
+			HitDistance = Record.t
+			Record.MaterialIndex = Sphere.MatIndex
+			Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
+			Record.SurfaceNormal = Normalize(Record.HitPoint - Sphere.Center)
 		}
 	}
 
@@ -236,7 +244,7 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 
 	if !HitSomething
 	{
-		return World.Materials[0].Color
+		return World.Materials[0].(lambertian).Color
 	}
 
 	NewRay : ray
@@ -245,13 +253,16 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 	Attenuation : v3
 	SurfaceMaterial := World.Materials[Record.MaterialIndex]
 
-	if SurfaceMaterial.Type == material_type.LIGHT
+	switch Type in SurfaceMaterial
 	{
-		EmittedColor = SurfaceMaterial.Color
-	}
-	else
-	{
-		Attenuation = SurfaceMaterial.Color
+		case lambertian:
+		{
+			Attenuation = SurfaceMaterial.(lambertian).Color
+		}
+		case light:
+		{
+			EmittedColor = SurfaceMaterial.(light).Color
+		}
 	}
 
 	NewRay.Origin = Record.HitPoint
@@ -267,7 +278,7 @@ InitializeCamera :: proc(Camera : ^camera, ImageWidth, ImageHeight : i32)
 	// TODO(matthew): Bulletproof this. Might still be having issues depending
 	// on aspect ratios, etc, but it seems to be fine right now.
 	Theta : f32 = Degs2Rads(Camera.FOV)
-	h : f32 = 1//Tan(Theta / 2)
+	h : f32 = Tan(Theta / 2)
 	ViewportHeight : f32 = 2 * h * Camera.FocusDist
 	ViewportWidth : f32 = ViewportHeight * f32(ImageWidth) / f32(ImageHeight)
 	Camera.Center = Camera.LookFrom
