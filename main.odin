@@ -53,7 +53,7 @@ main :: proc()
 	World : world
 	Camera : camera
 
-	SpheresMaterialScene(&World, &Camera, Image.Width, Image.Height)
+	GlassSuzanne(&World, &Camera, Image.Width, Image.Height)
 
 	// Work queue
 	Queue : work_queue
@@ -197,7 +197,7 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 		{
 			HitSomething = true
 			HitDistance = Record.t
-			Record.MaterialIndex = 1
+			Record.MaterialIndex = World.BVH.MatIndex
 			SetFaceNormal(Ray, Record.SurfaceNormal, &Record)
 			Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
 		}

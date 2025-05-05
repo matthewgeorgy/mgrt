@@ -3,6 +3,73 @@ package main
 import fmt		"core:fmt"
 import win32	"core:sys/windows"
 
+GlassSuzanne :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight : i32)
+{
+	StartCounter, EndCounter, Frequency, ElapsedTime: win32.LARGE_INTEGER
+	win32.QueryPerformanceFrequency(&Frequency)
+
+	// Mesh
+	Filename := string("assets/suzanne.obj")
+	Mesh := LoadMesh(Filename)
+	fmt.println("Loaded mesh:", Filename, "with", len(Mesh.Triangles), "triangles")
+
+	AABB := aabb{v3{F32_MAX, F32_MAX, F32_MAX}, v3{-F32_MAX, -F32_MAX, -F32_MAX}}
+
+	for Triangle in Mesh.Triangles
+	{
+		AABB.Min = MinV3(AABB.Min, Triangle.Vertices[0])
+		AABB.Min = MinV3(AABB.Min, Triangle.Vertices[1])
+		AABB.Min = MinV3(AABB.Min, Triangle.Vertices[2])
+		AABB.Max = MaxV3(AABB.Max, Triangle.Vertices[0])
+		AABB.Max = MaxV3(AABB.Max, Triangle.Vertices[1])
+		AABB.Max = MaxV3(AABB.Max, Triangle.Vertices[2])
+	}
+
+	Extents := AABB.Max - AABB.Min
+
+	// for &Triangle in Mesh.Triangles
+	// {
+	// 	Triangle.Vertices[0] -= AABB.Min
+	// 	Triangle.Vertices[1] -= AABB.Min
+	// 	Triangle.Vertices[2] -= AABB.Min
+	// }
+
+	win32.QueryPerformanceCounter(&StartCounter)
+
+	BVH := BuildBVH(Mesh.Triangles)
+
+	win32.QueryPerformanceCounter(&EndCounter)
+	ElapsedTime = (EndCounter - StartCounter) * 1000
+	fmt.println("BVH construction took", ElapsedTime / Frequency, "ms")
+
+	fmt.println("AABB:", AABB)
+	fmt.println("Extents:", Extents)
+
+	// Camera
+	Camera.LookFrom = v3{Extents.x / 2 - 1, Extents.y / 2, -2}
+	Camera.LookAt = v3{0, 0, 1}
+	Camera.FocusDist = 1
+	Camera.FOV = 90
+
+	InitializeCamera(Camera, ImageWidth, ImageHeight)
+
+	// World
+	append(&World.Materials, lambertian{v3{0.2, 0.2, 0.2}})
+	append(&World.Materials, lambertian{v3{0.8, 0.2, 0.2}})
+	append(&World.Materials, lambertian{v3{0.2, 0.6, 0.8}})
+	append(&World.Materials, light{v3{1, 1, 1}})
+	append(&World.Materials, dielectric{1.5})
+	append(&World.Planes, plane{v3{0, 1, 0}, -10 * AABB.Min.y, 2})
+	append(&World.Quads, CreateQuad(AABB.Max / 2 + v3{0, 2, 0}, v3{2, 0, 0}, v3{0, 0, 2}, 3))
+
+	World.Triangles = Mesh.Triangles
+	World.BVH = BVH
+	World.BVH.MatIndex = 4
+
+	World.SamplesPerPixel = 10
+	World.MaxDepth = 10
+}
+
 SpheresMaterialScene :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight : i32)
 {
 	Camera.LookFrom = v3{0, 0, -3}
