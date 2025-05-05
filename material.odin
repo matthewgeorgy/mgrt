@@ -35,6 +35,7 @@ scatter_record :: struct
 	EmittedColor : v3,
 	Attenuation : v3,
 	ScatterAgain : bool,
+	PDFValue : f32,
 };
 
 Scatter :: proc(SurfaceMaterial : material, Ray : ray, Record : hit_record) -> scatter_record
@@ -60,7 +61,7 @@ Scatter :: proc(SurfaceMaterial : material, Ray : ray, Record : hit_record) -> s
 			SRecord.EmittedColor = SurfaceMaterial.(light).Color
 			SRecord.NewRay.Origin = Record.HitPoint
 			SRecord.NewRay.Direction = Record.SurfaceNormal + RandomUnitVector()//RandomOnHemisphere(Record.SurfaceNormal)
-			SRecord.ScatterAgain = true
+			SRecord.ScatterAgain = false // no scattering, just emit color
 		}
 	}
 
@@ -121,5 +122,33 @@ ScatterDielectric :: proc(Material : dielectric, Ray : ray, Record : hit_record)
 	SRecord.ScatterAgain = true
 
 	return SRecord
+}
+
+ScatteringPDF :: proc(SurfaceMaterial : material, InputRay, ScatteredRay : ray, Record : hit_record) -> f32
+{
+	PDF : f32
+
+	switch Type in SurfaceMaterial
+	{
+		case lambertian:
+		{
+			PDF = LambertianPDF(SurfaceMaterial.(lambertian), InputRay, ScatteredRay, Record)
+		}
+		case light:
+		case dielectric:
+		case metal:
+		{
+			PDF = 0
+		}
+	}
+
+	return PDF
+}
+
+LambertianPDF :: proc(Material : lambertian, InputRay, ScatteredRay : ray, Record : hit_record) -> f32
+{
+	CosTheta := Dot(Record.SurfaceNormal, Normalize(ScatteredRay.Direction))
+
+	return CosTheta < 0 ? 0 : CosTheta / PI
 }
 
