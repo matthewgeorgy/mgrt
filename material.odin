@@ -54,7 +54,7 @@ ScatterDielectric :: proc(Material : dielectric, Ray : ray, Record : hit_record)
 	NewDirection : v3
 	CannotRefract := Ri * SinTheta > 1.0
 
-	if CannotRefract
+	if (CannotRefract || FresnelReflectance(CosTheta, Ri) > RandomUnilateral())
 	{
 		NewDirection = Reflect(UnitDirection, Record.SurfaceNormal)
 	}

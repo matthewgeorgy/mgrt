@@ -21,6 +21,7 @@ Max 			:: max
 Sin				:: math.sin
 Cos				:: math.cos
 Tan				:: math.tan
+Pow				:: math.pow_f32
 Degs2Rads		:: math.to_radians_f32
 Rads2Degs		:: math.to_degrees_f32
 
@@ -198,6 +199,15 @@ Refract :: proc(UV, Normal : v3, AngleRatio : f32) -> v3
 	Parallel := -SquareRoot(Abs(1 - LengthSquared(Perpendicular))) * Normal
 
 	return Perpendicular + Parallel
+}
+
+// Shlick approximation
+FresnelReflectance :: proc(Cosine, RefractionIndex : f32) -> f32
+{
+	r0 := (1 - RefractionIndex) / (1 + RefractionIndex)
+	r0 = r0 * r0
+
+	return r0 + (1 - r0) * Pow(1 - Cosine, 5)
 }
 
 RayIntersectSphere :: proc(Ray : ray, Sphere : sphere) -> f32
