@@ -45,10 +45,7 @@ Scatter :: proc(SurfaceMaterial : material, Ray : ray, Record : hit_record) -> s
 	{
 		case lambertian:
 		{
-			SRecord.Attenuation = SurfaceMaterial.(lambertian).Color
-			SRecord.NewRay.Origin = Record.HitPoint
-			SRecord.NewRay.Direction = Record.SurfaceNormal + RandomUnitVector()//RandomOnHemisphere(Record.SurfaceNormal)
-			SRecord.ScatterAgain = true
+			SRecord = ScatterLambertian(SurfaceMaterial.(lambertian), Ray, Record)
 		}
 		case metal:
 		{
@@ -70,14 +67,26 @@ Scatter :: proc(SurfaceMaterial : material, Ray : ray, Record : hit_record) -> s
 	return SRecord
 }
 
-ScatterMetal :: proc(Metal : metal, Ray : ray, Record : hit_record) -> scatter_record
+ScatterLambertian :: proc(Material : lambertian, Ray : ray, Record : hit_record) -> scatter_record
+{
+	SRecord : scatter_record
+
+	SRecord.Attenuation = Material.Color
+	SRecord.NewRay.Origin = Record.HitPoint
+	SRecord.NewRay.Direction = Record.SurfaceNormal + RandomUnitVector()//RandomOnHemisphere(Record.SurfaceNormal)
+	SRecord.ScatterAgain = true
+
+	return SRecord
+}
+
+ScatterMetal :: proc(Material : metal, Ray : ray, Record : hit_record) -> scatter_record
 {
 	SRecord : scatter_record
 
 	Reflected := Reflect(Ray.Direction, Record.SurfaceNormal)
-	Reflected = Normalize(Reflected) + (Metal.Fuzz * RandomUnitVector())
+	Reflected = Normalize(Reflected) + (Material.Fuzz * RandomUnitVector())
 	SRecord.NewRay = ray{Record.HitPoint, Reflected}
-	SRecord.Attenuation = Metal.Color
+	SRecord.Attenuation = Material.Color
 	SRecord.ScatterAgain = Dot(SRecord.NewRay.Direction, Record.SurfaceNormal) > 0
 
 	return SRecord
