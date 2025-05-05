@@ -5,20 +5,24 @@ import win32	"core:sys/windows"
 
 SpheresMaterialScene :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight : i32)
 {
-	Camera.LookFrom = v3{0, 0, -2}
-	Camera.LookAt = v3{0, 0, 1}
+	Camera.LookFrom = v3{0, 0, -3}
+	Camera.LookAt = v3{0, 0, 0}
 	Camera.FOV = 90
 	Camera.FocusDist = 1
 
 	InitializeCamera(Camera, ImageWidth, ImageHeight)
 
-	append(&World.Materials, lambertian{v3{0.2, 0.2, 0.2}})
-	append(&World.Materials, lambertian{v3{1, 0, 0}})
-	append(&World.Materials, lambertian{v3{0, 1, 0}})
+	append(&World.Materials, lambertian{v3{0.5, 0.7, 1.0}})
+	append(&World.Materials, lambertian{v3{0.8, 0.8, 0.0}})
+    append(&World.Materials, lambertian{v3{0.1, 0.2, 0.5}})
+    append(&World.Materials, metal{v3{0.8, 0.8, 0.8}})
+    append(&World.Materials, metal{v3{0.8, 0.6, 0.2}})
 
-	append(&World.Spheres, sphere{v3{0, 0, -1}, 0.5, 1})
-	append(&World.Spheres, sphere{v3{0, -100.5, -1}, 100, 2})
-
+    append(&World.Spheres, sphere{v3{ 0.0, -100.5, -1.0}, 100.0, 1})
+    append(&World.Spheres, sphere{v3{ 0.0,    0.0, -1.2},   0.5, 2})
+    append(&World.Spheres, sphere{v3{-1.0,    0.0, -1.0},   0.5, 3})
+    append(&World.Spheres, sphere{v3{ 1.0,    0.0, -1.0},   0.5, 4})
+	
 	World.SamplesPerPixel = 100
 	World.MaxDepth = 50
 }

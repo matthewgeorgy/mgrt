@@ -18,7 +18,16 @@ light :: struct
 material :: union
 {
 	lambertian,
-	// metal,
+	metal,
 	light,
 };
+
+ScatterMetal :: proc(Metal : metal, Ray : ray, Record : hit_record) -> (ray, v3)
+{
+	Reflected := Reflect(Ray.Direction, Record.SurfaceNormal)
+	NewRay := ray{Record.HitPoint, Reflected}
+	Attenuation := Metal.Color
+
+	return NewRay, Attenuation
+}
 

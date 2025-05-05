@@ -258,15 +258,20 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 		case lambertian:
 		{
 			Attenuation = SurfaceMaterial.(lambertian).Color
+			NewRay.Origin = Record.HitPoint
+			NewRay.Direction = Record.SurfaceNormal + RandomUnitVector()//RandomOnHemisphere(Record.SurfaceNormal)
+		}
+		case metal:
+		{
+			NewRay, Attenuation = ScatterMetal(SurfaceMaterial.(metal), Ray, Record)
 		}
 		case light:
 		{
 			EmittedColor = SurfaceMaterial.(light).Color
+			NewRay.Origin = Record.HitPoint
+			NewRay.Direction = Record.SurfaceNormal + RandomUnitVector()//RandomOnHemisphere(Record.SurfaceNormal)
 		}
 	}
-
-	NewRay.Origin = Record.HitPoint
-	NewRay.Direction = Record.SurfaceNormal + RandomUnitVector()//RandomOnHemisphere(Record.SurfaceNormal)
 
 	ScatteredColor = Attenuation * CastRay(NewRay, World, Depth - 1)
 

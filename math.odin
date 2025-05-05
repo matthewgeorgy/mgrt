@@ -187,6 +187,11 @@ SetFaceNormal :: proc(Ray : ray, Normal : v3) -> v3
 	return IsFrontFace ? Normal : -Normal
 }
 
+Reflect :: proc(Vector, Normal : v3) -> v3
+{
+	return Vector - 2 * Dot(Vector, Normal) * Normal
+}
+
 RayIntersectSphere :: proc(Ray : ray, Sphere : sphere) -> f32
 {
 	t := f32(F32_MAX)
