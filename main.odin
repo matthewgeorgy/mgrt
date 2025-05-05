@@ -263,7 +263,13 @@ CastRay :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 		}
 		case metal:
 		{
-			NewRay, Attenuation = ScatterMetal(SurfaceMaterial.(metal), Ray, Record)
+			ScatterAgain : bool
+			NewRay, Attenuation, ScatterAgain = ScatterMetal(SurfaceMaterial.(metal), Ray, Record)
+
+			if !ScatterAgain
+			{
+				return v3{0, 0, 0}
+			}
 		}
 		case light:
 		{
