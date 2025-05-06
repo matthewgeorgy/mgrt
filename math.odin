@@ -26,7 +26,7 @@ Degs2Rads		:: math.to_radians_f32
 Rads2Degs		:: math.to_degrees_f32
 
 F32_MAX 		:: 3.402823466e+38
-PI				:: 3.14159265358
+PI				: f32 : 3.14159265358
 
 ray :: struct
 {

@@ -34,7 +34,7 @@ NaiveIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 	return ScatterRecord.EmittedColor + ScatteredColor
 }
 
-RTWIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
+DirectLightIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 {
 	Record : hit_record
 
@@ -79,6 +79,42 @@ RTWIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 
 	PDFValue := DistanceSquared / (LightCosine * LightArea)
 	ScatteredRay := ray{Record.HitPoint, ToLight}
+	ScatteringPDF := ScatteringPDF(SurfaceMaterial, Ray, ScatteredRay, Record)
+
+	ScatteredColor := (ScatteringPDF / PDFValue) * ScatterRecord.Attenuation * DirectLightIntegrator(ScatteredRay, World, Depth - 1)
+
+	return ScatterRecord.EmittedColor + ScatteredColor
+}
+
+RTWIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
+{
+	Record : hit_record
+
+	if Depth <= 0
+	{
+		return v3{0, 0, 0}
+	}
+
+	HitSomething := GetIntersection(Ray, World, &Record)
+
+	if !HitSomething
+	{
+		return World.Materials[0].(lambertian).Color
+	}
+
+	SurfaceMaterial := World.Materials[Record.MaterialIndex]
+
+	ScatterRecord := Scatter(SurfaceMaterial, Ray, Record)
+
+	if !ScatterRecord.ScatterAgain
+	{
+		return ScatterRecord.EmittedColor
+	}
+
+	CosinePDF := cosine_pdf{CreateBasis(Record.SurfaceNormal)}
+	ScatteredRay := ray{Record.HitPoint, GeneratePDFDirection(CosinePDF)}
+	PDFValue := GeneratePDFValue(CosinePDF, ScatteredRay.Direction)
+
 	ScatteringPDF := ScatteringPDF(SurfaceMaterial, Ray, ScatteredRay, Record)
 
 	ScatteredColor := (ScatteringPDF / PDFValue) * ScatterRecord.Attenuation * RTWIntegrator(ScatteredRay, World, Depth - 1)
