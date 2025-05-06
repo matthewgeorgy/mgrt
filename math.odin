@@ -84,6 +84,14 @@ RandomBilateral :: proc() -> f32
 	return Result
 }
 
+RandomFloat :: proc(Min, Max : f32) -> f32
+{
+	Rand := RandomUnilateral()
+	Result := Min + (Max - Min) * Rand
+
+	return Result
+}
+
 RandomUnitVector :: proc() -> v3
 {
 	for
