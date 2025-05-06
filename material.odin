@@ -58,9 +58,15 @@ Scatter :: proc(SurfaceMaterial : material, Ray : ray, Record : hit_record) -> s
 		}
 		case light:
 		{
-			SRecord.EmittedColor = SurfaceMaterial.(light).Color
-			SRecord.NewRay.Origin = Record.HitPoint
-			SRecord.NewRay.Direction = Record.SurfaceNormal + RandomUnitVector()//RandomOnHemisphere(Record.SurfaceNormal)
+			if Record.IsFrontFace
+			{
+				SRecord.EmittedColor = SurfaceMaterial.(light).Color
+			}
+			else
+			{
+				SRecord.EmittedColor = v3{0, 0, 0}
+			}
+
 			SRecord.ScatterAgain = false // no scattering, just emit color
 		}
 	}

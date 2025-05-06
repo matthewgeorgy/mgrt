@@ -46,7 +46,7 @@ CornellBunny  :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight 
 
 	append(&World.Quads, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, -555}, 1)) 		// right
 	append(&World.Quads, CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, -555}, 3)) 			// left
-	append(&World.Quads, CreateQuad(v3{343, 554, -332}, v3{-130, 0, 0}, v3{0, 0, 105}, 4))	// light
+	append(&World.Quads, CreateQuad(v3{343, 554, -332}, v3{0, 0, 105}, v3{-130, 0, 0}, 4))	// light
 	append(&World.Quads, CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, -555}, 2)) 			// bottom
 	append(&World.Quads, CreateQuad(v3{555, 555, -555}, v3{-555, 0, 0}, v3{0, 0, 555}, 2))	// top
 	append(&World.Quads, CreateQuad(v3{0, 0, -555}, v3{555, 0, 0}, v3{0, 555, 0}, 2))		// back
