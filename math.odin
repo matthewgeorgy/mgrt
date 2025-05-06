@@ -112,6 +112,20 @@ RandomOnHemisphere :: proc(Normal : v3) -> v3
 	}
 }
 
+RandomCosineDirection :: proc() -> v3
+{
+	Rand1 := RandomUnilateral()
+    Rand2 := RandomUnilateral()
+
+    Phi := 2 * PI * Rand1
+
+	x := Cos(Phi) * SquareRoot(Rand2)
+    y := Sin(Phi) * SquareRoot(Rand2)
+    z := SquareRoot(1 - Rand2)
+
+    return v3{x, y, z}
+}
+
 CreateQuad :: proc(Q, u, v : v3, MatIndex : u32) -> quad
 {
 	Quad : quad

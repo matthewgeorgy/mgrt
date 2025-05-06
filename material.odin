@@ -72,9 +72,11 @@ ScatterLambertian :: proc(Material : lambertian, Ray : ray, Record : hit_record)
 {
 	SRecord : scatter_record
 
+	Basis := CreateBasis(Record.SurfaceNormal)
+	ScatterDirection := BasisTransform(Basis, RandomCosineDirection())
+
 	SRecord.Attenuation = Material.Color
-	SRecord.NewRay.Origin = Record.HitPoint
-	SRecord.NewRay.Direction = Record.SurfaceNormal + RandomUnitVector()//RandomOnHemisphere(Record.SurfaceNormal)
+	SRecord.NewRay = ray{Record.HitPoint, ScatterDirection}
 	SRecord.ScatterAgain = true
 
 	return SRecord
@@ -147,8 +149,8 @@ ScatteringPDF :: proc(SurfaceMaterial : material, InputRay, ScatteredRay : ray, 
 
 LambertianPDF :: proc(Material : lambertian, InputRay, ScatteredRay : ray, Record : hit_record) -> f32
 {
-	CosTheta := Dot(Record.SurfaceNormal, Normalize(ScatteredRay.Direction))
+	Basis := CreateBasis(Record.SurfaceNormal)
 
-	return CosTheta < 0 ? 0 : CosTheta / PI
+	return Dot(Basis.w, ScatteredRay.Direction) / PI
 }
 
