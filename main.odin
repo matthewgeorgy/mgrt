@@ -14,6 +14,7 @@ hit_record :: struct
 	HitPoint : v3,
 	IsFrontFace : bool,
 	BestTriangleIndex : u32,
+	IncomingRay : ray,
 };
 
 camera :: struct
@@ -37,6 +38,7 @@ world :: struct
 	Quads : [dynamic]quad,
 	Triangles : [dynamic]triangle,
 	BVH : bvh,
+	PhotonMap : ^photon_map,
 
 	SamplesPerPixel : u32,
 	MaxDepth : int,
@@ -77,10 +79,41 @@ main :: proc()
 		}
 	}
 
-	// Counters
+	// Counters & stats
 	StartCounter, EndCounter, Frequency, ElapsedTime: win32.LARGE_INTEGER
 
+	libc.printf("Resolution: %dx%d\n", Image.Width, Image.Height)
+	libc.printf("%d cores with %d %dx%d (%dk/tile) tiles\n", THREADCOUNT, Queue.EntryCount, TileWidth, TileHeight, TileWidth * TileHeight * 4 / 1024)
+	libc.printf("Quality: %u samples/pixel, %d bounces (max) per ray\n", World.SamplesPerPixel, World.MaxDepth)
+
 	win32.QueryPerformanceFrequency(&Frequency)
+
+	// Photon map
+	PHOTON_COUNT :: 1000000
+	PhotonMap := CreatePhotonMap(PHOTON_COUNT)
+
+	win32.QueryPerformanceCounter(&StartCounter)
+	for PhotonIndex := 0; PhotonIndex < PHOTON_COUNT; PhotonIndex += 1
+	{
+		PhotonRay : ray
+
+		PhotonRay.Origin = v3{RandomFloat(213, 343), 554, RandomFloat(227, 332)}
+		PhotonRay.Direction = RandomOnHemisphere(v3{0, -1, 0})
+
+		CastPhoton(&PhotonMap, PhotonRay, &World)
+	}
+
+	fmt.println("\nStored", PhotonMap.StoredPhotons, "photons")
+	// fmt.println(len(PhotonMap.Photons))
+	// ScalePhotonPower(&PhotonMap, f32(100000.0) / f32(len(PhotonMap.Photons)))
+	BuildPhotonMap(&PhotonMap)
+
+	World.PhotonMap = &PhotonMap
+
+	win32.QueryPerformanceCounter(&EndCounter)
+	ElapsedTime = (EndCounter - StartCounter) * 1000 / Frequency
+
+	fmt.println("Photon tracing took", ElapsedTime, "ms\n")
 
 	// Threading
 	THREADCOUNT :: 8
@@ -91,10 +124,6 @@ main :: proc()
 	ThreadData.Camera = &Camera
 	ThreadData.World = &World
 	ThreadData.Image = &Image
-
-	libc.printf("Resolution: %dx%d\n", Image.Width, Image.Height)
-	libc.printf("%d cores with %d %dx%d (%dk/tile) tiles\n", THREADCOUNT, Queue.EntryCount, TileWidth, TileHeight, TileWidth * TileHeight * 4 / 1024)
-	libc.printf("Quality: %u samples/pixel, %d bounces (max) per ray\n", World.SamplesPerPixel, World.MaxDepth)
 
 	win32.QueryPerformanceCounter(&StartCounter)
 
@@ -109,7 +138,7 @@ main :: proc()
 
 	ElapsedTime = (EndCounter - StartCounter) * 1000
 
-	fmt.println("Render took", ElapsedTime / Frequency, "ms")
+	fmt.println(" Render took", ElapsedTime / Frequency, "ms")
 
 	WriteImage(Image, string("test.bmp"))
 }
@@ -161,6 +190,7 @@ GetIntersection :: proc(Ray : ray, World : ^world, Record : ^hit_record) -> bool
 			Record.MaterialIndex = Quad.MatIndex
 			SetFaceNormal(RotatedRay, Quad.N, Record)
 			Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
+			Record.IncomingRay = RotatedRay
 
 			if (Quad.Rotation != 0)
 			{
@@ -227,6 +257,7 @@ GetIntersection :: proc(Ray : ray, World : ^world, Record : ^hit_record) -> bool
 			Record.MaterialIndex = World.BVH.MatIndex
 			SetFaceNormal(RotatedRay, Record.SurfaceNormal, Record)
 			Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
+			Record.IncomingRay = RotatedRay
 
 			Record.HitPoint = v3{
 				(CosTheta * Record.HitPoint.x) + (SinTheta * Record.HitPoint.z),
@@ -255,6 +286,7 @@ GetIntersection :: proc(Ray : ray, World : ^world, Record : ^hit_record) -> bool
 			Record.MaterialIndex = Plane.MatIndex
 			SetFaceNormal(Ray, Plane.N, Record)
 			Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
+			Record.IncomingRay = Ray
 		}
 	}
 
@@ -269,6 +301,7 @@ GetIntersection :: proc(Ray : ray, World : ^world, Record : ^hit_record) -> bool
 			Record.MaterialIndex = Sphere.MatIndex
 			Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
 			OutwardNormal := Normalize(Record.HitPoint - Sphere.Center)
+			Record.IncomingRay = Ray
 
 			SetFaceNormal(Ray, OutwardNormal, Record)
 		}

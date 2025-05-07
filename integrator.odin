@@ -122,3 +122,34 @@ RTWIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 	return ScatterRecord.EmittedColor + ScatteredColor
 }
 
+PhotonMapIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
+{
+	Record : hit_record
+
+	if Depth <= 0
+	{
+		return v3{0, 0, 0}
+	}
+
+	HitSomething := GetIntersection(Ray, World, &Record)
+
+	if !HitSomething
+	{
+		return World.Materials[0].(lambertian).Color
+	}
+
+	SurfaceMaterial := World.Materials[Record.MaterialIndex]
+
+	ScatterRecord := Scatter(SurfaceMaterial, Ray, Record)
+
+	if !ScatterRecord.ScatterAgain
+	{
+		// return ScatterRecord.EmittedColor
+		return v3{0, 0, 0}
+	}
+
+	Irradiance := IrradianceEstimate(World.PhotonMap, Record.HitPoint, Record.SurfaceNormal, 10)
+
+	return Irradiance
+}
+
