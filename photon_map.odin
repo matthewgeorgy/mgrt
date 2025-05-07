@@ -15,7 +15,7 @@ photon_node :: struct
 	Photon : photon,
 
 	Axis : int,
-	Left, Right : ^photon_node,
+	Left, Right : i32,
 };
 
 photon_map :: struct
@@ -203,35 +203,36 @@ SortByAxis : []proc(photon, photon)->bool = { SortByX, SortByY, SortByZ }
 BuildPhotonMap :: proc(Map : ^photon_map)
 {
 	Map.Nodes = make([]photon_node, Map.StoredPhotons)
-	Map.Root = InsertNode(Map, Map.Photons[:], 0)
+	_ = InsertNode(Map, Map.Photons[:], 0)
 }
 
-InsertNode :: proc(Map : ^photon_map, Photons : []photon, Axis : int) -> ^photon_node
+InsertNode :: proc(Map : ^photon_map, Photons : []photon, Axis : int) -> i32
 {
 	PhotonNode : ^photon_node
 
 	if len(Photons) == 0
 	{
-		return nil
+		return -1
 	}
 	else
 	{
-		NewAxis := (Axis + 1) % 3
-
-		slice.sort_by(Photons, SortByAxis[NewAxis])
+		slice.sort_by(Photons, SortByAxis[Axis])
 
 		MedianIndex := len(Photons) / 2
 
+		MapIndex := i32(Map.NodeCount)
 		Node := &Map.Nodes[Map.NodeCount]
 		Map.NodeCount += 1
 
 		Node.Photon = Photons[MedianIndex]
-		Node.Axis = NewAxis
+		Node.Axis = Axis
+
+		NewAxis := (Axis + 1) % 3
 
 		Node.Left = InsertNode(Map, Photons[0 : MedianIndex], NewAxis)
 		Node.Right = InsertNode(Map, Photons[MedianIndex + 1 : len(Photons)], NewAxis)
 
-		return Node
+		return MapIndex
 	}
 }
 
@@ -239,19 +240,21 @@ LocatePhotons :: proc(Map : ^photon_map, Pos : v3, MaxDistance : f32) -> nearest
 {
 	Photons : nearest_photons
 
-	FindPhotons(Map.Root, Pos, MaxDistance, &Photons.PhotonsFound)
+	FindPhotons(Map, 0, Pos, MaxDistance, &Photons.PhotonsFound)
 
 	return Photons
 }
 
-FindPhotons :: proc(Node : ^photon_node, Pos : v3, MaxDistance : f32, PhotonsFound : ^[dynamic]^photon) -> int
+FindPhotons :: proc(Map : ^photon_map, NodeIndex : i32, Pos : v3, MaxDistance : f32, PhotonsFound : ^[dynamic]^photon) -> int
 {
 	AddedRes : int = 0
 
-	if Node == nil
+	if NodeIndex == -1
 	{
 		return 0
 	}
+
+	Node := &Map.Nodes[NodeIndex]
 
 	DistSq := LengthSquared(Node.Photon.Pos - Pos)
 	if (DistSq <= MaxDistance * MaxDistance)
@@ -263,11 +266,11 @@ FindPhotons :: proc(Node : ^photon_node, Pos : v3, MaxDistance : f32, PhotonsFou
 
 	dx : f32 = Pos[Node.Axis] - Node.Photon.Pos[Node.Axis]
 
-	Ret := FindPhotons(dx < 0.0 ? Node.Left : Node.Right, Pos, MaxDistance, PhotonsFound)
+	Ret := FindPhotons(Map, dx < 0.0 ? Node.Left : Node.Right, Pos, MaxDistance, PhotonsFound)
 	if (Ret >= 0 && Abs(dx) < MaxDistance)
 	{
 		AddedRes += Ret
-		Ret = FindPhotons(dx < 0.0 ? Node.Right : Node.Left, Pos, MaxDistance, PhotonsFound)
+		Ret = FindPhotons(Map, dx < 0.0 ? Node.Right : Node.Left, Pos, MaxDistance, PhotonsFound)
 	}
 
 	AddedRes += Ret
