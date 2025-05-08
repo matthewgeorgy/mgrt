@@ -232,7 +232,7 @@ CornellBox :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight : i
 	append(&World.Materials, lambertian{v3{0.65, 0.05, 0.05}})
 	append(&World.Materials, lambertian{v3{0.73, 0.73, 0.73}})
 	append(&World.Materials, lambertian{v3{0.12, 0.45, 0.15}})
-	append(&World.Materials, light{v3{15000, 15000, 15000}})
+	append(&World.Materials, light{v3{15, 15, 15}})
 
 	append(&World.Quads, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, 3))
 	append(&World.Quads, CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, 1))
@@ -244,6 +244,6 @@ CornellBox :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight : i
 	CreateBox(v3{0, 0, 0}, v3{165, 330, 165}, 2, v3{265, 0, 295}, 15, World)
 	CreateBox(v3{0, 0, 0}, v3{165, 165, 165}, 2, v3{130, 0, 65}, -18, World)
 
-	World.SamplesPerPixel = 1
-	World.MaxDepth = 10
+	World.SamplesPerPixel = 100
+	World.MaxDepth = 50
 }

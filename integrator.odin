@@ -113,11 +113,10 @@ RTWIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 
 	CosinePDF := cosine_pdf{CreateBasis(Record.SurfaceNormal)}
 	ScatteredRay := ray{Record.HitPoint, GeneratePDFDirection(CosinePDF)}
-	PDFValue := GeneratePDFValue(CosinePDF, ScatteredRay.Direction)
+	PDF := GeneratePDFValue(CosinePDF, ScatteredRay.Direction)
+	CosAtten := Max(Dot(Normalize(Record.SurfaceNormal), Normalize(ScatteredRay.Direction)), 0)
 
-	ScatteringPDF := ScatteringPDF(SurfaceMaterial, Ray, ScatteredRay, Record)
-
-	ScatteredColor := (ScatteringPDF / PDFValue) * ScatterRecord.Attenuation * RTWIntegrator(ScatteredRay, World, Depth - 1)
+	ScatteredColor := ScatterRecord.Attenuation * CosAtten * RTWIntegrator(ScatteredRay, World, Depth - 1) / PDF
 
 	return ScatterRecord.EmittedColor + ScatteredColor
 }
