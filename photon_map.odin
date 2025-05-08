@@ -173,8 +173,11 @@ CastPhoton :: proc(Map : ^photon_map, Ray : ray, World : ^world)
 
 		if ScatterRecord.ScatterAgain
 		{
-			Color := ScatterRecord.Attenuation
-			StorePhoton(Map, Record.HitPoint, Color, Record.IncomingRay.Direction)
+			Pos := Record.HitPoint
+			Power := v3{150000, 150000, 150000} // power corresponds to brightness of light material
+			Dir := Record.IncomingRay.Direction
+
+			StorePhoton(Map, Pos, Power, Dir)
 		}
 	}
 }

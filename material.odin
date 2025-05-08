@@ -81,7 +81,7 @@ ScatterLambertian :: proc(Material : lambertian, Ray : ray, Record : hit_record)
 	Basis := CreateBasis(Record.SurfaceNormal)
 	ScatterDirection := BasisTransform(Basis, RandomCosineDirection())
 
-	SRecord.Attenuation = Material.Color
+	SRecord.Attenuation = Material.Color / PI
 	SRecord.NewRay = ray{Record.HitPoint, ScatterDirection}
 	SRecord.ScatterAgain = true
 

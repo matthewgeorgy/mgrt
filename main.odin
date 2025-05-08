@@ -105,7 +105,7 @@ main :: proc()
 
 	fmt.println("\nStored", PhotonMap.StoredPhotons, "photons")
 	// fmt.println(len(PhotonMap.Photons))
-	// ScalePhotonPower(&PhotonMap, f32(100000.0) / f32(len(PhotonMap.Photons)))
+	ScalePhotonPower(&PhotonMap, f32(1.0) / f32(len(PhotonMap.Photons)))
 	BuildPhotonMap(&PhotonMap)
 
 	World.PhotonMap = &PhotonMap

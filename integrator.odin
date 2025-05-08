@@ -148,7 +148,20 @@ PhotonMapIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 		return v3{0, 0, 0}
 	}
 
-	Irradiance := IrradianceEstimate(World.PhotonMap, Record.HitPoint, Record.SurfaceNormal, 10)
+	Irradiance : v3
+	Indirect : v3
+	PHOTON_SEARCH_RADIUS : f32 = 2.5
+	AreaFactor := 1 / (PI * PHOTON_SEARCH_RADIUS * PHOTON_SEARCH_RADIUS)
+
+	NearestPhotons := LocatePhotons(World.PhotonMap, Record.HitPoint, PHOTON_SEARCH_RADIUS)
+
+	for Photon in NearestPhotons.PhotonsFound
+	{
+		Weight := Max(Dot(-Photon.Dir, Record.SurfaceNormal), 0)
+		Indirect += Photon.Power * Weight
+	}
+
+	Irradiance = AreaFactor * ScatterRecord.Attenuation * Indirect
 
 	return Irradiance
 }
