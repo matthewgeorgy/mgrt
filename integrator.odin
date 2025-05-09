@@ -163,9 +163,8 @@ ComputeDirectIllumination :: proc(Ray : ray, Record : hit_record, World : ^world
 	DirectIllumination : v3
 
 	OnLight := v3{RandomFloat(213, 343), 554, RandomFloat(227, 332)}
-	ToLight := OnLight - Record.HitPoint
-	DistanceSquared := LengthSquared(ToLight)
-	ToLight = Normalize(ToLight)
+	ToLight := Normalize(OnLight - Record.HitPoint)
+	DistanceSquared := LengthSquared(OnLight - Record.HitPoint)
 
 	LightArea : f32 = (343 - 213) * (332 - 227)
 	LightCosine := Abs(ToLight.y)
@@ -178,19 +177,22 @@ ComputeDirectIllumination :: proc(Ray : ray, Record : hit_record, World : ^world
 	if GetIntersection(ShadowRay, World, &ShadowRecord)
 	{
 		SurfaceMaterial := World.Materials[ShadowRecord.MaterialIndex]
-		LightScatterRecord := Scatter(SurfaceMaterial, Ray, Record)
+		LightScatterRecord := Scatter(SurfaceMaterial, Ray, ShadowRecord)
 
 		// We hit the light source without anything obstructing us
 		if !LightScatterRecord.ScatterAgain
 		{
 			SurfaceMaterial = World.Materials[Record.MaterialIndex]
-			SurfaceScatterRecord := ScatterLambertian(SurfaceMaterial.(lambertian), Ray, Record)
+			SurfaceScatterRecord := Scatter(SurfaceMaterial, Ray, Record)
 
-			Le := LightScatterRecord.EmittedColor
-			BRDF := SurfaceScatterRecord.Attenuation
-			CosAtten := Max(Dot(Record.SurfaceNormal, ShadowRay.Direction), 0)
+			if SurfaceScatterRecord.ScatterAgain
+			{
+				Le := LightScatterRecord.EmittedColor
+				BRDF := SurfaceScatterRecord.Attenuation
+				CosAtten := Max(Dot(Record.SurfaceNormal, ShadowRay.Direction), 0)
 
-			DirectIllumination = BRDF * CosAtten * Le / LightPDF
+				DirectIllumination = BRDF * CosAtten * Le / LightPDF
+			}
 		}
 	}
 
@@ -231,7 +233,7 @@ PhotonMapIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 	PHOTON_SEARCH_RADIUS : f32 = 5
 
 	DirectIllumination := ComputeDirectIllumination(Ray, Record, World)
-	IndirectIllumination : v3 = CosAtten * BRDF * IrradianceEstimate(World.PhotonMap, Record.HitPoint, Record.SurfaceNormal, PHOTON_SEARCH_RADIUS) / PDF
+	IndirectIllumination : v3// = CosAtten * BRDF * IrradianceEstimate(World.PhotonMap, Record.HitPoint, Record.SurfaceNormal, PHOTON_SEARCH_RADIUS) / PDF
 
 	return DirectIllumination + IndirectIllumination
 }
