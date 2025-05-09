@@ -34,6 +34,10 @@ NaiveIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 	return ScatterRecord.EmittedColor + ScatteredColor
 }
 
+// NOTE(matthew): need to rename this!
+// This isn't actually a direct light integrator; it is still a recurisve integrator,
+// except it only samples the light source. So kinda direct and also indirect, but
+// indirect from previously scattered light paths.
 DirectLightIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 {
 	Record : hit_record
@@ -147,27 +151,49 @@ PhotonMapIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 		return v3{0, 0, 0}
 	}
 
-	// NOTE(matthew): this is the old way I had, which I don't think is quite right,
-	// particularly the cos() term in the loop.
-	// For one thing, yumcyaWiz's implementation doesn't have it (see computeRadianceWithPhotonMap
-	// in integrator.h), nor does Jensen's book mention it (figure 7.4) Furthermore, it doesn't make
-	// sense to have it since we already accounted for the cos() term when computing the photon power
-	// in the first pass. So I think we're fine... :)
-// 	Irradiance : v3
-// 	Indirect : v3
-// 	AreaFactor := 1 / (PI * PHOTON_SEARCH_RADIUS * PHOTON_SEARCH_RADIUS)
-// 	NearestPhotons := LocatePhotons(World.PhotonMap, Record.HitPoint, PHOTON_SEARCH_RADIUS)
-// 	for Photon in NearestPhotons.PhotonsFound
-// 	{
-// 		Weight := Max(Dot(-Photon.Dir, Record.SurfaceNormal), 0)
-// 		Indirect += Photon.Power * Weight
-// 	}
-	// Irradiance = AreaFactor * Indirect * ScatterRecord.Attenuation
-
 	PHOTON_SEARCH_RADIUS : f32 = 5
 	Irradiance := IrradianceEstimate(World.PhotonMap, Record.HitPoint, Record.SurfaceNormal, PHOTON_SEARCH_RADIUS)
 	SurfaceColor := ScatterRecord.Attenuation
 
 	return Irradiance * SurfaceColor
+}
+
+ComputeDirectIllumination :: proc(Ray : ray, Record : hit_record, World : ^world) -> v3
+{
+	DirectIllumination : v3
+
+	OnLight := v3{RandomFloat(213, 343), 554, RandomFloat(227, 332)}
+	ToLight := OnLight - Record.HitPoint
+	DistanceSquared := LengthSquared(ToLight)
+	ToLight = Normalize(ToLight)
+
+	LightArea : f32 = (343 - 213) * (332 - 227)
+	LightCosine := Abs(ToLight.y)
+	LightPDF := DistanceSquared / (LightCosine * LightArea)
+
+	ShadowRay := ray{Record.HitPoint, ToLight}
+
+	ShadowRecord : hit_record
+
+	if GetIntersection(ShadowRay, World, &ShadowRecord)
+	{
+		SurfaceMaterial := World.Materials[ShadowRecord.MaterialIndex]
+		LightScatterRecord := Scatter(SurfaceMaterial, Ray, Record)
+
+		// We hit the light source without anything obstructing us
+		if !LightScatterRecord.ScatterAgain
+		{
+			SurfaceMaterial = World.Materials[Record.MaterialIndex]
+			SurfaceScatterRecord := ScatterLambertian(SurfaceMaterial.(lambertian), Ray, Record)
+
+			Le := LightScatterRecord.EmittedColor
+			BRDF := SurfaceScatterRecord.Attenuation
+			CosAtten := Max(Dot(Record.SurfaceNormal, ShadowRay.Direction), 0)
+
+			DirectIllumination = BRDF * CosAtten * Le / LightPDF
+		}
+	}
+
+	return DirectIllumination
 }
 
