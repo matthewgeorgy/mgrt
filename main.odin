@@ -44,9 +44,6 @@ world :: struct
 	MaxDepth : int,
 };
 
-SCR_WIDTH :: 800
-SCR_HEIGHT :: 800
-
 main :: proc()
 {
 	// Image
@@ -90,15 +87,15 @@ main :: proc()
 
 	// Photon map
 	PHOTON_COUNT :: 1000000
-	MAX_PHOTON_BOUNCES :: 10
+	MaxPhotonBounces := World.MaxDepth
 	PhotonMap := CreatePhotonMap(PHOTON_COUNT)
 
 	win32.QueryPerformanceCounter(&StartCounter)
-	for PhotonIndex := 0; PhotonIndex < PHOTON_COUNT / 2; PhotonIndex += 1
+	for PhotonIndex := 0; PhotonIndex < PHOTON_COUNT / 4; PhotonIndex += 1
 	{
 		Ray, Power := SampleRayFromLight(World)
 
-		CastPhoton(&PhotonMap, Ray, Power, &World, MAX_PHOTON_BOUNCES)
+		CastPhoton(&PhotonMap, Ray, Power, &World, MaxPhotonBounces)
 	}
 
 	fmt.println("\nStored", PhotonMap.StoredPhotons, "photons")

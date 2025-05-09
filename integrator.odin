@@ -233,7 +233,7 @@ PhotonMapIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 	PHOTON_SEARCH_RADIUS : f32 = 5
 
 	DirectIllumination := ComputeDirectIllumination(Ray, Record, World)
-	IndirectIllumination : v3// = CosAtten * BRDF * IrradianceEstimate(World.PhotonMap, Record.HitPoint, Record.SurfaceNormal, PHOTON_SEARCH_RADIUS) / PDF
+	IndirectIllumination : v3 = CosAtten * BRDF * IrradianceEstimate(World.PhotonMap, Record.HitPoint, Record.SurfaceNormal, PHOTON_SEARCH_RADIUS) / PDF
 
 	return DirectIllumination + IndirectIllumination
 }
