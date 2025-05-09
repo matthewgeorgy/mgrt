@@ -159,8 +159,31 @@ IrradianceEstimate :: proc(Map : ^photon_map, Pos, Normal : v3, MaxDistance : f3
 	return Irradiance
 }
 
+SampleRayFromLight :: proc(World : world) -> (ray, v3)
+{
+	Ray : ray
+	Power : v3
+	LightColor := v3{15, 15, 15}
+	Normal := v3{0, -1, 0}
+
+	CosinePDF := cosine_pdf{CreateBasis(Normal)}
+
+	Ray.Origin = v3{RandomFloat(213, 343), 554, RandomFloat(227, 332)}
+	Ray.Direction = GeneratePDFDirection(CosinePDF)
+
+	LightArea : f32 = (343 - 213) * (332 - 227)
+	LightPosPDF := 1 / LightArea
+	LightDirPDF := GeneratePDFValue(CosinePDF, Ray.Direction)
+	CosAtten := Max(Dot(Normal, Ray.Direction), 0)
+
+	Power = LightColor * CosAtten / (LightPosPDF * LightDirPDF)
+
+	return Ray, Power
+}
+
 // NOTE(matthew): to be called before the integrator!
-CastPhoton :: proc(Map : ^photon_map, Ray : ray, World : ^world)
+// TODO(matthew): needs russian roulette!
+CastPhoton :: proc(Map : ^photon_map, Ray : ray, InitialPower : v3, World : ^world)
 {
 	Record : hit_record
 
@@ -173,11 +196,16 @@ CastPhoton :: proc(Map : ^photon_map, Ray : ray, World : ^world)
 
 		if ScatterRecord.ScatterAgain
 		{
+
+			CosinePDF := cosine_pdf{CreateBasis(Record.SurfaceNormal)}
+			ScatteredRay := ray{Record.HitPoint, GeneratePDFDirection(CosinePDF)}
+			PDF := GeneratePDFValue(CosinePDF, ScatteredRay.Direction)
+			CosAtten := Max(Dot(Normalize(Record.SurfaceNormal), Normalize(ScatteredRay.Direction)), 0)
+
 			Pos := Record.HitPoint
-			Power := v3{150000, 150000, 150000} // power corresponds to brightness of light material
 			Dir := Record.IncomingRay.Direction
 
-			StorePhoton(Map, Pos, Power, Dir)
+			StorePhoton(Map, Pos, InitialPower, Dir)
 		}
 	}
 }

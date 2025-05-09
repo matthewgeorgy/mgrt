@@ -244,6 +244,6 @@ CornellBox :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight : i
 	CreateBox(v3{0, 0, 0}, v3{165, 330, 165}, 2, v3{265, 0, 295}, 15, World)
 	CreateBox(v3{0, 0, 0}, v3{165, 165, 165}, 2, v3{130, 0, 65}, -18, World)
 
-	World.SamplesPerPixel = 100
-	World.MaxDepth = 50
+	World.SamplesPerPixel = 10
+	World.MaxDepth = 5
 }

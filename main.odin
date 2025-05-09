@@ -95,12 +95,9 @@ main :: proc()
 	win32.QueryPerformanceCounter(&StartCounter)
 	for PhotonIndex := 0; PhotonIndex < PHOTON_COUNT; PhotonIndex += 1
 	{
-		PhotonRay : ray
+		Ray, Power := SampleRayFromLight(World)
 
-		PhotonRay.Origin = v3{RandomFloat(213, 343), 554, RandomFloat(227, 332)}
-		PhotonRay.Direction = RandomOnHemisphere(v3{0, -1, 0})
-
-		CastPhoton(&PhotonMap, PhotonRay, &World)
+		CastPhoton(&PhotonMap, Ray, Power, &World)
 	}
 
 	fmt.println("\nStored", PhotonMap.StoredPhotons, "photons")
