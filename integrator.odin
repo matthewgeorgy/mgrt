@@ -77,11 +77,11 @@ DirectLightIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 		return ScatterRecord.EmittedColor
 	}
 
-	PDFValue := DistanceSquared / (LightCosine * LightArea)
+	PDF := DistanceSquared / (LightCosine * LightArea)
 	ScatteredRay := ray{Record.HitPoint, ToLight}
-	ScatteringPDF := ScatteringPDF(SurfaceMaterial, Ray, ScatteredRay, Record)
+	CosAtten := Max(Dot(Record.SurfaceNormal, Normalize(ScatteredRay.Direction)), 0)
 
-	ScatteredColor := (ScatteringPDF / PDFValue) * ScatterRecord.Attenuation * DirectLightIntegrator(ScatteredRay, World, Depth - 1)
+	ScatteredColor := CosAtten * ScatterRecord.Attenuation * DirectLightIntegrator(ScatteredRay, World, Depth - 1) / PDF
 
 	return ScatterRecord.EmittedColor + ScatteredColor
 }
