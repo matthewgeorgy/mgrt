@@ -152,9 +152,9 @@ IrradianceEstimate :: proc(Map : ^photon_map, Pos, Normal : v3, MaxDistance : f3
 	}
 
 	// TODO(matthew): see if this needs to be changed? Was causing problems in the past
-	Temp := 1.0  / (PI * MaxDistance * MaxDistance) // density estimate
+	AreaFactor := 1.0  / (PI * MaxDistance * MaxDistance) // density estimate
 
-	Irradiance *= Temp
+	Irradiance *= AreaFactor
 
 	return Irradiance
 }
@@ -183,29 +183,50 @@ SampleRayFromLight :: proc(World : world) -> (ray, v3)
 
 // NOTE(matthew): to be called before the integrator!
 // TODO(matthew): needs russian roulette!
-CastPhoton :: proc(Map : ^photon_map, Ray : ray, InitialPower : v3, World : ^world)
+CastPhoton :: proc(Map : ^photon_map, InitialRay : ray, InitialPower : v3, World : ^world, MaxPhotonBounces : int)
 {
-	Record : hit_record
+	Throughput := InitialPower
+	Ray := InitialRay
 
-	HitSomething := GetIntersection(Ray, World, &Record)
-
-	if HitSomething
+	for BounceCount := 0; BounceCount < MaxPhotonBounces; BounceCount += 1
 	{
-		SurfaceMaterial := World.Materials[Record.MaterialIndex]
-		ScatterRecord := Scatter(SurfaceMaterial, Ray, Record)
+		Record : hit_record
 
-		if ScatterRecord.ScatterAgain
+		HitSomething := GetIntersection(Ray, World, &Record)
+
+		if HitSomething
 		{
+			SurfaceMaterial := World.Materials[Record.MaterialIndex]
+			ScatterRecord := Scatter(SurfaceMaterial, Ray, Record)
 
+			// Store the photon (hit a diffuse surface)
+			if ScatterRecord.ScatterAgain
+			{
+				StorePhoton(Map, Record.HitPoint, Throughput, Ray.Direction)
+			}
+
+			// Russian roulette to start a new photon
+			if BounceCount > 0
+			{
+				RussianRouletteProb := Min(Max(Throughput.x, Throughput.y, Throughput.z), 1)
+				RandomRoll := RandomUnilateral()
+
+				if RandomRoll >= RussianRouletteProb
+				{
+					break
+				}
+				Throughput /= RussianRouletteProb
+			}
+
+			// Update throughput
 			CosinePDF := cosine_pdf{CreateBasis(Record.SurfaceNormal)}
 			ScatteredRay := ray{Record.HitPoint, GeneratePDFDirection(CosinePDF)}
 			PDF := GeneratePDFValue(CosinePDF, ScatteredRay.Direction)
 			CosAtten := Max(Dot(Normalize(Record.SurfaceNormal), Normalize(ScatteredRay.Direction)), 0)
+			BRDF := ScatterRecord.Attenuation
 
-			Pos := Record.HitPoint
-			Dir := Record.IncomingRay.Direction
-
-			StorePhoton(Map, Pos, InitialPower, Dir)
+			Throughput *= CosAtten * BRDF / PDF
+			Ray = ScatteredRay
 		}
 	}
 }

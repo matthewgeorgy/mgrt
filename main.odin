@@ -90,14 +90,15 @@ main :: proc()
 
 	// Photon map
 	PHOTON_COUNT :: 1000000
+	MAX_PHOTON_BOUNCES :: 10
 	PhotonMap := CreatePhotonMap(PHOTON_COUNT)
 
 	win32.QueryPerformanceCounter(&StartCounter)
-	for PhotonIndex := 0; PhotonIndex < PHOTON_COUNT; PhotonIndex += 1
+	for PhotonIndex := 0; PhotonIndex < PHOTON_COUNT / 2; PhotonIndex += 1
 	{
 		Ray, Power := SampleRayFromLight(World)
 
-		CastPhoton(&PhotonMap, Ray, Power, &World)
+		CastPhoton(&PhotonMap, Ray, Power, &World, MAX_PHOTON_BOUNCES)
 	}
 
 	fmt.println("\nStored", PhotonMap.StoredPhotons, "photons")
