@@ -125,7 +125,7 @@ RTWIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 	return ScatterRecord.EmittedColor + ScatteredColor
 }
 
-PhotonMapIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
+PhotonMapVisualizer :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 {
 	Record : hit_record
 
@@ -195,5 +195,44 @@ ComputeDirectIllumination :: proc(Ray : ray, Record : hit_record, World : ^world
 	}
 
 	return DirectIllumination
+}
+
+PhotonMapIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
+{
+	Record : hit_record
+
+	if Depth <= 0
+	{
+		return v3{0, 0, 0}
+	}
+
+	HitSomething := GetIntersection(Ray, World, &Record)
+
+	if !HitSomething
+	{
+		return World.Materials[0].(lambertian).Color
+	}
+
+	SurfaceMaterial := World.Materials[Record.MaterialIndex]
+	ScatterRecord := Scatter(SurfaceMaterial, Ray, Record)
+
+	// Hit the light
+	if !ScatterRecord.ScatterAgain
+	{
+		return ScatterRecord.EmittedColor
+	}
+
+	CosinePDF := cosine_pdf{CreateBasis(Record.SurfaceNormal)}
+	ScatteredRay := ray{Record.HitPoint, GeneratePDFDirection(CosinePDF)}
+	PDF := GeneratePDFValue(CosinePDF, ScatteredRay.Direction)
+	CosAtten := Abs(Dot(Normalize(Record.SurfaceNormal), Normalize(ScatteredRay.Direction)))
+	BRDF := ScatterRecord.Attenuation
+
+	PHOTON_SEARCH_RADIUS : f32 = 5
+
+	DirectIllumination := ComputeDirectIllumination(Ray, Record, World)
+	IndirectIllumination : v3 = CosAtten * BRDF * IrradianceEstimate(World.PhotonMap, Record.HitPoint, Record.SurfaceNormal, PHOTON_SEARCH_RADIUS) / PDF
+
+	return DirectIllumination + IndirectIllumination
 }
 
