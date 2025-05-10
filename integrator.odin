@@ -199,6 +199,38 @@ ComputeDirectIllumination :: proc(Ray : ray, Record : hit_record, World : ^world
 	return DirectIllumination
 }
 
+ComputeIndirectIllumination :: proc(World : ^world, RayDirection : v3, Record : ^hit_record) -> v3
+{
+	Indirect : v3
+	Map := World.PhotonMap
+
+	CosinePDF := cosine_pdf{CreateBasis(Record.SurfaceNormal)}
+	Dir := GeneratePDFDirection(CosinePDF)
+	PDF := GeneratePDFValue(CosinePDF, Dir)
+	CosAtten := Abs(Dot(Record.SurfaceNormal, Dir))
+
+	// Single gathering ray (since we only have diffuse materials right now)
+	FinalRecord : hit_record
+	FinalRay := ray{Record.HitPoint, Dir}
+	if GetIntersection(FinalRay, World, &FinalRecord)
+	{
+		SurfaceMaterial := World.Materials[FinalRecord.MaterialIndex]
+		ScatterRecord := Scatter(SurfaceMaterial, FinalRay, FinalRecord)
+
+		if ScatterRecord.ScatterAgain
+		{
+			PhotonSearchRadius : f32 = 2.5
+
+			BRDF := ScatterRecord.Attenuation
+			Irradiance := IrradianceEstimate(Map, FinalRecord.HitPoint, FinalRecord.SurfaceNormal, PhotonSearchRadius)
+
+			Indirect = BRDF * CosAtten * Irradiance / PDF
+		}
+	}
+
+	return Indirect
+}
+
 PhotonMapIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 {
 	Record : hit_record
@@ -230,10 +262,8 @@ PhotonMapIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 	CosAtten := Abs(Dot(Normalize(Record.SurfaceNormal), Normalize(ScatteredRay.Direction)))
 	BRDF := ScatterRecord.Attenuation
 
-	PHOTON_SEARCH_RADIUS : f32 = 5
-
 	DirectIllumination := ComputeDirectIllumination(Ray, Record, World)
-	IndirectIllumination : v3 = CosAtten * BRDF * IrradianceEstimate(World.PhotonMap, Record.HitPoint, Record.SurfaceNormal, PHOTON_SEARCH_RADIUS) / PDF
+	IndirectIllumination := BRDF * CosAtten * ComputeIndirectIllumination(World, Ray.Direction, &Record) / PDF
 
 	return DirectIllumination + IndirectIllumination
 }
