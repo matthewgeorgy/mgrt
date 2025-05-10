@@ -1,5 +1,5 @@
 @echo off
 
-odin build source\ -out:main_dbg.exe -debug
-odin build source\ -out:main.exe -o:speed
+odin build source\ -out:build\main_dbg.exe -debug
+odin build source\ -out:build\main.exe -o:speed
 
