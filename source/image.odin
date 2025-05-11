@@ -92,6 +92,16 @@ PackRGBA :: proc(Red, Green, Blue, Alpha : u8) -> u32
 	return Output
 }
 
+LinearTosRGB :: proc (LinearValue : f32) -> f32
+{
+	if LinearValue > 0
+	{
+		return SquareRoot(LinearValue)
+	}
+
+	return 0
+}
+
 WritePixel :: proc(Image : image_u32, X, Y : i32, PixelColor : v3)
 {
 	Out := Image.Pixels

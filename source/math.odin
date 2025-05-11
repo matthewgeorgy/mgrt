@@ -30,6 +30,16 @@ Rads2Degs		:: math.to_degrees_f32
 F32_MAX 		:: 3.402823466e+38
 PI				: f32 : math.PI
 
+hit_record :: struct
+{
+	t : f32,
+	MaterialIndex  : u32,
+	SurfaceNormal : v3,
+	HitPoint : v3,
+	IsFrontFace : bool,
+	BestTriangleIndex : u32,
+};
+
 ray :: struct
 {
 	Origin : v3,
@@ -339,5 +349,152 @@ RayIntersectAABB :: proc(Ray : ray, Record : ^hit_record, AABB : aabb) -> b32
 	tMax = Min(tMax, Max(tz1, tz2))
 
 	return (tMax >= tMin) && (tMin < Record.t) && (tMax > 0)
+}
+
+TransformRay :: proc(Ray : ray, Translation : v3, Rotation : f32) -> ray
+{
+	OffsetRay := Ray
+
+	OffsetRay.Origin += Translation
+
+	SinTheta := Sin(Rotation)
+	CosTheta := Cos(Rotation)
+
+	RotatedRay := OffsetRay
+
+	RotatedRay.Origin = v3{
+		(CosTheta * OffsetRay.Origin.x) - (SinTheta * OffsetRay.Origin.z),
+		OffsetRay.Origin.y,
+		(SinTheta * OffsetRay.Origin.x) + (CosTheta * OffsetRay.Origin.z)
+	}
+
+	RotatedRay.Direction = v3{
+		(CosTheta * OffsetRay.Direction.x) - (SinTheta * OffsetRay.Direction.z),
+		OffsetRay.Direction.y,
+		(SinTheta * OffsetRay.Direction.x) + (CosTheta * OffsetRay.Direction.z)
+	}
+
+	return RotatedRay
+}
+
+InvertRayTransform :: proc(Point, Normal : ^v3, Translation : v3, Rotation : f32)
+{
+	CosTheta := Cos(Rotation)
+	SinTheta := Sin(Rotation)
+
+	NewPoint := v3{
+		(CosTheta * Point.x) + (SinTheta * Point.z),
+		Point.y,
+		(-SinTheta * Point.x) + (CosTheta * Point.z)
+	}
+
+	NewNormal := v3{
+		(CosTheta * Normal.x) + (SinTheta * Normal.z),
+		Normal.y,
+		(-SinTheta * Normal.x) + (CosTheta * Normal.z)
+	}
+
+	NewPoint -= Translation
+
+	Point^ = NewPoint
+	Normal^ = NewNormal
+}
+
+GetIntersection :: proc(Ray : ray, World : ^world, Record : ^hit_record) -> bool
+{
+	Record.t = F32_MAX
+
+	HitDistance : f32 = F32_MAX
+	HitSomething := false
+
+	for Quad in World.Quads
+	{
+		RotatedRay := TransformRay(Ray, Quad.Translation, Quad.Rotation)
+
+		Record.t = RayIntersectQuad(RotatedRay, Quad)
+		if (Record.t > 0.0001 && Record.t < HitDistance)
+		{
+			HitSomething = true
+			HitDistance = Record.t
+			Record.MaterialIndex = Quad.MatIndex
+			SetFaceNormal(RotatedRay, Quad.N, Record)
+			Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
+
+			InvertRayTransform(&Record.HitPoint, &Record.SurfaceNormal, Quad.Translation, Quad.Rotation)
+		}
+	}
+
+	if World.BVH.NodesUsed != 0
+	{
+		RotatedRay := TransformRay(Ray, World.BVH.Translation, World.BVH.Rotation)
+
+		TraverseBVH(RotatedRay, Record, World.BVH, World.BVH.RootNodeIndex)
+		if Record.t > 0.0001 && Record.t < HitDistance
+		{
+			HitSomething = true
+			HitDistance = Record.t
+
+			// Compute surface normal from the best triangle intersection
+			{
+				Triangle := World.BVH.Triangles[Record.BestTriangleIndex]
+
+				V0 := Triangle.Vertices[0]
+				V1 := Triangle.Vertices[1]
+				V2 := Triangle.Vertices[2]
+
+				Record.SurfaceNormal = Normalize(Cross(V1 - V0, V2 - V0))
+			}
+
+			Record.MaterialIndex = World.BVH.MatIndex
+			SetFaceNormal(RotatedRay, Record.SurfaceNormal, Record)
+			Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
+
+			InvertRayTransform(&Record.HitPoint, &Record.SurfaceNormal, World.BVH.Translation, World.BVH.Rotation)
+		}
+	}
+
+	for Plane in World.Planes
+	{
+		Record.t = RayIntersectPlane(Ray, Plane)
+
+		if Record.t > 0.0001 && Record.t < HitDistance
+		{
+			HitSomething = true
+			HitDistance = Record.t
+			Record.MaterialIndex = Plane.MatIndex
+			SetFaceNormal(Ray, Plane.N, Record)
+			Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
+		}
+	}
+
+	for Sphere in World.Spheres
+	{
+		Record.t = RayIntersectSphere(Ray, Sphere)
+
+		if Record.t > 0.0001 && Record.t < HitDistance
+		{
+			HitSomething = true
+			HitDistance = Record.t
+			Record.MaterialIndex = Sphere.MatIndex
+			Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
+			OutwardNormal := Normalize(Record.HitPoint - Sphere.Center)
+
+			SetFaceNormal(Ray, OutwardNormal, Record)
+		}
+	}
+
+	// for Triangle in World.Triangles
+	// {
+	// 	RayIntersectTriangle(Ray, &Record, Triangle)
+	// 	if (Record.t > 0.0001 && Record.t < HitDistance)
+	// 	{
+	// 		HitSomething = true
+	// 		HitDistance = Record.t
+	// 		// Record.MaterialIndex = 1 // TODO(matthew): set this in the world!
+	// 		// Record.SurfaceNormal = v3{0, 0, 0} // TODO(matthew): set this!
+	// 	}
+	// }
+
+	return HitSomething
 }
 

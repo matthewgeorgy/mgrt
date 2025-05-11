@@ -124,7 +124,7 @@ GlassSuzanne :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight :
 	World.BVH = BVH
 	World.BVH.MatIndex = 4
 	// World.BVH.Translation = -Centroid;
-	World.BVH.Rotation = 45
+	World.BVH.Rotation = Degs2Rads(45)
 
 	World.SamplesPerPixel = 10
 	World.MaxDepth = 10
@@ -241,9 +241,9 @@ CornellBox :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight : i
 	append(&World.Quads, CreateQuad(v3{555, 555, 555}, v3{-555, 0, 0}, v3{0, 0, -555}, 2))
 	append(&World.Quads, CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}, 2))
 
-	CreateBox(v3{0, 0, 0}, v3{165, 330, 165}, 2, v3{265, 0, 295}, 15, World)
-	CreateBox(v3{0, 0, 0}, v3{165, 165, 165}, 2, v3{130, 0, 65}, -18, World)
+	CreateBox(v3{0, 0, 0}, v3{165, 330, 165}, 2, -v3{265, 0, 295}, 15, World)
+	CreateBox(v3{0, 0, 0}, v3{165, 165, 165}, 2, -v3{130, 0, 65}, -18, World)
 
-	World.SamplesPerPixel = 10
-	World.MaxDepth = 50
+	World.SamplesPerPixel = 50
+	World.MaxDepth = 10
 }
