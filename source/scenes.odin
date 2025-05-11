@@ -228,21 +228,22 @@ CornellBox :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight : i
 	InitializeCamera(Camera, ImageWidth, ImageHeight)
 
 	// World setup
-	AddMaterial(World, lambertian{v3{0.0, 0.0, 0.0}})
-	AddMaterial(World, lambertian{v3{0.65, 0.05, 0.05}})
-	AddMaterial(World, lambertian{v3{0.73, 0.73, 0.73}})
-	AddMaterial(World, lambertian{v3{0.12, 0.45, 0.15}})
-	AddMaterial(World, light{v3{15, 15, 15}})
+	Background := AddMaterial(World, lambertian{v3{0.0, 0.0, 0.0}})
+	Red := AddMaterial(World, lambertian{v3{0.65, 0.05, 0.05}})
+	Gray := AddMaterial(World, lambertian{v3{0.73, 0.73, 0.73}})
+	Green := AddMaterial(World, lambertian{v3{0.12, 0.45, 0.15}})
+	Light := AddMaterial(World, light{v3{15, 15, 15}})
+	Aluminum := AddMaterial(World, metal{v3{0.8, 0.85, 0.88}, 0})
 
-	append(&World.Quads, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, 3))
-	append(&World.Quads, CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, 1))
-	append(&World.Quads, CreateQuad(v3{343, 554, 332}, v3{-130, 0, 0}, v3{0, 0, -105}, 4))
-	append(&World.Quads, CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, 555}, 2))
-	append(&World.Quads, CreateQuad(v3{555, 555, 555}, v3{-555, 0, 0}, v3{0, 0, -555}, 2))
-	append(&World.Quads, CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}, 2))
+	append(&World.Quads, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, Green))
+	append(&World.Quads, CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, Red))
+	append(&World.Quads, CreateQuad(v3{343, 554, 332}, v3{-130, 0, 0}, v3{0, 0, -105}, Light))
+	append(&World.Quads, CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, 555}, Gray))
+	append(&World.Quads, CreateQuad(v3{555, 555, 555}, v3{-555, 0, 0}, v3{0, 0, -555}, Gray))
+	append(&World.Quads, CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}, Gray))
 
-	CreateBox(v3{0, 0, 0}, v3{165, 330, 165}, 2, -v3{265, 0, 295}, 15, World)
-	CreateBox(v3{0, 0, 0}, v3{165, 165, 165}, 2, -v3{130, 0, 65}, -18, World)
+	CreateBox(v3{0, 0, 0}, v3{165, 330, 165}, Aluminum, -v3{265, 0, 295}, 15, World)
+	CreateBox(v3{0, 0, 0}, v3{165, 165, 165}, Gray, -v3{130, 0, 65}, -18, World)
 
 	World.SamplesPerPixel = 50
 	World.MaxDepth = 10

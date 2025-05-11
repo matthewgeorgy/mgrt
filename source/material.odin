@@ -10,17 +10,24 @@ lambertian :: struct
 	Rho : v3,
 }
 
+metal :: struct
+{
+	Color : v3,
+	Fuzz : f32,
+}
+
 bxdf_type :: enum
 {
 	DIFFUSE = 1,
-	SPECULAR = 2,
+	METAL = 2,
+	DIELECTRIC = 3,
 }
 
 bxdf :: struct
 {
 	Type : bxdf_type,
 
-	using _ : struct #raw_union { Lambertian : lambertian, }
+	using _ : struct #raw_union { Lambertian : lambertian, Metal : metal, }
 }
 
 material_type :: enum
@@ -55,6 +62,10 @@ EvaluateBxDF :: proc(BxDF : bxdf, wo, wi : v3) -> v3
 		{
 			f = EvaluateLambertianBRDF(BxDF.Lambertian, wo, wi)
 		}
+		case bxdf_type.METAL:
+		{
+			f = EvaluateMetalBRDF(BxDF.Metal, wo, wi)
+		}
 	}
 
 	return f
@@ -71,6 +82,10 @@ SampleBxDF :: proc(BxDF : bxdf, wo, Normal : v3) -> bxdf_sample
 		case bxdf_type.DIFFUSE:
 		{
 			Sample = SampleLambertianBRDF(BxDF.Lambertian, wo, Normal)
+		}
+		case bxdf_type.METAL:
+		{
+			Sample = SampleMetalBRDF(BxDF.Metal, wo, Normal)
 		}
 	}
 
@@ -92,12 +107,30 @@ SampleLambertianBRDF :: proc(BRDF : lambertian, wo, Normal : v3) -> bxdf_sample
 	CosineTheta := Dot(Normalize(Sample.wi), Basis.w)
 	Sample.PDF = Max(0, CosineTheta / PI)
 
-	Sample.f = BRDF.Rho / PI
+	Sample.f = EvaluateLambertianBRDF(BRDF, wo, Sample.wi)
 
 	return Sample
 }
 
-AddMaterial :: proc{ AddLambertian, AddLight }
+EvaluateMetalBRDF :: proc(BRDF : metal, wo, wi : v3) -> v3
+{
+	return BRDF.Color
+}
+
+SampleMetalBRDF :: proc(BRDF : metal, wo, Normal : v3) -> bxdf_sample
+{
+	Sample : bxdf_sample
+
+	Reflected := Reflect(wo, Normal)
+	Sample.wi = Normalize(Reflected) + (BRDF.Fuzz * RandomUnitVector())
+
+	Sample.f = EvaluateMetalBRDF(BRDF, wo, Sample.wi)
+	Sample.PDF = 1
+
+	return Sample
+}
+
+AddMaterial :: proc{ AddLambertian, AddLight, AddMetal, }
 
 AddLambertian :: proc(World : ^world, Lambertian : lambertian) -> u32
 {
@@ -106,8 +139,23 @@ AddLambertian :: proc(World : ^world, Lambertian : lambertian) -> u32
 	Material : material
 
 	Material.Type = material_type.BXDF
-	Material.BxDF.Lambertian.Rho = Lambertian.Rho
 	Material.BxDF.Type = bxdf_type.DIFFUSE
+	Material.BxDF.Lambertian = Lambertian
+
+	append(&World.Materials, Material)
+
+	return MaterialIndex
+}
+
+AddMetal :: proc(World : ^world, Metal : metal) -> u32
+{
+	MaterialIndex := cast(u32)len(World.Materials)
+
+	Material : material
+
+	Material.Type = material_type.BXDF
+	Material.BxDF.Type = bxdf_type.METAL
+	Material.BxDF.Metal = Metal
 
 	append(&World.Materials, Material)
 
