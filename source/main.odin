@@ -14,7 +14,7 @@ world :: struct
 	Quads : [dynamic]quad,
 	Triangles : [dynamic]triangle,
 	BVH : bvh,
-	PhotonMap : ^photon_map,
+	// PhotonMap : ^photon_map,
 
 	SamplesPerPixel : u32,
 	MaxDepth : int,
@@ -29,7 +29,7 @@ main :: proc()
 	World : world
 	Camera : camera
 
-	SpheresMaterial(&World, &Camera, Image.Width, Image.Height)
+	CornellBox(&World, &Camera, Image.Width, Image.Height)
 
 	// Work queue
 	Queue : work_queue
@@ -62,29 +62,29 @@ main :: proc()
 	win32.QueryPerformanceFrequency(&Frequency)
 
 	// Photon map
-	PHOTON_COUNT :: 1000000
-	MaxPhotonBounces := World.MaxDepth
-	PhotonMap := CreatePhotonMap(PHOTON_COUNT)
+	// PHOTON_COUNT :: 1000000
+	// MaxPhotonBounces := World.MaxDepth
+	// PhotonMap := CreatePhotonMap(PHOTON_COUNT)
 
-	win32.QueryPerformanceCounter(&StartCounter)
-	for PhotonIndex := 0; PhotonIndex < PHOTON_COUNT / 4; PhotonIndex += 1
-	{
-		Ray, Power := SampleRayFromLight(World)
+	// win32.QueryPerformanceCounter(&StartCounter)
+	// for PhotonIndex := 0; PhotonIndex < PHOTON_COUNT / 4; PhotonIndex += 1
+	// {
+	// 	Ray, Power := SampleRayFromLight(World)
 
-		CastPhoton(&PhotonMap, Ray, Power, &World, MaxPhotonBounces)
-	}
+	// 	CastPhoton(&PhotonMap, Ray, Power, &World, MaxPhotonBounces)
+	// }
 
-	fmt.println("\nStored", PhotonMap.StoredPhotons, "photons")
-	// fmt.println(len(PhotonMap.Photons))
-	ScalePhotonPower(&PhotonMap, f32(1.0) / f32(len(PhotonMap.Photons)))
-	BuildPhotonMap(&PhotonMap)
+	// fmt.println("\nStored", PhotonMap.StoredPhotons, "photons")
+	// // fmt.println(len(PhotonMap.Photons))
+	// ScalePhotonPower(&PhotonMap, f32(1.0) / f32(len(PhotonMap.Photons)))
+	// BuildPhotonMap(&PhotonMap)
 
-	World.PhotonMap = &PhotonMap
+	// World.PhotonMap = &PhotonMap
 
-	win32.QueryPerformanceCounter(&EndCounter)
-	ElapsedTime = (EndCounter - StartCounter) * 1000 / Frequency
+	// win32.QueryPerformanceCounter(&EndCounter)
+	// ElapsedTime = (EndCounter - StartCounter) * 1000 / Frequency
 
-	fmt.println("Photon tracing took", ElapsedTime, "ms\n")
+	// fmt.println("Photon tracing took", ElapsedTime, "ms\n")
 
 	// Threading
 	THREADCOUNT :: 8
