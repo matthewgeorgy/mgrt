@@ -116,7 +116,7 @@ RTWIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 		Dir := SampleResult.wi
 		PDF := SampleResult.PDF
 
-		CosAtten := Max(Dot(Dir, Record.SurfaceNormal), 0)
+		CosAtten := Abs(Dot(Dir, Record.SurfaceNormal))
 
 		ScatteredRay := ray{Record.HitPoint, Dir}
 

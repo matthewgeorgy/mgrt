@@ -92,6 +92,13 @@ SampleBxDF :: proc(BxDF : bxdf, wo, Normal : v3) -> bxdf_sample
 	return Sample
 }
 
+// TODO(matthew): need to correct this and Sample function, as the PDF should just be
+// CosineTheta / PI. However, we also need to check for valid angles when computing
+// the BRDF, since the case where the PDF is "0" is when wo and wi are under the surface.
+// Can do this by converting wo and wi to local coordinate system, checking their cosine
+// (which is just the z-component), and then returning either Rho / PI or 0 accordingly.
+// NOTE(matthew): this technically shouldn't be necessary, but I guess for completeness
+// I should add it...?
 EvaluateLambertianBRDF :: proc(BRDF : lambertian, wo, wi : v3) -> v3
 {
 	return BRDF.Rho / PI
@@ -105,7 +112,7 @@ SampleLambertianBRDF :: proc(BRDF : lambertian, wo, Normal : v3) -> bxdf_sample
 	Sample.wi = BasisTransform(Basis, RandomCosineDirection())
 
 	CosineTheta := Dot(Normalize(Sample.wi), Basis.w)
-	Sample.PDF = Max(0, CosineTheta / PI)
+	Sample.PDF = CosineTheta / PI
 
 	Sample.f = EvaluateLambertianBRDF(BRDF, wo, Sample.wi)
 
@@ -125,7 +132,7 @@ SampleMetalBRDF :: proc(BRDF : metal, wo, Normal : v3) -> bxdf_sample
 	Reflected := Reflect(wo, Normal)
 	Sample.wi = Normalize(Reflected) + (BRDF.Fuzz * RandomUnitVector())
 
-	Sample.f = BRDF.Color / Max(Dot(Sample.wi, Normal), 0) // Cancel out CosAtten term
+	Sample.f = BRDF.Color / Abs(Dot(Sample.wi, Normal)) // Cancel out CosAtten term
 	Sample.PDF = 1
 
 	return Sample
