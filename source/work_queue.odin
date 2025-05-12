@@ -14,7 +14,7 @@ work_queue :: struct
 {
 	WorkOrders : [dynamic]work_order,
 
-	World : ^world,
+	Scene : ^scene,
 	Image : image_u32,
 
 	// NOTE(matthew): These are treated as volatile!
@@ -27,7 +27,7 @@ thread_data :: struct
 {
 	Queue : ^work_queue,
 	Camera : ^camera,
-	World : ^world,
+	Scene : ^scene,
 	Image : ^image_u32,
 };
 
@@ -47,7 +47,7 @@ Render :: proc (Param : rawptr)
 
 	Queue := ThreadData.Queue
 	Camera := ThreadData.Camera
-	World := ThreadData.World
+	Scene := ThreadData.Scene
 	Image := ThreadData.Image
 
 	for
@@ -62,7 +62,7 @@ Render :: proc (Param : rawptr)
 
 			Order := Queue.WorkOrders[EntryIndex]
 
-			RenderTile(Order, Camera, World, Image)
+			RenderTile(Order, Camera, Scene, Image)
 
 			RemainingOrders := intrinsics.volatile_load(&Queue.RemainingOrders)
 
@@ -79,7 +79,7 @@ Render :: proc (Param : rawptr)
 	}
 }
 
-RenderTile :: proc(WorkOrder : work_order, Camera : ^camera, World : ^world, Image : ^image_u32)
+RenderTile :: proc(WorkOrder : work_order, Camera : ^camera, Scene : ^scene, Image : ^image_u32)
 {
 	for Y := i32(WorkOrder.Top); Y < i32(WorkOrder.Bottom); Y += 1
 	{
@@ -87,7 +87,7 @@ RenderTile :: proc(WorkOrder : work_order, Camera : ^camera, World : ^world, Ima
 		{
 			PixelColor : v3
 
-			for Sample : u32 = 0; Sample < World.SamplesPerPixel; Sample += 1
+			for Sample : u32 = 0; Sample < Scene.SamplesPerPixel; Sample += 1
 			{
 				Offset := v3{RandomUnilateral() - 0.5, RandomUnilateral() - 0.5, 0}
 				PixelCenter := Camera.FirstPixel +
@@ -98,10 +98,10 @@ RenderTile :: proc(WorkOrder : work_order, Camera : ^camera, World : ^world, Ima
 				Ray.Origin = Camera.Center
 				Ray.Direction = PixelCenter - Ray.Origin
 
-				PixelColor += PathTracingIntegrator(Ray, World, World.MaxDepth)
+				PixelColor += PathTracingIntegrator(Ray, Scene, Scene.MaxDepth)
 			}
 
-			Color := PixelColor / f32(World.SamplesPerPixel)
+			Color := PixelColor / f32(Scene.SamplesPerPixel)
 
 			WritePixel(Image^, X, Y, Color)
 		}

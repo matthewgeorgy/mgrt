@@ -1,7 +1,7 @@
 package main
 
 // NOTE(matthew): for reference
-PathTracingIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
+PathTracingIntegrator :: proc(Ray : ray, Scene : ^scene, Depth : int) -> v3
 {
 	Record : hit_record
 
@@ -10,9 +10,9 @@ PathTracingIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 		return v3{0, 0, 0}
 	}
 
-	if GetIntersection(Ray, World, &Record)
+	if GetIntersection(Ray, Scene, &Record)
 	{
-		SurfaceMaterial := World.Materials[Record.MaterialIndex]
+		SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
 
 		if SurfaceMaterial.Type == .LIGHT
 		{
@@ -29,11 +29,11 @@ PathTracingIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 
 		ScatteredRay := ray{Record.HitPoint, Dir}
 
-		return CosAtten * f * PathTracingIntegrator(ScatteredRay, World, Depth - 1) / PDF
+		return CosAtten * f * PathTracingIntegrator(ScatteredRay, Scene, Depth - 1) / PDF
 	}
 	else
 	{
-		return World.Materials[0].BxDF.Lambertian.Rho
+		return Scene.Materials[0].BxDF.Lambertian.Rho
 	}
 }
 
@@ -41,7 +41,7 @@ PathTracingIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 // // This isn't actually a direct light integrator; it is still a recurisve integrator,
 // // except it only samples the light source. So kinda direct and also indirect, but
 // // indirect from previously scattered light paths.
-// DirectLightIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
+// DirectLightIntegrator :: proc(Ray : ray, Scene : ^scene, Depth : int) -> v3
 // {
 // 	Record : hit_record
 
@@ -50,9 +50,9 @@ PathTracingIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 // 		return v3{0, 0, 0}
 // 	}
 
-// 	if GetIntersection(Ray, World, &Record)
+// 	if GetIntersection(Ray, Scene, &Record)
 // 	{
-// 		SurfaceMaterial := World.Materials[Record.MaterialIndex]
+// 		SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
 
 // 		ScatterRecord := Scatter(SurfaceMaterial, Ray, Record)
 
@@ -83,18 +83,18 @@ PathTracingIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 // 		ScatteredRay := ray{Record.HitPoint, ToLight}
 // 		CosAtten := Max(Dot(Record.SurfaceNormal, Normalize(ScatteredRay.Direction)), 0)
 
-// 		ScatteredColor := CosAtten * ScatterRecord.Attenuation * DirectLightIntegrator(ScatteredRay, World, Depth - 1) / PDF
+// 		ScatteredColor := CosAtten * ScatterRecord.Attenuation * DirectLightIntegrator(ScatteredRay, Scene, Depth - 1) / PDF
 
 // 		return ScatterRecord.EmittedColor + ScatteredColor
 // 	}
 // 	else
 // 	{
-// 		return World.Materials[0].(lambertian).Color
+// 		return Scene.Materials[0].(lambertian).Color
 // 	}
 // }
 
 
-// PhotonMapVisualizer :: proc(Ray : ray, World : ^world, Depth : int) -> v3
+// PhotonMapVisualizer :: proc(Ray : ray, Scene : ^scene, Depth : int) -> v3
 // {
 // 	Record : hit_record
 
@@ -103,9 +103,9 @@ PathTracingIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 // 		return v3{0, 0, 0}
 // 	}
 
-// 	if GetIntersection(Ray, World, &Record)
+// 	if GetIntersection(Ray, Scene, &Record)
 // 	{
-// 		SurfaceMaterial := World.Materials[Record.MaterialIndex]
+// 		SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
 
 // 		ScatterRecord := Scatter(SurfaceMaterial, Ray, Record)
 
@@ -116,18 +116,18 @@ PathTracingIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 // 		}
 
 // 		PHOTON_SEARCH_RADIUS : f32 = 5
-// 		Irradiance := IrradianceEstimate(World.PhotonMap, Record.HitPoint, Record.SurfaceNormal, PHOTON_SEARCH_RADIUS)
+// 		Irradiance := IrradianceEstimate(Scene.PhotonMap, Record.HitPoint, Record.SurfaceNormal, PHOTON_SEARCH_RADIUS)
 // 		SurfaceColor := ScatterRecord.Attenuation
 
 // 		return Irradiance * SurfaceColor
 // 	}
 // 	else
 // 	{
-// 		return World.Materials[0].(lambertian).Color
+// 		return Scene.Materials[0].(lambertian).Color
 // 	}
 // }
 
-// ComputeDirectIllumination :: proc(Ray : ray, Record : hit_record, World : ^world) -> v3
+// ComputeDirectIllumination :: proc(Ray : ray, Record : hit_record, Scene : ^scene) -> v3
 // {
 // 	DirectIllumination : v3
 
@@ -143,15 +143,15 @@ PathTracingIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 
 // 	ShadowRecord : hit_record
 
-// 	if GetIntersection(ShadowRay, World, &ShadowRecord)
+// 	if GetIntersection(ShadowRay, Scene, &ShadowRecord)
 // 	{
-// 		SurfaceMaterial := World.Materials[ShadowRecord.MaterialIndex]
+// 		SurfaceMaterial := Scene.Materials[ShadowRecord.MaterialIndex]
 // 		LightScatterRecord := Scatter(SurfaceMaterial, Ray, ShadowRecord)
 
 // 		// We hit the light source without anything obstructing us
 // 		if !LightScatterRecord.ScatterAgain
 // 		{
-// 			SurfaceMaterial = World.Materials[Record.MaterialIndex]
+// 			SurfaceMaterial = Scene.Materials[Record.MaterialIndex]
 // 			SurfaceScatterRecord := Scatter(SurfaceMaterial, Ray, Record)
 
 // 			if SurfaceScatterRecord.ScatterAgain
@@ -168,10 +168,10 @@ PathTracingIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 // 	return DirectIllumination
 // }
 
-// ComputeIndirectIllumination :: proc(World : ^world, RayDirection : v3, Record : ^hit_record) -> v3
+// ComputeIndirectIllumination :: proc(Scene : ^scene, RayDirection : v3, Record : ^hit_record) -> v3
 // {
 // 	Indirect : v3
-// 	Map := World.PhotonMap
+// 	Map := Scene.PhotonMap
 
 // 	CosinePDF := cosine_pdf{CreateBasis(Record.SurfaceNormal)}
 // 	Dir := GeneratePDFDirection(CosinePDF)
@@ -181,9 +181,9 @@ PathTracingIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 // 	// Single gathering ray (since we only have diffuse materials right now)
 // 	FinalRecord : hit_record
 // 	FinalRay := ray{Record.HitPoint, Dir}
-// 	if GetIntersection(FinalRay, World, &FinalRecord)
+// 	if GetIntersection(FinalRay, Scene, &FinalRecord)
 // 	{
-// 		SurfaceMaterial := World.Materials[FinalRecord.MaterialIndex]
+// 		SurfaceMaterial := Scene.Materials[FinalRecord.MaterialIndex]
 // 		ScatterRecord := Scatter(SurfaceMaterial, FinalRay, FinalRecord)
 
 // 		if ScatterRecord.ScatterAgain
@@ -200,7 +200,7 @@ PathTracingIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 // 	return Indirect
 // }
 
-// PhotonMapIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
+// PhotonMapIntegrator :: proc(Ray : ray, Scene : ^scene, Depth : int) -> v3
 // {
 // 	Record : hit_record
 
@@ -209,9 +209,9 @@ PathTracingIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 // 		return v3{0, 0, 0}
 // 	}
 
-// 	if GetIntersection(Ray, World, &Record)
+// 	if GetIntersection(Ray, Scene, &Record)
 // 	{
-// 		SurfaceMaterial := World.Materials[Record.MaterialIndex]
+// 		SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
 // 		ScatterRecord := Scatter(SurfaceMaterial, Ray, Record)
 
 // 		// Hit the light
@@ -226,14 +226,14 @@ PathTracingIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 // 		CosAtten := Abs(Dot(Normalize(Record.SurfaceNormal), Normalize(ScatteredRay.Direction)))
 // 		BRDF := ScatterRecord.Attenuation
 
-// 		DirectIllumination := ComputeDirectIllumination(Ray, Record, World)
-// 		IndirectIllumination := BRDF * CosAtten * ComputeIndirectIllumination(World, Ray.Direction, &Record) / PDF
+// 		DirectIllumination := ComputeDirectIllumination(Ray, Record, Scene)
+// 		IndirectIllumination := BRDF * CosAtten * ComputeIndirectIllumination(Scene, Ray.Direction, &Record) / PDF
 
 // 		return DirectIllumination + IndirectIllumination
 // 	}
 // 	else
 // 	{
-// 		return World.Materials[0].(lambertian).Color
+// 		return Scene.Materials[0].(lambertian).Color
 // 	}
 // }
 

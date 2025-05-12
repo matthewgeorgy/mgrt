@@ -6,30 +6,17 @@ import win32	"core:sys/windows"
 import libc		"core:c/libc"
 import strings	"core:strings"
 
-world :: struct
-{
-	Materials : [dynamic]material,
-	Spheres : [dynamic]sphere,
-	Planes : [dynamic]plane,
-	Quads : [dynamic]quad,
-	Triangles : [dynamic]triangle,
-	BVH : bvh,
-	// PhotonMap : ^photon_map,
-
-	SamplesPerPixel : u32,
-	MaxDepth : int,
-};
-
 main :: proc()
 {
 	// Image
 	Image := AllocateImage(640, 640)
 
-	// World & camera
-	World : world
+	// Scene & camera
+	Scene : scene
 	Camera : camera
 
-	BunnyPlaneLamp(&World, &Camera, Image.Width, Image.Height)
+	// Scene
+	BunnyPlaneLamp(&Scene, &Camera, Image.Width, Image.Height)
 
 	// Work queue
 	Queue : work_queue
@@ -57,21 +44,21 @@ main :: proc()
 
 	libc.printf("Resolution: %dx%d\n", Image.Width, Image.Height)
 	libc.printf("%d cores with %d %dx%d (%dk/tile) tiles\n", THREADCOUNT, Queue.EntryCount, TileWidth, TileHeight, TileWidth * TileHeight * 4 / 1024)
-	libc.printf("Quality: %u samples/pixel, %d bounces (max) per ray\n", World.SamplesPerPixel, World.MaxDepth)
+	libc.printf("Quality: %u samples/pixel, %d bounces (max) per ray\n", Scene.SamplesPerPixel, Scene.MaxDepth)
 
 	win32.QueryPerformanceFrequency(&Frequency)
 
 	// Photon map
 	// PHOTON_COUNT :: 1000000
-	// MaxPhotonBounces := World.MaxDepth
+	// MaxPhotonBounces := Scene.MaxDepth
 	// PhotonMap := CreatePhotonMap(PHOTON_COUNT)
 
 	// win32.QueryPerformanceCounter(&StartCounter)
 	// for PhotonIndex := 0; PhotonIndex < PHOTON_COUNT / 4; PhotonIndex += 1
 	// {
-	// 	Ray, Power := SampleRayFromLight(World)
+	// 	Ray, Power := SampleRayFromLight(Scene)
 
-	// 	CastPhoton(&PhotonMap, Ray, Power, &World, MaxPhotonBounces)
+	// 	CastPhoton(&PhotonMap, Ray, Power, &Scene, MaxPhotonBounces)
 	// }
 
 	// fmt.println("\nStored", PhotonMap.StoredPhotons, "photons")
@@ -79,7 +66,7 @@ main :: proc()
 	// ScalePhotonPower(&PhotonMap, f32(1.0) / f32(len(PhotonMap.Photons)))
 	// BuildPhotonMap(&PhotonMap)
 
-	// World.PhotonMap = &PhotonMap
+	// Scene.PhotonMap = &PhotonMap
 
 	// win32.QueryPerformanceCounter(&EndCounter)
 	// ElapsedTime = (EndCounter - StartCounter) * 1000 / Frequency
@@ -93,7 +80,7 @@ main :: proc()
 
 	ThreadData.Queue = &Queue
 	ThreadData.Camera = &Camera
-	ThreadData.World = &World
+	ThreadData.Scene = &Scene
 	ThreadData.Image = &Image
 
 	win32.QueryPerformanceCounter(&StartCounter)

@@ -174,7 +174,7 @@ CreateQuadTransformed :: proc(Q, u, v : v3, MatIndex : u32, Translation : v3, Ro
 	return Quad
 }
 
-CreateBox :: proc(A, B : v3, MaterialIndex : u32, Translation : v3, Rotation : f32, World : ^world)
+CreateBox :: proc(A, B : v3, MaterialIndex : u32, Translation : v3, Rotation : f32, Scene : ^scene)
 {
 	MinCoord := v3{Min(A.x, B.x), Min(A.y, B.y), Min(A.z, B.z)}
 	MaxCoord := v3{Max(A.x, B.x), Max(A.y, B.y), Max(A.z, B.z)}
@@ -183,12 +183,12 @@ CreateBox :: proc(A, B : v3, MaterialIndex : u32, Translation : v3, Rotation : f
 	DeltaY := v3{0, MaxCoord.y - MinCoord.y, 0}
 	DeltaZ := v3{0, 0, MaxCoord.z - MinCoord.z}
 
-    append(&World.Quads, CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MaxCoord.z},  DeltaX,  DeltaY, MaterialIndex, Translation, Rotation)) // front
-    append(&World.Quads, CreateQuadTransformed(v3{MaxCoord.x, MinCoord.y, MaxCoord.z}, -DeltaZ,  DeltaY, MaterialIndex, Translation, Rotation)) // right
-    append(&World.Quads, CreateQuadTransformed(v3{MaxCoord.x, MinCoord.y, MinCoord.z}, -DeltaX,  DeltaY, MaterialIndex, Translation, Rotation)) // back
-    append(&World.Quads, CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaZ,  DeltaY, MaterialIndex, Translation, Rotation)) // left
-    append(&World.Quads, CreateQuadTransformed(v3{MinCoord.x, MaxCoord.y, MaxCoord.z},  DeltaX, -DeltaZ, MaterialIndex, Translation, Rotation)) // top
-    append(&World.Quads, CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaX,  DeltaZ, MaterialIndex, Translation, Rotation)) // bottom
+    append(&Scene.Quads, CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MaxCoord.z},  DeltaX,  DeltaY, MaterialIndex, Translation, Rotation)) // front
+    append(&Scene.Quads, CreateQuadTransformed(v3{MaxCoord.x, MinCoord.y, MaxCoord.z}, -DeltaZ,  DeltaY, MaterialIndex, Translation, Rotation)) // right
+    append(&Scene.Quads, CreateQuadTransformed(v3{MaxCoord.x, MinCoord.y, MinCoord.z}, -DeltaX,  DeltaY, MaterialIndex, Translation, Rotation)) // back
+    append(&Scene.Quads, CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaZ,  DeltaY, MaterialIndex, Translation, Rotation)) // left
+    append(&Scene.Quads, CreateQuadTransformed(v3{MinCoord.x, MaxCoord.y, MaxCoord.z},  DeltaX, -DeltaZ, MaterialIndex, Translation, Rotation)) // top
+    append(&Scene.Quads, CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaX,  DeltaZ, MaterialIndex, Translation, Rotation)) // bottom
 }
 
 RayIntersectQuad :: proc(Ray : ray, Quad : quad) -> f32
@@ -400,14 +400,14 @@ InvertRayTransform :: proc(Point, Normal : ^v3, Translation : v3, Rotation : f32
 	Normal^ = NewNormal
 }
 
-GetIntersection :: proc(Ray : ray, World : ^world, Record : ^hit_record) -> bool
+GetIntersection :: proc(Ray : ray, Scene : ^scene, Record : ^hit_record) -> bool
 {
 	Record.t = F32_MAX
 
 	HitDistance : f32 = F32_MAX
 	HitSomething := false
 
-	for Quad in World.Quads
+	for Quad in Scene.Quads
 	{
 		RotatedRay := TransformRay(Ray, Quad.Translation, Quad.Rotation)
 
@@ -424,11 +424,11 @@ GetIntersection :: proc(Ray : ray, World : ^world, Record : ^hit_record) -> bool
 		}
 	}
 
-	if World.BVH.NodesUsed != 0
+	if Scene.BVH.NodesUsed != 0
 	{
-		RotatedRay := TransformRay(Ray, World.BVH.Translation, World.BVH.Rotation)
+		RotatedRay := TransformRay(Ray, Scene.BVH.Translation, Scene.BVH.Rotation)
 
-		TraverseBVH(RotatedRay, Record, World.BVH, World.BVH.RootNodeIndex)
+		TraverseBVH(RotatedRay, Record, Scene.BVH, Scene.BVH.RootNodeIndex)
 		if Record.t > 0.0001 && Record.t < HitDistance
 		{
 			HitSomething = true
@@ -436,7 +436,7 @@ GetIntersection :: proc(Ray : ray, World : ^world, Record : ^hit_record) -> bool
 
 			// Compute surface normal from the best triangle intersection
 			{
-				Triangle := World.BVH.Triangles[Record.BestTriangleIndex]
+				Triangle := Scene.BVH.Triangles[Record.BestTriangleIndex]
 
 				V0 := Triangle.Vertices[0]
 				V1 := Triangle.Vertices[1]
@@ -445,15 +445,15 @@ GetIntersection :: proc(Ray : ray, World : ^world, Record : ^hit_record) -> bool
 				Record.SurfaceNormal = Normalize(Cross(V1 - V0, V2 - V0))
 			}
 
-			Record.MaterialIndex = World.BVH.MatIndex
+			Record.MaterialIndex = Scene.BVH.MatIndex
 			SetFaceNormal(RotatedRay, Record.SurfaceNormal, Record)
 			Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
 
-			InvertRayTransform(&Record.HitPoint, &Record.SurfaceNormal, World.BVH.Translation, World.BVH.Rotation)
+			InvertRayTransform(&Record.HitPoint, &Record.SurfaceNormal, Scene.BVH.Translation, Scene.BVH.Rotation)
 		}
 	}
 
-	for Plane in World.Planes
+	for Plane in Scene.Planes
 	{
 		Record.t = RayIntersectPlane(Ray, Plane)
 
@@ -467,7 +467,7 @@ GetIntersection :: proc(Ray : ray, World : ^world, Record : ^hit_record) -> bool
 		}
 	}
 
-	for Sphere in World.Spheres
+	for Sphere in Scene.Spheres
 	{
 		Record.t = RayIntersectSphere(Ray, Sphere)
 
@@ -483,14 +483,14 @@ GetIntersection :: proc(Ray : ray, World : ^world, Record : ^hit_record) -> bool
 		}
 	}
 
-	// for Triangle in World.Triangles
+	// for Triangle in Scene.Triangles
 	// {
 	// 	RayIntersectTriangle(Ray, &Record, Triangle)
 	// 	if (Record.t > 0.0001 && Record.t < HitDistance)
 	// 	{
 	// 		HitSomething = true
 	// 		HitDistance = Record.t
-	// 		// Record.MaterialIndex = 1 // TODO(matthew): set this in the world!
+	// 		// Record.MaterialIndex = 1 // TODO(matthew): set this in the scene!
 	// 		// Record.SurfaceNormal = v3{0, 0, 0} // TODO(matthew): set this!
 	// 	}
 	// }
