@@ -29,7 +29,7 @@ main :: proc()
 	World : world
 	Camera : camera
 
-	SpheresMaterial(&World, &Camera, Image.Width, Image.Height)
+	BunnyPlaneLamp(&World, &Camera, Image.Width, Image.Height)
 
 	// Work queue
 	Queue : work_queue
