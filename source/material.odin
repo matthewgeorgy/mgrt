@@ -16,6 +16,11 @@ metal :: struct
 	Fuzz : f32,
 }
 
+dielectric :: struct
+{
+	RefractionIndex : f32,
+}
+
 bxdf_type :: enum
 {
 	DIFFUSE = 1,
@@ -27,7 +32,7 @@ bxdf :: struct
 {
 	Type : bxdf_type,
 
-	using _ : struct #raw_union { Lambertian : lambertian, Metal : metal, }
+	using _ : struct #raw_union { Lambertian : lambertian, Metal : metal, Dielectric : dielectric }
 }
 
 material_type :: enum
@@ -56,7 +61,7 @@ EvaluateBxDF :: proc(BxDF : bxdf, wo, wi : v3) -> v3
 
 	Type := BxDF.Type
 
-	#partial switch Type
+	switch Type
 	{
 		case bxdf_type.DIFFUSE:
 		{
@@ -66,26 +71,34 @@ EvaluateBxDF :: proc(BxDF : bxdf, wo, wi : v3) -> v3
 		{
 			f = EvaluateMetalBRDF(BxDF.Metal, wo, wi)
 		}
+		case bxdf_type.DIELECTRIC:
+		{
+			f = EvaluateDielectricBRDF(BxDF.Dielectric, wo, wi)
+		}
 	}
 
 	return f
 }
 
-SampleBxDF :: proc(BxDF : bxdf, wo, Normal : v3) -> bxdf_sample
+SampleBxDF :: proc(BxDF : bxdf, wo : v3, Record : hit_record) -> bxdf_sample
 {
 	Sample : bxdf_sample
 
 	Type := BxDF.Type
 
-	#partial switch Type
+	switch Type
 	{
 		case bxdf_type.DIFFUSE:
 		{
-			Sample = SampleLambertianBRDF(BxDF.Lambertian, wo, Normal)
+			Sample = SampleLambertianBRDF(BxDF.Lambertian, wo, Record)
 		}
 		case bxdf_type.METAL:
 		{
-			Sample = SampleMetalBRDF(BxDF.Metal, wo, Normal)
+			Sample = SampleMetalBRDF(BxDF.Metal, wo, Record)
+		}
+		case bxdf_type.DIELECTRIC:
+		{
+			Sample = SampleDielectricBRDF(BxDF.Dielectric, wo, Record)
 		}
 	}
 
@@ -104,11 +117,11 @@ EvaluateLambertianBRDF :: proc(BRDF : lambertian, wo, wi : v3) -> v3
 	return BRDF.Rho / PI
 }
 
-SampleLambertianBRDF :: proc(BRDF : lambertian, wo, Normal : v3) -> bxdf_sample
+SampleLambertianBRDF :: proc(BRDF : lambertian, wo : v3, Record : hit_record) -> bxdf_sample
 {
 	Sample : bxdf_sample
 
-	Basis := CreateBasis(Normal)
+	Basis := CreateBasis(Record.SurfaceNormal)
 	Sample.wi = BasisTransform(Basis, RandomCosineDirection())
 
 	CosineTheta := Dot(Normalize(Sample.wi), Basis.w)
@@ -125,20 +138,58 @@ EvaluateMetalBRDF :: proc(BRDF : metal, wo, wi : v3) -> v3
 	return v3{0, 0, 0}
 }
 
-SampleMetalBRDF :: proc(BRDF : metal, wo, Normal : v3) -> bxdf_sample
+SampleMetalBRDF :: proc(BRDF : metal, wo : v3, Record : hit_record) -> bxdf_sample
 {
 	Sample : bxdf_sample
 
-	Reflected := Reflect(wo, Normal)
+	Reflected := Reflect(wo, Record.SurfaceNormal)
 	Sample.wi = Normalize(Reflected) + (BRDF.Fuzz * RandomUnitVector())
 
-	Sample.f = BRDF.Color / Abs(Dot(Sample.wi, Normal)) // Cancel out CosAtten term
+	Sample.f = BRDF.Color / Abs(Dot(Sample.wi, Record.SurfaceNormal)) // Cancel out CosAtten term
 	Sample.PDF = 1
 
 	return Sample
 }
 
-AddMaterial :: proc{ AddLambertian, AddLight, AddMetal, }
+EvaluateDielectricBRDF :: proc(BRDF : dielectric, wo, wi : v3) -> v3
+{
+	// NOTE(matthew): delta function
+	return v3{0, 0, 0}
+}
+
+SampleDielectricBRDF :: proc(BRDF : dielectric, wo : v3, Record : hit_record) -> bxdf_sample
+{
+	Sample : bxdf_sample
+
+	Attenuation := v3{1, 1, 1}
+	Ri := Record.IsFrontFace ? (1.0 / BRDF.RefractionIndex) : BRDF.RefractionIndex
+
+	UnitDirection := Normalize(wo)
+
+	// For handling total internal reflection
+	CosTheta := Min(Dot(-UnitDirection, Record.SurfaceNormal), 1)
+	SinTheta := SquareRoot(1.0 - CosTheta * CosTheta)
+
+	NewDirection : v3
+	CannotRefract := Ri * SinTheta > 1.0
+
+	if (CannotRefract || FresnelReflectance(CosTheta, Ri) > RandomUnilateral())
+	{
+		NewDirection = Reflect(UnitDirection, Record.SurfaceNormal)
+	}
+	else
+	{
+		NewDirection = Refract(UnitDirection, Record.SurfaceNormal, Ri)
+	}
+
+	Sample.f = Attenuation / Abs(Dot(NewDirection, Record.SurfaceNormal))
+	Sample.PDF = 1
+	Sample.wi = NewDirection
+
+	return Sample
+}
+
+AddMaterial :: proc{ AddLambertian, AddLight, AddMetal, AddDielectric, }
 
 AddLambertian :: proc(World : ^world, Lambertian : lambertian) -> u32
 {
@@ -164,6 +215,21 @@ AddMetal :: proc(World : ^world, Metal : metal) -> u32
 	Material.Type = material_type.BXDF
 	Material.BxDF.Type = bxdf_type.METAL
 	Material.BxDF.Metal = Metal
+
+	append(&World.Materials, Material)
+
+	return MaterialIndex
+}
+
+AddDielectric :: proc(World : ^world, Dielectric : dielectric) -> u32
+{
+	MaterialIndex := cast(u32)len(World.Materials)
+
+	Material : material
+
+	Material.Type = material_type.BXDF
+	Material.BxDF.Type = bxdf_type.DIELECTRIC
+	Material.BxDF.Dielectric = Dielectric
 
 	append(&World.Materials, Material)
 

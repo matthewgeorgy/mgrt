@@ -110,7 +110,7 @@ RTWIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 			return SurfaceMaterial.Light.Le
 		}
 
-		SampleResult := SampleBxDF(SurfaceMaterial.BxDF, Ray.Direction, Record.SurfaceNormal)
+		SampleResult := SampleBxDF(SurfaceMaterial.BxDF, Ray.Direction, Record)
 
 		f := SampleResult.f
 		Dir := SampleResult.wi

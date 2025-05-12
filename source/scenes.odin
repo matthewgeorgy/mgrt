@@ -142,12 +142,14 @@ SpheresMaterial :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeigh
 	Background := AddMaterial(World, lambertian{v3{0.5, 0.7, 1.0}})
 	Ground := AddMaterial(World, lambertian{v3{0.8, 0.8, 0.0}});
     Center := AddMaterial(World, lambertian{v3{0.1, 0.2, 0.5}});
-    Left   := AddMaterial(World, metal{v3{0.8, 0.8, 0.8}, 0.0});
+    Left   := AddMaterial(World, dielectric{1.5})
+    Bubble   := AddMaterial(World, dielectric{1.0 / 1.5})
     Right  := AddMaterial(World, metal{v3{0.8, 0.6, 0.2}, 1.0});
 
     append(&World.Spheres, sphere{v3{ 0.0, -100.5, -1.0}, 100.0, Ground});
     append(&World.Spheres, sphere{v3{ 0.0,    0.0, -1.2},   0.5, Center});
     append(&World.Spheres, sphere{v3{ 1.0,    0.0, -1.0},   0.5, Left});
+    append(&World.Spheres, sphere{v3{ 1.0,    0.0, -1.0},   0.4, Bubble});
     append(&World.Spheres, sphere{v3{-1.0,    0.0, -1.0},   0.5, Right});
 
 	World.SamplesPerPixel = 100
