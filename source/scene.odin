@@ -11,7 +11,7 @@ scene :: struct
 	Quads : [dynamic]quad,
 	Triangles : [dynamic]triangle,
 	BVH : bvh,
-	// PhotonMap : ^photon_map,
+	PhotonMap : ^photon_map,
 
 	SamplesPerPixel : u32,
 	MaxDepth : int,
@@ -323,9 +323,9 @@ CornellBox :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : i
 	append(&Scene.Quads, CreateQuad(v3{555, 555, 555}, v3{-555, 0, 0}, v3{0, 0, -555}, Gray))
 	append(&Scene.Quads, CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}, Gray))
 
-	CreateBox(v3{0, 0, 0}, v3{165, 330, 165}, Aluminum, -v3{265, 0, 295}, 15, Scene)
+	CreateBox(v3{0, 0, 0}, v3{165, 330, 165}, Gray, -v3{265, 0, 295}, 15, Scene)
 	CreateBox(v3{0, 0, 0}, v3{165, 165, 165}, Gray, -v3{130, 0, 65}, -18, Scene)
 
-	Scene.SamplesPerPixel = 200
+	Scene.SamplesPerPixel = 10
 	Scene.MaxDepth = 50
 }
