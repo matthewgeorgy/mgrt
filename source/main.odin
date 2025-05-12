@@ -29,7 +29,7 @@ main :: proc()
 	World : world
 	Camera : camera
 
-	CornellBox(&World, &Camera, Image.Width, Image.Height)
+	SpheresMaterial(&World, &Camera, Image.Width, Image.Height)
 
 	// Work queue
 	Queue : work_queue

@@ -114,7 +114,8 @@ SampleLambertianBRDF :: proc(BRDF : lambertian, wo, Normal : v3) -> bxdf_sample
 
 EvaluateMetalBRDF :: proc(BRDF : metal, wo, wi : v3) -> v3
 {
-	return BRDF.Color
+	// NOTE(matthew): delta function
+	return v3{0, 0, 0}
 }
 
 SampleMetalBRDF :: proc(BRDF : metal, wo, Normal : v3) -> bxdf_sample
@@ -124,7 +125,7 @@ SampleMetalBRDF :: proc(BRDF : metal, wo, Normal : v3) -> bxdf_sample
 	Reflected := Reflect(wo, Normal)
 	Sample.wi = Normalize(Reflected) + (BRDF.Fuzz * RandomUnitVector())
 
-	Sample.f = EvaluateMetalBRDF(BRDF, wo, Sample.wi)
+	Sample.f = BRDF.Color / Max(Dot(Sample.wi, Normal), 0) // Cancel out CosAtten term
 	Sample.PDF = 1
 
 	return Sample

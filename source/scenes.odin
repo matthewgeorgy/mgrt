@@ -130,31 +130,29 @@ import win32	"core:sys/windows"
 // 	World.MaxDepth = 10
 // }
 
-// SpheresMaterial :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight : i32)
-// {
-// 	Camera.LookFrom = v3{0, 0, -3}
-// 	Camera.LookAt = v3{0, 0, 0}
-// 	Camera.FOV = 90
-// 	Camera.FocusDist = 1
+SpheresMaterial :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight : i32)
+{
+	Camera.LookFrom = v3{0, 0, -3}
+	Camera.LookAt = v3{0, 0, 0}
+	Camera.FOV = 90
+	Camera.FocusDist = 1
 
-// 	InitializeCamera(Camera, ImageWidth, ImageHeight)
+	InitializeCamera(Camera, ImageWidth, ImageHeight)
 
-// 	append(&World.Materials, lambertian{v3{0.5, 0.7, 1.0}})
-// 	append(&World.Materials, lambertian{v3{0.8, 0.8, 0.0}})
-//     append(&World.Materials, lambertian{v3{0.1, 0.2, 0.5}})
-//     append(&World.Materials, dielectric{1.5})
-//     append(&World.Materials, dielectric{1.0 / 1.5})
-//     append(&World.Materials, metal{v3{0.8, 0.6, 0.2}, 1.0})
+	Background := AddMaterial(World, lambertian{v3{0.5, 0.7, 1.0}})
+	Ground := AddMaterial(World, lambertian{v3{0.8, 0.8, 0.0}});
+    Center := AddMaterial(World, lambertian{v3{0.1, 0.2, 0.5}});
+    Left   := AddMaterial(World, metal{v3{0.8, 0.8, 0.8}, 0});
+    Right  := AddMaterial(World, metal{v3{0.8, 0.6, 0.2}, 0});
 
-//     append(&World.Spheres, sphere{v3{ 0.0, -100.5, -1.0}, 100.0, 1})
-//     append(&World.Spheres, sphere{v3{ 0.0,    0.0, -1.2},   0.5, 2})
-//     append(&World.Spheres, sphere{v3{-1.0,    0.0, -1.0},   0.5, 3})
-//     append(&World.Spheres, sphere{v3{-1.0,    0.0, -1.0},   0.4, 4})
-//     append(&World.Spheres, sphere{v3{ 1.0,    0.0, -1.0},   0.5, 5})
+    append(&World.Spheres, sphere{v3{ 0.0, -100.5, -1.0}, 100.0, Ground});
+    append(&World.Spheres, sphere{v3{ 0.0,    0.0, -1.2},   0.5, Center});
+    append(&World.Spheres, sphere{v3{ 1.0,    0.0, -1.0},   0.5, Left});
+    append(&World.Spheres, sphere{v3{-1.0,    0.0, -1.0},   0.5, Right});
 
-// 	World.SamplesPerPixel = 100
-// 	World.MaxDepth = 50
-// }
+	World.SamplesPerPixel = 100
+	World.MaxDepth = 50
+}
 
 // BunnyPlaneLamp :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight : i32)
 // {
@@ -245,6 +243,6 @@ CornellBox :: proc(World : ^world, Camera : ^camera, ImageWidth, ImageHeight : i
 	CreateBox(v3{0, 0, 0}, v3{165, 330, 165}, Aluminum, -v3{265, 0, 295}, 15, World)
 	CreateBox(v3{0, 0, 0}, v3{165, 165, 165}, Gray, -v3{130, 0, 65}, -18, World)
 
-	World.SamplesPerPixel = 50
-	World.MaxDepth = 10
+	World.SamplesPerPixel = 200
+	World.MaxDepth = 50
 }
