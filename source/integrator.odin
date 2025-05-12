@@ -1,40 +1,41 @@
 package main
 
-import fmt "core:fmt"
+// NOTE(matthew): for reference
+PathTracingIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
+{
+	Record : hit_record
 
-// NaiveIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
-// {
-// 	Record : hit_record
+	if Depth <= 0
+	{
+		return v3{0, 0, 0}
+	}
 
-// 	if Depth <= 0
-// 	{
-// 		return v3{0, 0, 0}
-// 	}
+	if GetIntersection(Ray, World, &Record)
+	{
+		SurfaceMaterial := World.Materials[Record.MaterialIndex]
 
-// 	if GetIntersection(Ray, World, &Record)
-// 	{
-// 		NewRay : ray
-// 		ScatteredColor : v3
-// 		EmittedColor : v3
-// 		Attenuation : v3
-// 		SurfaceMaterial := World.Materials[Record.MaterialIndex]
+		if SurfaceMaterial.Type == .LIGHT
+		{
+			return SurfaceMaterial.Light.Le
+		}
 
-// 		ScatterRecord := Scatter(SurfaceMaterial, Ray, Record)
+		SampleResult := SampleBxDF(SurfaceMaterial.BxDF, Ray.Direction, Record)
 
-// 		if !ScatterRecord.ScatterAgain
-// 		{
-// 			return v3{0, 0, 0}
-// 		}
+		f := SampleResult.f
+		Dir := SampleResult.wi
+		PDF := SampleResult.PDF
 
-// 		ScatteredColor = ScatterRecord.Attenuation * NaiveIntegrator(ScatterRecord.NewRay, World, Depth - 1)
+		CosAtten := Abs(Dot(Dir, Record.SurfaceNormal))
 
-// 		return ScatterRecord.EmittedColor + ScatteredColor
-// 	}
-// 	else
-// 	{
-// 		return World.Materials[0].(lambertian).Color
-// 	}
-// }
+		ScatteredRay := ray{Record.HitPoint, Dir}
+
+		return CosAtten * f * PathTracingIntegrator(ScatteredRay, World, Depth - 1) / PDF
+	}
+	else
+	{
+		return World.Materials[0].BxDF.Lambertian.Rho
+	}
+}
 
 // // NOTE(matthew): need to rename this!
 // // This isn't actually a direct light integrator; it is still a recurisve integrator,
@@ -92,41 +93,6 @@ import fmt "core:fmt"
 // 	}
 // }
 
-RTWIntegrator :: proc(Ray : ray, World : ^world, Depth : int) -> v3
-{
-	Record : hit_record
-
-	if Depth <= 0
-	{
-		return v3{0, 0, 0}
-	}
-
-	if GetIntersection(Ray, World, &Record)
-	{
-		SurfaceMaterial := World.Materials[Record.MaterialIndex]
-
-		if SurfaceMaterial.Type == .LIGHT
-		{
-			return SurfaceMaterial.Light.Le
-		}
-
-		SampleResult := SampleBxDF(SurfaceMaterial.BxDF, Ray.Direction, Record)
-
-		f := SampleResult.f
-		Dir := SampleResult.wi
-		PDF := SampleResult.PDF
-
-		CosAtten := Abs(Dot(Dir, Record.SurfaceNormal))
-
-		ScatteredRay := ray{Record.HitPoint, Dir}
-
-		return CosAtten * f * RTWIntegrator(ScatteredRay, World, Depth - 1) / PDF
-	}
-	else
-	{
-		return World.Materials[0].BxDF.Lambertian.Rho
-	}
-}
 
 // PhotonMapVisualizer :: proc(Ray : ray, World : ^world, Depth : int) -> v3
 // {
