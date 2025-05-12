@@ -12,9 +12,9 @@ photon :: struct
 
 photon_node :: struct
 {
-	Photon : photon,
+	PhotonIdx : i32,
 
-	Axis : int,
+	Axis : i32,
 	Left, Right : i32,
 };
 
@@ -182,8 +182,6 @@ SampleRayFromLight :: proc(Scene : scene) -> (ray, v3)
 	return Ray, Power
 }
 
-// NOTE(matthew): to be called before the integrator!
-// TODO(matthew): needs russian roulette!
 CastPhoton :: proc(Map : ^photon_map, InitialRay : ray, InitialPower : v3, Scene : ^scene, MaxPhotonBounces : int)
 {
 	Throughput := InitialPower
@@ -193,9 +191,7 @@ CastPhoton :: proc(Map : ^photon_map, InitialRay : ray, InitialPower : v3, Scene
 	{
 		Record : hit_record
 
-		HitSomething := GetIntersection(Ray, Scene, &Record)
-
-		if HitSomething
+		if GetIntersection(Ray, Scene, &Record)
 		{
 			SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
 
@@ -227,6 +223,10 @@ CastPhoton :: proc(Map : ^photon_map, InitialRay : ray, InitialPower : v3, Scene
 			Throughput *= CosAtten * Sample.f / Sample.PDF
 			Ray = ray{Record.HitPoint, Sample.wi}
 		}
+		else
+		{
+			break
+		}
 	}
 }
 
@@ -257,7 +257,7 @@ BuildPhotonMap :: proc(Map : ^photon_map)
 	_ = InsertNode(Map, Map.Photons[:], 0)
 }
 
-InsertNode :: proc(Map : ^photon_map, Photons : []photon, Axis : int) -> i32
+InsertNode :: proc(Map : ^photon_map, Photons : []photon, Axis : i32) -> i32
 {
 	PhotonNode : ^photon_node
 
@@ -275,7 +275,7 @@ InsertNode :: proc(Map : ^photon_map, Photons : []photon, Axis : int) -> i32
 		Node := &Map.Nodes[Map.NodeCount]
 		Map.NodeCount += 1
 
-		Node.Photon = Photons[MedianIndex]
+		Node.PhotonIdx = i32(MedianIndex)
 		Node.Axis = Axis
 
 		NewAxis := (Axis + 1) % 3
@@ -306,16 +306,17 @@ FindPhotons :: proc(Map : ^photon_map, NodeIndex : i32, Pos : v3, MaxDistance : 
 	}
 
 	Node := &Map.Nodes[NodeIndex]
+	Photon := &Map.Photons[Node.PhotonIdx]
 
-	DistSq := LengthSquared(Node.Photon.Pos - Pos)
+	DistSq := LengthSquared(Photon.Pos - Pos)
 	if (DistSq <= MaxDistance * MaxDistance)
 	{
-		append(PhotonsFound, &Node.Photon)
+		append(PhotonsFound, Photon)
 
 		AddedRes = 1
 	}
 
-	dx : f32 = Pos[Node.Axis] - Node.Photon.Pos[Node.Axis]
+	dx : f32 = Pos[Node.Axis] - Photon.Pos[Node.Axis]
 
 	Ret := FindPhotons(Map, dx < 0.0 ? Node.Left : Node.Right, Pos, MaxDistance, PhotonsFound)
 	if (Ret >= 0 && Abs(dx) < MaxDistance)
