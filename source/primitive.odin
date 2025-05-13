@@ -16,8 +16,7 @@ AddSphere :: proc(Scene : ^scene, Sphere : sphere, MaterialIndex : u32, LightInd
 
 	Primitive : primitive
 
-	Primitive.Shape.Type = .SPHERE
-	Primitive.Shape.Variant = Sphere
+	Primitive.Shape = Sphere
 	Primitive.MaterialIndex = MaterialIndex
 	Primitive.LightIndex = LightIndex
 
@@ -32,8 +31,7 @@ AddQuad :: proc(Scene : ^scene, Quad : quad, MaterialIndex : u32, LightIndex : u
 
 	Primitive : primitive
 
-	Primitive.Shape.Type = .QUAD
-	Primitive.Shape.Variant = Quad
+	Primitive.Shape = Quad
 	Primitive.MaterialIndex = MaterialIndex
 	Primitive.LightIndex = LightIndex
 
@@ -48,8 +46,7 @@ AddPlane :: proc(Scene : ^scene, Plane : plane, MaterialIndex : u32, LightIndex 
 
 	Primitive : primitive
 
-	Primitive.Shape.Type = .PLANE
-	Primitive.Shape.Variant = Plane
+	Primitive.Shape = Plane
 	Primitive.MaterialIndex = MaterialIndex
 	Primitive.LightIndex = LightIndex
 
@@ -64,8 +61,7 @@ AddTriangle :: proc(Scene : ^scene, Triangle : triangle, MaterialIndex : u32, Li
 
 	Primitive : primitive
 
-	Primitive.Shape.Type = .TRIANGLE
-	Primitive.Shape.Variant = Triangle
+	Primitive.Shape = Triangle
 	Primitive.MaterialIndex = MaterialIndex
 	Primitive.LightIndex = LightIndex
 
@@ -80,8 +76,7 @@ AddAABB :: proc(Scene : ^scene, AABB : aabb, MaterialIndex : u32, LightIndex : u
 
 	Primitive : primitive
 
-	Primitive.Shape.Type = .AABB
-	Primitive.Shape.Variant = AABB
+	Primitive.Shape = AABB
 	Primitive.MaterialIndex = MaterialIndex
 	Primitive.LightIndex = LightIndex
 

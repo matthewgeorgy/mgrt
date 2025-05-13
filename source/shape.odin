@@ -35,20 +35,13 @@ aabb :: struct
 	Min, Max : v3
 };
 
-shape_type :: enum
+shape :: union
 {
-	SPHERE,
-	QUAD,
-	PLANE,
-	TRIANGLE,
-	AABB,
-}
-
-shape :: struct
-{
-	Type : shape_type,
-
-	Variant : union{ sphere, quad, plane, triangle, aabb },
+	sphere,
+	quad, 
+	plane, 
+	triangle, 
+	aabb,
 }
 
 CreateQuad :: proc(Q, u, v : v3) -> quad

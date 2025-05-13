@@ -162,101 +162,104 @@ GetIntersection :: proc(Ray : ray, Scene : ^scene, Record : ^hit_record) -> bool
 
 	for Primitive in Scene.Primitives
 	{
-		if Primitive.Shape.Type == .QUAD
+		#partial switch Type in Primitive.Shape
 		{
-			Quad := Primitive.Shape.Variant.(quad)
-			RotatedRay := TransformRay(Ray, Quad.Translation, Quad.Rotation)
-
-			Record.t = RayIntersectQuad(RotatedRay, Quad)
-			if (Record.t > 0.0001 && Record.t < HitDistance)
+			case quad:
 			{
-				HitSomething = true
-				HitDistance = Record.t
-				SetFaceNormal(RotatedRay, Quad.N, Record)
-				Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
+				Quad := Primitive.Shape.(quad)
+				RotatedRay := TransformRay(Ray, Quad.Translation, Quad.Rotation)
 
-				InvertRayTransform(&Record.HitPoint, &Record.SurfaceNormal, Quad.Translation, Quad.Rotation)
-
-				Record.MaterialIndex = Primitive.MaterialIndex
-				Record.LightIndex = Primitive.LightIndex
-			}
-		}
-		else if Primitive.Shape.Type == .PLANE
-		{
-			Plane := Primitive.Shape.Variant.(plane)
-			Record.t = RayIntersectPlane(Ray, Plane)
-
-			if Record.t > 0.0001 && Record.t < HitDistance
-			{
-				HitSomething = true
-				HitDistance = Record.t
-				SetFaceNormal(Ray, Plane.N, Record)
-				Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
-
-				Record.MaterialIndex = Primitive.MaterialIndex
-				Record.LightIndex = Primitive.LightIndex
-			}
-		}
-		else if Primitive.Shape.Type == .SPHERE
-		{
-			Sphere := Primitive.Shape.Variant.(sphere)
-			Record.t = RayIntersectSphere(Ray, Sphere)
-
-			if Record.t > 0.0001 && Record.t < HitDistance
-			{
-				HitSomething = true
-				HitDistance = Record.t
-				Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
-				OutwardNormal := Normalize(Record.HitPoint - Sphere.Center)
-
-				SetFaceNormal(Ray, OutwardNormal, Record)
-
-				Record.MaterialIndex = Primitive.MaterialIndex
-				Record.LightIndex = Primitive.LightIndex
-			}
-		}
-
-		// for Triangle in Scene.Triangles
-		// {
-		// 	RayIntersectTriangle(Ray, &Record, Triangle)
-		// 	if (Record.t > 0.0001 && Record.t < HitDistance)
-		// 	{
-		// 		HitSomething = true
-		// 		HitDistance = Record.t
-		// 		// Record.MaterialIndex = 1 // TODO(matthew): set this in the scene!
-		// 		// Record.SurfaceNormal = v3{0, 0, 0} // TODO(matthew): set this!
-		// 	}
-		// }
-
-		if Scene.BVH.NodesUsed != 0
-		{
-			RotatedRay := TransformRay(Ray, Scene.BVH.Translation, Scene.BVH.Rotation)
-
-			TraverseBVH(RotatedRay, Record, Scene.BVH, Scene.BVH.RootNodeIndex)
-			if Record.t > 0.0001 && Record.t < HitDistance
-			{
-				HitSomething = true
-				HitDistance = Record.t
-
-				// Compute surface normal from the best triangle intersection
+				Record.t = RayIntersectQuad(RotatedRay, Quad)
+				if (Record.t > 0.0001 && Record.t < HitDistance)
 				{
-					Triangle := Scene.BVH.Triangles[Record.BestTriangleIndex]
+					HitSomething = true
+					HitDistance = Record.t
+					SetFaceNormal(RotatedRay, Quad.N, Record)
+					Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
 
-					V0 := Triangle.Vertices[0]
-					V1 := Triangle.Vertices[1]
-					V2 := Triangle.Vertices[2]
+					InvertRayTransform(&Record.HitPoint, &Record.SurfaceNormal, Quad.Translation, Quad.Rotation)
 
-					Record.SurfaceNormal = Normalize(Cross(V1 - V0, V2 - V0))
+					Record.MaterialIndex = Primitive.MaterialIndex
+					Record.LightIndex = Primitive.LightIndex
 				}
-
-				SetFaceNormal(RotatedRay, Record.SurfaceNormal, Record)
-				Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
-
-				InvertRayTransform(&Record.HitPoint, &Record.SurfaceNormal, Scene.BVH.Translation, Scene.BVH.Rotation)
-
-				Record.MaterialIndex = Scene.BVH.MaterialIndex
-				Record.LightIndex = Scene.BVH.LightIndex
 			}
+			case plane:
+			{
+				Plane := Primitive.Shape.(plane)
+				Record.t = RayIntersectPlane(Ray, Plane)
+
+				if Record.t > 0.0001 && Record.t < HitDistance
+				{
+					HitSomething = true
+					HitDistance = Record.t
+					SetFaceNormal(Ray, Plane.N, Record)
+					Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
+
+					Record.MaterialIndex = Primitive.MaterialIndex
+					Record.LightIndex = Primitive.LightIndex
+				}
+			}
+			case sphere:
+			{
+				Sphere := Primitive.Shape.(sphere)
+				Record.t = RayIntersectSphere(Ray, Sphere)
+
+				if Record.t > 0.0001 && Record.t < HitDistance
+				{
+					HitSomething = true
+					HitDistance = Record.t
+					Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
+					OutwardNormal := Normalize(Record.HitPoint - Sphere.Center)
+
+					SetFaceNormal(Ray, OutwardNormal, Record)
+
+					Record.MaterialIndex = Primitive.MaterialIndex
+					Record.LightIndex = Primitive.LightIndex
+				}
+			}
+
+			// for Triangle in Scene.Triangles
+			// {
+			// 	RayIntersectTriangle(Ray, &Record, Triangle)
+			// 	if (Record.t > 0.0001 && Record.t < HitDistance)
+			// 	{
+			// 		HitSomething = true
+			// 		HitDistance = Record.t
+			// 		// Record.MaterialIndex = 1 // TODO(matthew): set this in the scene!
+			// 		// Record.SurfaceNormal = v3{0, 0, 0} // TODO(matthew): set this!
+			// 	}
+			// }
+		}
+	}
+
+	if Scene.BVH.NodesUsed != 0
+	{
+		RotatedRay := TransformRay(Ray, Scene.BVH.Translation, Scene.BVH.Rotation)
+
+		TraverseBVH(RotatedRay, Record, Scene.BVH, Scene.BVH.RootNodeIndex)
+		if Record.t > 0.0001 && Record.t < HitDistance
+		{
+			HitSomething = true
+			HitDistance = Record.t
+
+			// Compute surface normal from the best triangle intersection
+			{
+				Triangle := Scene.BVH.Triangles[Record.BestTriangleIndex]
+
+				V0 := Triangle.Vertices[0]
+				V1 := Triangle.Vertices[1]
+				V2 := Triangle.Vertices[2]
+
+				Record.SurfaceNormal = Normalize(Cross(V1 - V0, V2 - V0))
+			}
+
+			SetFaceNormal(RotatedRay, Record.SurfaceNormal, Record)
+			Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
+
+			InvertRayTransform(&Record.HitPoint, &Record.SurfaceNormal, Scene.BVH.Translation, Scene.BVH.Rotation)
+
+			Record.MaterialIndex = Scene.BVH.MaterialIndex
+			Record.LightIndex = Scene.BVH.LightIndex
 		}
 	}
 
