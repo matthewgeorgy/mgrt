@@ -5,11 +5,8 @@ import win32	"core:sys/windows"
 
 scene :: struct
 {
+	Shapes : [dynamic]shape,
 	Materials : [dynamic]material,
-	Spheres : [dynamic]sphere,
-	Planes : [dynamic]plane,
-	Quads : [dynamic]quad,
-	Triangles : [dynamic]triangle,
 	BVH : bvh,
 	PhotonMap : ^photon_map,
 
@@ -78,6 +75,78 @@ AddLight :: proc(Scene : ^scene, Light : light) -> u32
 	return MaterialIndex
 }
 
+AddShape :: proc{ AddSphere, AddQuad, AddPlane, AddTriangle, AddAABB }
+
+AddSphere :: proc(Scene : ^scene, Sphere : sphere) -> u32
+{
+	ShapeIdx := u32(len(Scene.Shapes))
+
+	Shape : shape
+
+	Shape.Type = .SPHERE
+	Shape.Variant = Sphere
+
+	append(&Scene.Shapes, Shape)
+
+	return ShapeIdx
+}
+
+AddQuad :: proc(Scene : ^scene, Quad : quad) -> u32
+{
+	ShapeIdx := u32(len(Scene.Shapes))
+
+	Shape : shape
+
+	Shape.Type = .QUAD
+	Shape.Variant = Quad
+
+	append(&Scene.Shapes, Shape)
+
+	return ShapeIdx
+}
+
+AddPlane :: proc(Scene : ^scene, Plane : plane) -> u32
+{
+	ShapeIdx := u32(len(Scene.Shapes))
+
+	Shape : shape
+
+	Shape.Type = .PLANE
+	Shape.Variant = Plane
+
+	append(&Scene.Shapes, Shape)
+
+	return ShapeIdx
+}
+
+AddTriangle :: proc(Scene : ^scene, Triangle : triangle) -> u32
+{
+	ShapeIdx := u32(len(Scene.Shapes))
+
+	Shape : shape
+
+	Shape.Type = .TRIANGLE
+	Shape.Variant = Triangle
+
+	append(&Scene.Shapes, Shape)
+
+	return ShapeIdx
+}
+
+AddAABB :: proc(Scene : ^scene, AABB : aabb) -> u32
+{
+	ShapeIdx := u32(len(Scene.Shapes))
+
+	Shape : shape
+
+	Shape.Type = .AABB
+	Shape.Variant = AABB
+
+	append(&Scene.Shapes, Shape)
+
+	return ShapeIdx
+}
+
 ///////////////////////////////////////
 // Preset scenes
 ///////////////////////////////////////
@@ -123,12 +192,12 @@ CornellBunny  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 	AddMaterial(Scene, light{v3{15, 15, 15}})
 	AddMaterial(Scene, lambertian{v3{0.05, 0.05, 0.85}})
 
-	append(&Scene.Quads, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, -555}, 1)) 		// right
-	append(&Scene.Quads, CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, -555}, 3)) 			// left
-	append(&Scene.Quads, CreateQuad(v3{343, 554, -332}, v3{0, 0, 105}, v3{-130, 0, 0}, 4))	// light
-	append(&Scene.Quads, CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, -555}, 2)) 			// bottom
-	append(&Scene.Quads, CreateQuad(v3{555, 555, -555}, v3{-555, 0, 0}, v3{0, 0, 555}, 2))	// top
-	append(&Scene.Quads, CreateQuad(v3{0, 0, -555}, v3{555, 0, 0}, v3{0, 555, 0}, 2))		// back
+	AddShape(Scene, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, -555}, 1)) 		// right
+	AddShape(Scene, CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, -555}, 3)) 			// left
+	AddShape(Scene, CreateQuad(v3{343, 554, -332}, v3{0, 0, 105}, v3{-130, 0, 0}, 4))	// light
+	AddShape(Scene, CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, -555}, 2)) 			// bottom
+	AddShape(Scene, CreateQuad(v3{555, 555, -555}, v3{-555, 0, 0}, v3{0, 0, 555}, 2))	// top
+	AddShape(Scene, CreateQuad(v3{0, 0, -555}, v3{555, 0, 0}, v3{0, 555, 0}, 2))		// back
 
 	Scene.SamplesPerPixel = 50
 	Scene.MaxDepth = 10
@@ -171,19 +240,12 @@ GlassSuzanne :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight :
 
 	Extents := AABB.Max - AABB.Min
 
-	// for &Triangle in Mesh.Triangles
-	// {
-	// 	Triangle.Vertices[0] -= AABB.Min
-	// 	Triangle.Vertices[1] -= AABB.Min
-	// 	Triangle.Vertices[2] -= AABB.Min
-	// }
-
 	fmt.println("AABB:", AABB)
 	fmt.println("Extents:", Extents)
 	fmt.println("Centroid:", Centroid)
 
 	// Camera
-	Camera.LookFrom = Centroid//v3{4, 0, -3}
+	Camera.LookFrom = Centroid
 	Camera.LookAt = v3{0, 0, 0}
 	Camera.FocusDist = 1
 	Camera.FOV = 90
@@ -197,13 +259,11 @@ GlassSuzanne :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight :
 	AddMaterial(Scene, light{v3{1, 1, 1}})
 	AddMaterial(Scene, dielectric{1.33})
 
-	append(&Scene.Planes, plane{v3{0, 1, 0}, -10 * AABB.Min.y, 2})
-	append(&Scene.Quads, CreateQuad(AABB.Max / 2 + v3{0, 2, 0}, v3{2, 0, 0}, v3{0, 0, 2}, 3))
+	AddShape(Scene, plane{v3{0, 1, 0}, -10 * AABB.Min.y, 2})
+	AddShape(Scene, CreateQuad(AABB.Max / 2 + v3{0, 2, 0}, v3{2, 0, 0}, v3{0, 0, 2}, 3))
 
-	Scene.Triangles = Mesh.Triangles
 	Scene.BVH = BVH
 	Scene.BVH.MatIndex = 4
-	// Scene.BVH.Translation = -Centroid;
 	Scene.BVH.Rotation = Degs2Rads(45)
 
 	Scene.SamplesPerPixel = 10
@@ -226,11 +286,11 @@ SpheresMaterial :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeigh
     Bubble   := AddMaterial(Scene, dielectric{1.0 / 1.5})
     Right  := AddMaterial(Scene, metal{v3{0.8, 0.6, 0.2}, 1.0});
 
-    append(&Scene.Spheres, sphere{v3{ 0.0, -100.5, -1.0}, 100.0, Ground});
-    append(&Scene.Spheres, sphere{v3{ 0.0,    0.0, -1.2},   0.5, Center});
-    append(&Scene.Spheres, sphere{v3{ 1.0,    0.0, -1.0},   0.5, Left});
-    append(&Scene.Spheres, sphere{v3{ 1.0,    0.0, -1.0},   0.4, Bubble});
-    append(&Scene.Spheres, sphere{v3{-1.0,    0.0, -1.0},   0.5, Right});
+    AddShape(Scene, sphere{v3{ 0.0, -100.5, -1.0}, 100.0, Ground});
+    AddShape(Scene, sphere{v3{ 0.0,    0.0, -1.2},   0.5, Center});
+    AddShape(Scene, sphere{v3{ 1.0,    0.0, -1.0},   0.5, Left});
+    AddShape(Scene, sphere{v3{ 1.0,    0.0, -1.0},   0.4, Bubble});
+    AddShape(Scene, sphere{v3{-1.0,    0.0, -1.0},   0.5, Right});
 
 	Scene.SamplesPerPixel = 100
 	Scene.MaxDepth = 50
@@ -287,10 +347,9 @@ BunnyPlaneLamp :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight
 	AddMaterial(Scene, lambertian{v3{0.2, 0.6, 0.8}})
 	AddMaterial(Scene, light{v3{1, 1, 1}})
 
-	append(&Scene.Planes, plane{v3{0, 1, 0}, 0, 2})
-	append(&Scene.Quads, CreateQuad(v3{MinX, MaxY + 0.5, MaxZ}, v3{2, 0, 0}, v3{0, 0, 2}, 3))
+	AddShape(Scene, plane{v3{0, 1, 0}, 0, 2})
+	AddShape(Scene, CreateQuad(v3{MinX, MaxY + 0.5, MaxZ}, v3{2, 0, 0}, v3{0, 0, 2}, 3))
 
-	Scene.Triangles = Mesh.Triangles
 	Scene.BVH = BVH
 	Scene.BVH.MatIndex = 1
 
@@ -316,12 +375,12 @@ CornellBox :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : i
 	Light := AddMaterial(Scene, light{v3{15, 15, 15}})
 	Aluminum := AddMaterial(Scene, metal{v3{0.8, 0.85, 0.88}, 0})
 
-	append(&Scene.Quads, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, Green))
-	append(&Scene.Quads, CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, Red))
-	append(&Scene.Quads, CreateQuad(v3{343, 554, 332}, v3{-130, 0, 0}, v3{0, 0, -105}, Light))
-	append(&Scene.Quads, CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, 555}, Gray))
-	append(&Scene.Quads, CreateQuad(v3{555, 555, 555}, v3{-555, 0, 0}, v3{0, 0, -555}, Gray))
-	append(&Scene.Quads, CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}, Gray))
+	AddShape(Scene, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, Green))
+	AddShape(Scene, CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, Red))
+	AddShape(Scene, CreateQuad(v3{343, 554, 332}, v3{-130, 0, 0}, v3{0, 0, -105}, Light))
+	AddShape(Scene, CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, 555}, Gray))
+	AddShape(Scene, CreateQuad(v3{555, 555, 555}, v3{-555, 0, 0}, v3{0, 0, -555}, Gray))
+	AddShape(Scene, CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}, Gray))
 
 	CreateBox(v3{0, 0, 0}, v3{165, 330, 165}, Gray, -v3{265, 0, 295}, 15, Scene)
 	CreateBox(v3{0, 0, 0}, v3{165, 165, 165}, Gray, -v3{130, 0, 65}, -18, Scene)

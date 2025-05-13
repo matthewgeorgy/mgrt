@@ -1,5 +1,6 @@
 package main
 
+import fmt		"core:fmt"
 import math		"core:math"
 import linalg	"core:math/linalg"
 import rand		"core:math/rand"
@@ -83,6 +84,23 @@ aabb :: struct
 {
 	Min, Max : v3
 };
+
+shape_type :: enum
+{
+	SPHERE,
+	QUAD,
+	PLANE,
+	TRIANGLE,
+	AABB,
+}
+
+shape :: struct
+{
+	Type : shape_type,
+
+	Variant : union{ sphere, quad, plane, triangle, aabb },
+	MatIndex : u32,
+}
 
 RandomUnilateral :: proc() -> f32
 {
@@ -174,6 +192,8 @@ CreateQuadTransformed :: proc(Q, u, v : v3, MatIndex : u32, Translation : v3, Ro
 	return Quad
 }
 
+// NOTE(matthew): don't really like this! Would be nicer if CreateBox just
+// returned the primitive and then we add it explicitly...
 CreateBox :: proc(A, B : v3, MaterialIndex : u32, Translation : v3, Rotation : f32, Scene : ^scene)
 {
 	MinCoord := v3{Min(A.x, B.x), Min(A.y, B.y), Min(A.z, B.z)}
@@ -183,12 +203,12 @@ CreateBox :: proc(A, B : v3, MaterialIndex : u32, Translation : v3, Rotation : f
 	DeltaY := v3{0, MaxCoord.y - MinCoord.y, 0}
 	DeltaZ := v3{0, 0, MaxCoord.z - MinCoord.z}
 
-    append(&Scene.Quads, CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MaxCoord.z},  DeltaX,  DeltaY, MaterialIndex, Translation, Rotation)) // front
-    append(&Scene.Quads, CreateQuadTransformed(v3{MaxCoord.x, MinCoord.y, MaxCoord.z}, -DeltaZ,  DeltaY, MaterialIndex, Translation, Rotation)) // right
-    append(&Scene.Quads, CreateQuadTransformed(v3{MaxCoord.x, MinCoord.y, MinCoord.z}, -DeltaX,  DeltaY, MaterialIndex, Translation, Rotation)) // back
-    append(&Scene.Quads, CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaZ,  DeltaY, MaterialIndex, Translation, Rotation)) // left
-    append(&Scene.Quads, CreateQuadTransformed(v3{MinCoord.x, MaxCoord.y, MaxCoord.z},  DeltaX, -DeltaZ, MaterialIndex, Translation, Rotation)) // top
-    append(&Scene.Quads, CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaX,  DeltaZ, MaterialIndex, Translation, Rotation)) // bottom
+    AddQuad(Scene, CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MaxCoord.z},  DeltaX,  DeltaY, MaterialIndex, Translation, Rotation)) // front
+    AddQuad(Scene, CreateQuadTransformed(v3{MaxCoord.x, MinCoord.y, MaxCoord.z}, -DeltaZ,  DeltaY, MaterialIndex, Translation, Rotation)) // right
+    AddQuad(Scene, CreateQuadTransformed(v3{MaxCoord.x, MinCoord.y, MinCoord.z}, -DeltaX,  DeltaY, MaterialIndex, Translation, Rotation)) // back
+    AddQuad(Scene, CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaZ,  DeltaY, MaterialIndex, Translation, Rotation)) // left
+    AddQuad(Scene, CreateQuadTransformed(v3{MinCoord.x, MaxCoord.y, MaxCoord.z},  DeltaX, -DeltaZ, MaterialIndex, Translation, Rotation)) // top
+    AddQuad(Scene, CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaX,  DeltaZ, MaterialIndex, Translation, Rotation)) // bottom
 }
 
 RayIntersectQuad :: proc(Ray : ray, Quad : quad) -> f32
@@ -407,93 +427,97 @@ GetIntersection :: proc(Ray : ray, Scene : ^scene, Record : ^hit_record) -> bool
 	HitDistance : f32 = F32_MAX
 	HitSomething := false
 
-	for Quad in Scene.Quads
+	for Shape in Scene.Shapes
 	{
-		RotatedRay := TransformRay(Ray, Quad.Translation, Quad.Rotation)
-
-		Record.t = RayIntersectQuad(RotatedRay, Quad)
-		if (Record.t > 0.0001 && Record.t < HitDistance)
+		if Shape.Type == .QUAD
 		{
-			HitSomething = true
-			HitDistance = Record.t
-			Record.MaterialIndex = Quad.MatIndex
-			SetFaceNormal(RotatedRay, Quad.N, Record)
-			Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
+			Quad := Shape.Variant.(quad)
+			RotatedRay := TransformRay(Ray, Quad.Translation, Quad.Rotation)
 
-			InvertRayTransform(&Record.HitPoint, &Record.SurfaceNormal, Quad.Translation, Quad.Rotation)
-		}
-	}
-
-	if Scene.BVH.NodesUsed != 0
-	{
-		RotatedRay := TransformRay(Ray, Scene.BVH.Translation, Scene.BVH.Rotation)
-
-		TraverseBVH(RotatedRay, Record, Scene.BVH, Scene.BVH.RootNodeIndex)
-		if Record.t > 0.0001 && Record.t < HitDistance
-		{
-			HitSomething = true
-			HitDistance = Record.t
-
-			// Compute surface normal from the best triangle intersection
+			Record.t = RayIntersectQuad(RotatedRay, Quad)
+			if (Record.t > 0.0001 && Record.t < HitDistance)
 			{
-				Triangle := Scene.BVH.Triangles[Record.BestTriangleIndex]
+				HitSomething = true
+				HitDistance = Record.t
+				Record.MaterialIndex = Quad.MatIndex
+				SetFaceNormal(RotatedRay, Quad.N, Record)
+				Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
 
-				V0 := Triangle.Vertices[0]
-				V1 := Triangle.Vertices[1]
-				V2 := Triangle.Vertices[2]
-
-				Record.SurfaceNormal = Normalize(Cross(V1 - V0, V2 - V0))
+				InvertRayTransform(&Record.HitPoint, &Record.SurfaceNormal, Quad.Translation, Quad.Rotation)
 			}
-
-			Record.MaterialIndex = Scene.BVH.MatIndex
-			SetFaceNormal(RotatedRay, Record.SurfaceNormal, Record)
-			Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
-
-			InvertRayTransform(&Record.HitPoint, &Record.SurfaceNormal, Scene.BVH.Translation, Scene.BVH.Rotation)
 		}
-	}
-
-	for Plane in Scene.Planes
-	{
-		Record.t = RayIntersectPlane(Ray, Plane)
-
-		if Record.t > 0.0001 && Record.t < HitDistance
+		else if Shape.Type == .PLANE
 		{
-			HitSomething = true
-			HitDistance = Record.t
-			Record.MaterialIndex = Plane.MatIndex
-			SetFaceNormal(Ray, Plane.N, Record)
-			Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
+			Plane := Shape.Variant.(plane)
+			Record.t = RayIntersectPlane(Ray, Plane)
+
+			if Record.t > 0.0001 && Record.t < HitDistance
+			{
+				HitSomething = true
+				HitDistance = Record.t
+				Record.MaterialIndex = Plane.MatIndex
+				SetFaceNormal(Ray, Plane.N, Record)
+				Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
+			}
 		}
-	}
-
-	for Sphere in Scene.Spheres
-	{
-		Record.t = RayIntersectSphere(Ray, Sphere)
-
-		if Record.t > 0.0001 && Record.t < HitDistance
+		else if Shape.Type == .SPHERE
 		{
-			HitSomething = true
-			HitDistance = Record.t
-			Record.MaterialIndex = Sphere.MatIndex
-			Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
-			OutwardNormal := Normalize(Record.HitPoint - Sphere.Center)
+			Sphere := Shape.Variant.(sphere)
+			Record.t = RayIntersectSphere(Ray, Sphere)
 
-			SetFaceNormal(Ray, OutwardNormal, Record)
+			if Record.t > 0.0001 && Record.t < HitDistance
+			{
+				HitSomething = true
+				HitDistance = Record.t
+				Record.MaterialIndex = Sphere.MatIndex
+				Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
+				OutwardNormal := Normalize(Record.HitPoint - Sphere.Center)
+
+				SetFaceNormal(Ray, OutwardNormal, Record)
+			}
+		}
+
+		// for Triangle in Scene.Triangles
+		// {
+		// 	RayIntersectTriangle(Ray, &Record, Triangle)
+		// 	if (Record.t > 0.0001 && Record.t < HitDistance)
+		// 	{
+		// 		HitSomething = true
+		// 		HitDistance = Record.t
+		// 		// Record.MaterialIndex = 1 // TODO(matthew): set this in the scene!
+		// 		// Record.SurfaceNormal = v3{0, 0, 0} // TODO(matthew): set this!
+		// 	}
+		// }
+
+		if Scene.BVH.NodesUsed != 0
+		{
+			RotatedRay := TransformRay(Ray, Scene.BVH.Translation, Scene.BVH.Rotation)
+
+			TraverseBVH(RotatedRay, Record, Scene.BVH, Scene.BVH.RootNodeIndex)
+			if Record.t > 0.0001 && Record.t < HitDistance
+			{
+				HitSomething = true
+				HitDistance = Record.t
+
+				// Compute surface normal from the best triangle intersection
+				{
+					Triangle := Scene.BVH.Triangles[Record.BestTriangleIndex]
+
+					V0 := Triangle.Vertices[0]
+					V1 := Triangle.Vertices[1]
+					V2 := Triangle.Vertices[2]
+
+					Record.SurfaceNormal = Normalize(Cross(V1 - V0, V2 - V0))
+				}
+
+				Record.MaterialIndex = Scene.BVH.MatIndex
+				SetFaceNormal(RotatedRay, Record.SurfaceNormal, Record)
+				Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
+
+				InvertRayTransform(&Record.HitPoint, &Record.SurfaceNormal, Scene.BVH.Translation, Scene.BVH.Rotation)
+			}
 		}
 	}
-
-	// for Triangle in Scene.Triangles
-	// {
-	// 	RayIntersectTriangle(Ray, &Record, Triangle)
-	// 	if (Record.t > 0.0001 && Record.t < HitDistance)
-	// 	{
-	// 		HitSomething = true
-	// 		HitDistance = Record.t
-	// 		// Record.MaterialIndex = 1 // TODO(matthew): set this in the scene!
-	// 		// Record.SurfaceNormal = v3{0, 0, 0} // TODO(matthew): set this!
-	// 	}
-	// }
 
 	return HitSomething
 }

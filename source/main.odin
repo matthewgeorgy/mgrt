@@ -16,7 +16,7 @@ main :: proc()
 	Camera : camera
 
 	// Scene
-	CornellBox(&Scene, &Camera, Image.Width, Image.Height)
+	BunnyPlaneLamp(&Scene, &Camera, Image.Width, Image.Height)
 
 	// Work queue
 	Queue : work_queue
