@@ -35,11 +35,17 @@ hit_record :: struct
 {
 	t : f32,
 	MaterialIndex  : u32,
+	LightIndex  : u32,
 	SurfaceNormal : v3,
 	HitPoint : v3,
 	IsFrontFace : bool,
 	BestTriangleIndex : u32,
 };
+
+HasLight :: proc(Record : hit_record) -> bool
+{
+	return Record.LightIndex != 0
+}
 
 ray :: struct
 {
@@ -51,14 +57,12 @@ sphere :: struct
 {
 	Center : v3,
 	Radius : f32,
-	MatIndex : u32,
 };
 
 plane :: struct
 {
 	N : v3,
 	d : f32,
-	MatIndex : u32,
 };
 
 quad :: struct
@@ -66,7 +70,6 @@ quad :: struct
 	Q : v3,
 	u : v3,
 	v : v3,
-	MatIndex : u32,
 	N : v3,
 	d : f32,
 	w : v3,
@@ -99,7 +102,14 @@ shape :: struct
 	Type : shape_type,
 
 	Variant : union{ sphere, quad, plane, triangle, aabb },
-	MatIndex : u32,
+}
+
+primitive :: struct
+{
+	Shape : shape,
+
+	MaterialIndex : u32,
+	LightIndex : u32,
 }
 
 RandomUnilateral :: proc() -> f32
@@ -164,14 +174,13 @@ RandomCosineDirection :: proc() -> v3
     return v3{x, y, z}
 }
 
-CreateQuad :: proc(Q, u, v : v3, MatIndex : u32) -> quad
+CreateQuad :: proc(Q, u, v : v3) -> quad
 {
 	Quad : quad
 
 	Quad.Q = Q
 	Quad.u = u
 	Quad.v = v
-	Quad.MatIndex = MatIndex
 
 	N := Cross(u, v)
 
@@ -182,9 +191,9 @@ CreateQuad :: proc(Q, u, v : v3, MatIndex : u32) -> quad
 	return Quad
 }
 
-CreateQuadTransformed :: proc(Q, u, v : v3, MatIndex : u32, Translation : v3, Rotation : f32) -> quad
+CreateQuadTransformed :: proc(Q, u, v : v3, Translation : v3, Rotation : f32) -> quad
 {
-	Quad := CreateQuad(Q, u, v, MatIndex)
+	Quad := CreateQuad(Q, u, v)
 
 	Quad.Translation = Translation
 	Quad.Rotation = Degs2Rads(Rotation)
@@ -194,7 +203,7 @@ CreateQuadTransformed :: proc(Q, u, v : v3, MatIndex : u32, Translation : v3, Ro
 
 // NOTE(matthew): don't really like this! Would be nicer if CreateBox just
 // returned the primitive and then we add it explicitly...
-CreateBox :: proc(A, B : v3, MaterialIndex : u32, Translation : v3, Rotation : f32, Scene : ^scene)
+CreateBox :: proc(A, B : v3, Translation : v3, Rotation : f32, MaterialIndex : u32, LightIndex : u32, Scene : ^scene)
 {
 	MinCoord := v3{Min(A.x, B.x), Min(A.y, B.y), Min(A.z, B.z)}
 	MaxCoord := v3{Max(A.x, B.x), Max(A.y, B.y), Max(A.z, B.z)}
@@ -203,12 +212,12 @@ CreateBox :: proc(A, B : v3, MaterialIndex : u32, Translation : v3, Rotation : f
 	DeltaY := v3{0, MaxCoord.y - MinCoord.y, 0}
 	DeltaZ := v3{0, 0, MaxCoord.z - MinCoord.z}
 
-    AddQuad(Scene, CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MaxCoord.z},  DeltaX,  DeltaY, MaterialIndex, Translation, Rotation)) // front
-    AddQuad(Scene, CreateQuadTransformed(v3{MaxCoord.x, MinCoord.y, MaxCoord.z}, -DeltaZ,  DeltaY, MaterialIndex, Translation, Rotation)) // right
-    AddQuad(Scene, CreateQuadTransformed(v3{MaxCoord.x, MinCoord.y, MinCoord.z}, -DeltaX,  DeltaY, MaterialIndex, Translation, Rotation)) // back
-    AddQuad(Scene, CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaZ,  DeltaY, MaterialIndex, Translation, Rotation)) // left
-    AddQuad(Scene, CreateQuadTransformed(v3{MinCoord.x, MaxCoord.y, MaxCoord.z},  DeltaX, -DeltaZ, MaterialIndex, Translation, Rotation)) // top
-    AddQuad(Scene, CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaX,  DeltaZ, MaterialIndex, Translation, Rotation)) // bottom
+    AddPrimitive(Scene, CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MaxCoord.z},  DeltaX,  DeltaY, Translation, Rotation), MaterialIndex, LightIndex) // front
+    AddPrimitive(Scene, CreateQuadTransformed(v3{MaxCoord.x, MinCoord.y, MaxCoord.z}, -DeltaZ,  DeltaY, Translation, Rotation), MaterialIndex, LightIndex) // right
+    AddPrimitive(Scene, CreateQuadTransformed(v3{MaxCoord.x, MinCoord.y, MinCoord.z}, -DeltaX,  DeltaY, Translation, Rotation), MaterialIndex, LightIndex) // back
+    AddPrimitive(Scene, CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaZ,  DeltaY, Translation, Rotation), MaterialIndex, LightIndex) // left
+    AddPrimitive(Scene, CreateQuadTransformed(v3{MinCoord.x, MaxCoord.y, MaxCoord.z},  DeltaX, -DeltaZ, Translation, Rotation), MaterialIndex, LightIndex) // top
+    AddPrimitive(Scene, CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaX,  DeltaZ, Translation, Rotation), MaterialIndex, LightIndex) // bottom
 }
 
 RayIntersectQuad :: proc(Ray : ray, Quad : quad) -> f32
@@ -427,11 +436,11 @@ GetIntersection :: proc(Ray : ray, Scene : ^scene, Record : ^hit_record) -> bool
 	HitDistance : f32 = F32_MAX
 	HitSomething := false
 
-	for Shape in Scene.Shapes
+	for Primitive in Scene.Primitives
 	{
-		if Shape.Type == .QUAD
+		if Primitive.Shape.Type == .QUAD
 		{
-			Quad := Shape.Variant.(quad)
+			Quad := Primitive.Shape.Variant.(quad)
 			RotatedRay := TransformRay(Ray, Quad.Translation, Quad.Rotation)
 
 			Record.t = RayIntersectQuad(RotatedRay, Quad)
@@ -439,41 +448,47 @@ GetIntersection :: proc(Ray : ray, Scene : ^scene, Record : ^hit_record) -> bool
 			{
 				HitSomething = true
 				HitDistance = Record.t
-				Record.MaterialIndex = Quad.MatIndex
 				SetFaceNormal(RotatedRay, Quad.N, Record)
 				Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
 
 				InvertRayTransform(&Record.HitPoint, &Record.SurfaceNormal, Quad.Translation, Quad.Rotation)
+
+				Record.MaterialIndex = Primitive.MaterialIndex
+				Record.LightIndex = Primitive.LightIndex
 			}
 		}
-		else if Shape.Type == .PLANE
+		else if Primitive.Shape.Type == .PLANE
 		{
-			Plane := Shape.Variant.(plane)
+			Plane := Primitive.Shape.Variant.(plane)
 			Record.t = RayIntersectPlane(Ray, Plane)
 
 			if Record.t > 0.0001 && Record.t < HitDistance
 			{
 				HitSomething = true
 				HitDistance = Record.t
-				Record.MaterialIndex = Plane.MatIndex
 				SetFaceNormal(Ray, Plane.N, Record)
 				Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
+
+				Record.MaterialIndex = Primitive.MaterialIndex
+				Record.LightIndex = Primitive.LightIndex
 			}
 		}
-		else if Shape.Type == .SPHERE
+		else if Primitive.Shape.Type == .SPHERE
 		{
-			Sphere := Shape.Variant.(sphere)
+			Sphere := Primitive.Shape.Variant.(sphere)
 			Record.t = RayIntersectSphere(Ray, Sphere)
 
 			if Record.t > 0.0001 && Record.t < HitDistance
 			{
 				HitSomething = true
 				HitDistance = Record.t
-				Record.MaterialIndex = Sphere.MatIndex
 				Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
 				OutwardNormal := Normalize(Record.HitPoint - Sphere.Center)
 
 				SetFaceNormal(Ray, OutwardNormal, Record)
+
+				Record.MaterialIndex = Primitive.MaterialIndex
+				Record.LightIndex = Primitive.LightIndex
 			}
 		}
 

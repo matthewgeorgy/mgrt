@@ -196,12 +196,9 @@ CastPhoton :: proc(Map : ^photon_map, InitialRay : ray, InitialPower : v3, Scene
 			SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
 
 			// Store diffuse interaction
-			if SurfaceMaterial.Type == .BXDF
+			if SurfaceMaterial.Type == .DIFFUSE
 			{
-				if SurfaceMaterial.BxDF.Type == .DIFFUSE
-				{
-					StorePhoton(Map, Record.HitPoint, Throughput, Ray.Direction)
-				}
+				StorePhoton(Map, Record.HitPoint, Throughput, Ray.Direction)
 			}
 
 			// Russian roulette to start a new photon
@@ -217,7 +214,7 @@ CastPhoton :: proc(Map : ^photon_map, InitialRay : ray, InitialPower : v3, Scene
 				Throughput /= RussianRouletteProb
 			}
 
-			Sample := SampleBxDF(SurfaceMaterial.BxDF, Ray.Direction, Record)
+			Sample := SampleBxDF(SurfaceMaterial, Ray.Direction, Record)
 			CosAtten := Max(Dot(Record.SurfaceNormal, Sample.wi), 0)
 
 			Throughput *= CosAtten * Sample.f / Sample.PDF

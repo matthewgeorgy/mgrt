@@ -5,8 +5,9 @@ import win32	"core:sys/windows"
 
 scene :: struct
 {
-	Shapes : [dynamic]shape,
+	Primitives : [dynamic]primitive,
 	Materials : [dynamic]material,
+	Lights : [dynamic]light,
 	BVH : bvh,
 	PhotonMap : ^photon_map,
 
@@ -14,7 +15,7 @@ scene :: struct
 	MaxDepth : int,
 };
 
-AddMaterial :: proc{ AddLambertian, AddLight, AddMetal, AddDielectric, }
+AddMaterial :: proc{ AddLambertian, AddMetal, AddDielectric, }
 
 AddLambertian :: proc(Scene : ^scene, Lambertian : lambertian) -> u32
 {
@@ -22,9 +23,8 @@ AddLambertian :: proc(Scene : ^scene, Lambertian : lambertian) -> u32
 
 	Material : material
 
-	Material.Type = material_type.BXDF
-	Material.BxDF.Type = bxdf_type.DIFFUSE
-	Material.BxDF.Lambertian = Lambertian
+	Material.Type = material_type.DIFFUSE
+	Material.Lambertian = Lambertian
 
 	append(&Scene.Materials, Material)
 
@@ -37,9 +37,8 @@ AddMetal :: proc(Scene : ^scene, Metal : metal) -> u32
 
 	Material : material
 
-	Material.Type = material_type.BXDF
-	Material.BxDF.Type = bxdf_type.METAL
-	Material.BxDF.Metal = Metal
+	Material.Type = material_type.METAL
+	Material.Metal = Metal
 
 	append(&Scene.Materials, Material)
 
@@ -52,9 +51,8 @@ AddDielectric :: proc(Scene : ^scene, Dielectric : dielectric) -> u32
 
 	Material : material
 
-	Material.Type = material_type.BXDF
-	Material.BxDF.Type = bxdf_type.DIELECTRIC
-	Material.BxDF.Dielectric = Dielectric
+	Material.Type = material_type.DIELECTRIC
+	Material.Dielectric = Dielectric
 
 	append(&Scene.Materials, Material)
 
@@ -63,88 +61,93 @@ AddDielectric :: proc(Scene : ^scene, Dielectric : dielectric) -> u32
 
 AddLight :: proc(Scene : ^scene, Light : light) -> u32
 {
-	MaterialIndex := cast(u32)len(Scene.Materials)
+	MaterialIndex := cast(u32)len(Scene.Lights)
 
-	Material : material
-
-	Material.Type = material_type.LIGHT
-	Material.Light.Le = Light.Le
-
-	append(&Scene.Materials, Material)
+	append(&Scene.Lights, Light)
 
 	return MaterialIndex
 }
 
-AddShape :: proc{ AddSphere, AddQuad, AddPlane, AddTriangle, AddAABB }
+AddPrimitive :: proc{ AddSphere, AddQuad, AddPlane, AddTriangle, AddAABB }
 
-AddSphere :: proc(Scene : ^scene, Sphere : sphere) -> u32
+AddSphere :: proc(Scene : ^scene, Sphere : sphere, MaterialIndex : u32, LightIndex : u32) -> u32
 {
-	ShapeIdx := u32(len(Scene.Shapes))
+	PrimitiveIdx := u32(len(Scene.Primitives))
 
-	Shape : shape
+	Primitive : primitive
 
-	Shape.Type = .SPHERE
-	Shape.Variant = Sphere
+	Primitive.Shape.Type = .SPHERE
+	Primitive.Shape.Variant = Sphere
+	Primitive.MaterialIndex = MaterialIndex
+	Primitive.LightIndex = LightIndex
 
-	append(&Scene.Shapes, Shape)
+	append(&Scene.Primitives, Primitive)
 
-	return ShapeIdx
+	return PrimitiveIdx
 }
 
-AddQuad :: proc(Scene : ^scene, Quad : quad) -> u32
+AddQuad :: proc(Scene : ^scene, Quad : quad, MaterialIndex : u32, LightIndex : u32) -> u32
 {
-	ShapeIdx := u32(len(Scene.Shapes))
+	PrimitiveIdx := u32(len(Scene.Primitives))
 
-	Shape : shape
+	Primitive : primitive
 
-	Shape.Type = .QUAD
-	Shape.Variant = Quad
+	Primitive.Shape.Type = .QUAD
+	Primitive.Shape.Variant = Quad
+	Primitive.MaterialIndex = MaterialIndex
+	Primitive.LightIndex = LightIndex
 
-	append(&Scene.Shapes, Shape)
+	append(&Scene.Primitives, Primitive)
 
-	return ShapeIdx
+	return PrimitiveIdx
 }
 
-AddPlane :: proc(Scene : ^scene, Plane : plane) -> u32
+AddPlane :: proc(Scene : ^scene, Plane : plane, MaterialIndex : u32, LightIndex : u32) -> u32
 {
-	ShapeIdx := u32(len(Scene.Shapes))
+	PrimitiveIdx := u32(len(Scene.Primitives))
 
-	Shape : shape
+	Primitive : primitive
 
-	Shape.Type = .PLANE
-	Shape.Variant = Plane
+	Primitive.Shape.Type = .PLANE
+	Primitive.Shape.Variant = Plane
+	Primitive.MaterialIndex = MaterialIndex
+	Primitive.LightIndex = LightIndex
 
-	append(&Scene.Shapes, Shape)
+	append(&Scene.Primitives, Primitive)
 
-	return ShapeIdx
+	return PrimitiveIdx
 }
 
-AddTriangle :: proc(Scene : ^scene, Triangle : triangle) -> u32
+AddTriangle :: proc(Scene : ^scene, Triangle : triangle, MaterialIndex : u32, LightIndex : u32) -> u32
 {
-	ShapeIdx := u32(len(Scene.Shapes))
+	PrimitiveIdx := u32(len(Scene.Primitives))
 
-	Shape : shape
+	Primitive : primitive
 
-	Shape.Type = .TRIANGLE
-	Shape.Variant = Triangle
+	Primitive.Shape.Type = .TRIANGLE
+	Primitive.Shape.Variant = Triangle
+	Primitive.MaterialIndex = MaterialIndex
+	Primitive.LightIndex = LightIndex
 
-	append(&Scene.Shapes, Shape)
+	append(&Scene.Primitives, Primitive)
 
-	return ShapeIdx
+	return PrimitiveIdx
 }
 
-AddAABB :: proc(Scene : ^scene, AABB : aabb) -> u32
+AddAABB :: proc(Scene : ^scene, AABB : aabb, MaterialIndex : u32, LightIndex : u32) -> u32
 {
-	ShapeIdx := u32(len(Scene.Shapes))
+	PrimitiveIdx := u32(len(Scene.Primitives))
 
-	Shape : shape
+	Primitive : primitive
 
-	Shape.Type = .AABB
-	Shape.Variant = AABB
+	Primitive.Shape.Type = .AABB
+	Primitive.Shape.Variant = AABB
+	Primitive.MaterialIndex = MaterialIndex
+	Primitive.LightIndex = LightIndex
 
-	append(&Scene.Shapes, Shape)
+	append(&Scene.Primitives, Primitive)
 
-	return ShapeIdx
+	return PrimitiveIdx
 }
 
 ///////////////////////////////////////
@@ -180,24 +183,27 @@ CornellBunny  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 	// Scene setup
 	// TODO(matthew): do this with a proper bounding box so that we can get
 	// other models in here!
+
+	Background := AddMaterial(Scene, lambertian{v3{0.0, 0.0, 0.0}})
+	NullLight := AddLight(Scene, light{})
+
+	Red := AddMaterial(Scene, lambertian{v3{0.65, 0.05, 0.05}})
+	Gray := AddMaterial(Scene, lambertian{v3{0.73, 0.73, 0.73}})
+	Green := AddMaterial(Scene, lambertian{v3{0.12, 0.45, 0.15}})
+	Light := AddLight(Scene, light{v3{15, 15, 15}})
+	Blue := AddMaterial(Scene, lambertian{v3{0.05, 0.05, 0.85}})
+
+	AddPrimitive(Scene, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, -555}), Red, 0) 		// right
+	AddPrimitive(Scene, CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, -555}), Green, 0) 			// left
+	AddPrimitive(Scene, CreateQuad(v3{343, 554, -332}, v3{0, 0, 105}, v3{-130, 0, 0}), 0, Light)	// light
+	AddPrimitive(Scene, CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, -555}), Gray, 0) 			// bottom
+	AddPrimitive(Scene, CreateQuad(v3{555, 555, -555}, v3{-555, 0, 0}, v3{0, 0, 555}), Gray, 0)	// top
+	AddPrimitive(Scene, CreateQuad(v3{0, 0, -555}, v3{555, 0, 0}, v3{0, 555, 0}), Gray, 0)		// back
+
 	BVH.Translation = v3{-300, 0, 300}
-	BVH.MatIndex = 5
+	BVH.MatIndex = Blue
 
 	Scene.BVH = BVH
-
-	AddMaterial(Scene, lambertian{v3{0.0, 0.0, 0.0}})
-	AddMaterial(Scene, lambertian{v3{0.65, 0.05, 0.05}})
-	AddMaterial(Scene, lambertian{v3{0.73, 0.73, 0.73}})
-	AddMaterial(Scene, lambertian{v3{0.12, 0.45, 0.15}})
-	AddMaterial(Scene, light{v3{15, 15, 15}})
-	AddMaterial(Scene, lambertian{v3{0.05, 0.05, 0.85}})
-
-	AddShape(Scene, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, -555}, 1)) 		// right
-	AddShape(Scene, CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, -555}, 3)) 			// left
-	AddShape(Scene, CreateQuad(v3{343, 554, -332}, v3{0, 0, 105}, v3{-130, 0, 0}, 4))	// light
-	AddShape(Scene, CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, -555}, 2)) 			// bottom
-	AddShape(Scene, CreateQuad(v3{555, 555, -555}, v3{-555, 0, 0}, v3{0, 0, 555}, 2))	// top
-	AddShape(Scene, CreateQuad(v3{0, 0, -555}, v3{555, 0, 0}, v3{0, 555, 0}, 2))		// back
 
 	Scene.SamplesPerPixel = 50
 	Scene.MaxDepth = 10
@@ -253,17 +259,19 @@ GlassSuzanne :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight :
 	InitializeCamera(Camera, ImageWidth, ImageHeight)
 
 	// Scene
-	AddMaterial(Scene, lambertian{v3{0.2, 0.2, 0.2}})
-	AddMaterial(Scene, lambertian{v3{0.8, 0.2, 0.2}})
-	AddMaterial(Scene, lambertian{v3{0.2, 0.6, 0.8}})
-	AddMaterial(Scene, light{v3{1, 1, 1}})
-	AddMaterial(Scene, dielectric{1.33})
+	Background := AddMaterial(Scene, lambertian{v3{0.2, 0.2, 0.2}})
+	NullLight := AddLight(Scene, light{})
 
-	AddShape(Scene, plane{v3{0, 1, 0}, -10 * AABB.Min.y, 2})
-	AddShape(Scene, CreateQuad(AABB.Max / 2 + v3{0, 2, 0}, v3{2, 0, 0}, v3{0, 0, 2}, 3))
+	Floor := AddMaterial(Scene, lambertian{v3{0.2, 0.6, 0.8}})
+	Glass := AddMaterial(Scene, dielectric{1.33})
+
+	Light :=AddLight(Scene, light{v3{1, 1, 1}})
+
+	AddPrimitive(Scene, plane{v3{0, 1, 0}, -10 * AABB.Min.y}, Floor, 0)
+	AddPrimitive(Scene, CreateQuad(AABB.Max / 2 + v3{0, 2, 0}, v3{2, 0, 0}, v3{0, 0, 2}), 0, Light)
 
 	Scene.BVH = BVH
-	Scene.BVH.MatIndex = 4
+	Scene.BVH.MatIndex = Glass
 	Scene.BVH.Rotation = Degs2Rads(45)
 
 	Scene.SamplesPerPixel = 10
@@ -286,11 +294,11 @@ SpheresMaterial :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeigh
     Bubble   := AddMaterial(Scene, dielectric{1.0 / 1.5})
     Right  := AddMaterial(Scene, metal{v3{0.8, 0.6, 0.2}, 1.0});
 
-    AddShape(Scene, sphere{v3{ 0.0, -100.5, -1.0}, 100.0, Ground});
-    AddShape(Scene, sphere{v3{ 0.0,    0.0, -1.2},   0.5, Center});
-    AddShape(Scene, sphere{v3{ 1.0,    0.0, -1.0},   0.5, Left});
-    AddShape(Scene, sphere{v3{ 1.0,    0.0, -1.0},   0.4, Bubble});
-    AddShape(Scene, sphere{v3{-1.0,    0.0, -1.0},   0.5, Right});
+    AddPrimitive(Scene, sphere{v3{ 0.0, -100.5, -1.0}, 100.0}, Ground, 0)
+    AddPrimitive(Scene, sphere{v3{ 0.0,    0.0, -1.2},   0.5}, Center, 0)
+    AddPrimitive(Scene, sphere{v3{ 1.0,    0.0, -1.0},   0.5}, Left, 0)
+    AddPrimitive(Scene, sphere{v3{ 1.0,    0.0, -1.0},   0.4}, Bubble, 0)
+    AddPrimitive(Scene, sphere{v3{-1.0,    0.0, -1.0},   0.5}, Right, 0)
 
 	Scene.SamplesPerPixel = 100
 	Scene.MaxDepth = 50
@@ -342,16 +350,17 @@ BunnyPlaneLamp :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight
 	InitializeCamera(Camera, ImageWidth, ImageHeight)
 
 	// Scene
-	AddMaterial(Scene, lambertian{v3{0.2, 0.2, 0.2}})
-	AddMaterial(Scene, lambertian{v3{0.8, 0.2, 0.2}})
-	AddMaterial(Scene, lambertian{v3{0.2, 0.6, 0.8}})
-	AddMaterial(Scene, light{v3{1, 1, 1}})
+	Background := AddMaterial(Scene, lambertian{v3{0.2, 0.2, 0.2}})
+	NullLight := AddLight(Scene, light{})
+	Model := AddMaterial(Scene, lambertian{v3{0.8, 0.2, 0.2}})
+	Plane := AddMaterial(Scene, lambertian{v3{0.2, 0.6, 0.8}})
+	Light := AddLight(Scene, light{v3{1, 1, 1}})
 
-	AddShape(Scene, plane{v3{0, 1, 0}, 0, 2})
-	AddShape(Scene, CreateQuad(v3{MinX, MaxY + 0.5, MaxZ}, v3{2, 0, 0}, v3{0, 0, 2}, 3))
+	AddPrimitive(Scene, plane{v3{0, 1, 0}, 0}, Plane, 0)
+	AddPrimitive(Scene, CreateQuad(v3{MinX, MaxY + 0.5, MaxZ}, v3{2, 0, 0}, v3{0, 0, 2}), 0, Light)
 
 	Scene.BVH = BVH
-	Scene.BVH.MatIndex = 1
+	Scene.BVH.MatIndex = Model
 
 	Scene.SamplesPerPixel = 10
 	Scene.MaxDepth = 10
@@ -369,21 +378,23 @@ CornellBox :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : i
 
 	// Scene setup
 	Background := AddMaterial(Scene, lambertian{v3{0.0, 0.0, 0.0}})
+	NullLight := AddLight(Scene, light{})
+
 	Red := AddMaterial(Scene, lambertian{v3{0.65, 0.05, 0.05}})
 	Gray := AddMaterial(Scene, lambertian{v3{0.73, 0.73, 0.73}})
 	Green := AddMaterial(Scene, lambertian{v3{0.12, 0.45, 0.15}})
-	Light := AddMaterial(Scene, light{v3{15, 15, 15}})
+	Light := AddLight(Scene, light{v3{15, 15, 15}})
 	Aluminum := AddMaterial(Scene, metal{v3{0.8, 0.85, 0.88}, 0})
 
-	AddShape(Scene, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, Green))
-	AddShape(Scene, CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}, Red))
-	AddShape(Scene, CreateQuad(v3{343, 554, 332}, v3{-130, 0, 0}, v3{0, 0, -105}, Light))
-	AddShape(Scene, CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, 555}, Gray))
-	AddShape(Scene, CreateQuad(v3{555, 555, 555}, v3{-555, 0, 0}, v3{0, 0, -555}, Gray))
-	AddShape(Scene, CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}, Gray))
+	AddPrimitive(Scene, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}), Green, 0)
+	AddPrimitive(Scene, CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}), Red, 0)
+	AddPrimitive(Scene, CreateQuad(v3{343, 554, 332}, v3{-130, 0, 0}, v3{0, 0, -105}), 0, Light)
+	AddPrimitive(Scene, CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, 555}), Gray, 0)
+	AddPrimitive(Scene, CreateQuad(v3{555, 555, 555}, v3{-555, 0, 0}, v3{0, 0, -555}), Gray, 0)
+	AddPrimitive(Scene, CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}), Gray, 0)
 
-	CreateBox(v3{0, 0, 0}, v3{165, 330, 165}, Gray, -v3{265, 0, 295}, 15, Scene)
-	CreateBox(v3{0, 0, 0}, v3{165, 165, 165}, Gray, -v3{130, 0, 65}, -18, Scene)
+	CreateBox(v3{0, 0, 0}, v3{165, 330, 165}, -v3{265, 0, 295}, 15, Gray, 0, Scene)
+	CreateBox(v3{0, 0, 0}, v3{165, 165, 165}, -v3{130, 0, 65}, -18, Gray, 0, Scene)
 
 	Scene.SamplesPerPixel = 100
 	Scene.MaxDepth = 50
