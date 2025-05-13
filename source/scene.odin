@@ -201,7 +201,7 @@ CornellBunny  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 	AddPrimitive(Scene, CreateQuad(v3{0, 0, -555}, v3{555, 0, 0}, v3{0, 555, 0}), Gray, 0)		// back
 
 	BVH.Translation = v3{-300, 0, 300}
-	BVH.MatIndex = Blue
+	BVH.MaterialIndex = Blue
 
 	Scene.BVH = BVH
 
@@ -271,7 +271,7 @@ GlassSuzanne :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight :
 	AddPrimitive(Scene, CreateQuad(AABB.Max / 2 + v3{0, 2, 0}, v3{2, 0, 0}, v3{0, 0, 2}), 0, Light)
 
 	Scene.BVH = BVH
-	Scene.BVH.MatIndex = Glass
+	Scene.BVH.MaterialIndex = Glass
 	Scene.BVH.Rotation = Degs2Rads(45)
 
 	Scene.SamplesPerPixel = 10
@@ -360,7 +360,7 @@ BunnyPlaneLamp :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight
 	AddPrimitive(Scene, CreateQuad(v3{MinX, MaxY + 0.5, MaxZ}, v3{2, 0, 0}, v3{0, 0, 2}), 0, Light)
 
 	Scene.BVH = BVH
-	Scene.BVH.MatIndex = Model
+	Scene.BVH.MaterialIndex = Model
 
 	Scene.SamplesPerPixel = 10
 	Scene.MaxDepth = 10

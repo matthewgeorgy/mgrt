@@ -24,7 +24,9 @@ bvh :: struct
 	Centroids : [dynamic]v3,
 	RootNodeIndex : u32,
 	NodesUsed : u32,
-	MatIndex : u32,
+
+	MaterialIndex : u32,
+	LightIndex : u32,
 
 	Translation : v3,
 	Rotation : f32,

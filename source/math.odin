@@ -525,11 +525,13 @@ GetIntersection :: proc(Ray : ray, Scene : ^scene, Record : ^hit_record) -> bool
 					Record.SurfaceNormal = Normalize(Cross(V1 - V0, V2 - V0))
 				}
 
-				Record.MaterialIndex = Scene.BVH.MatIndex
 				SetFaceNormal(RotatedRay, Record.SurfaceNormal, Record)
 				Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
 
 				InvertRayTransform(&Record.HitPoint, &Record.SurfaceNormal, Scene.BVH.Translation, Scene.BVH.Rotation)
+
+				Record.MaterialIndex = Scene.BVH.MaterialIndex
+				Record.LightIndex = Scene.BVH.LightIndex
 			}
 		}
 	}
