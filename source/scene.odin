@@ -258,7 +258,7 @@ CornellBox :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : i
 	AddPrimitive(Scene, CreateQuad(v3{555, 555, 555}, v3{-555, 0, 0}, v3{0, 0, -555}), Gray, 0)
 	AddPrimitive(Scene, CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}), Gray, 0)
 
-	CreateBox(v3{0, 0, 0}, v3{165, 330, 165}, -v3{265, 0, 295}, 15, Gray, 0, Scene)
+	CreateBox(v3{0, 0, 0}, v3{165, 330, 165}, -v3{265, 0, 295}, 15, Aluminum, 0, Scene)
 	CreateBox(v3{0, 0, 0}, v3{165, 165, 165}, -v3{130, 0, 65}, -18, Gray, 0, Scene)
 
 	Scene.SamplesPerPixel = 100

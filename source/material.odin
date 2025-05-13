@@ -20,19 +20,11 @@ dielectric :: struct
 {
 	RefractionIndex : f32,
 }
-
-material_type :: enum
+material :: union
 {
-	DIFFUSE = 1,
-	METAL = 2,
-	DIELECTRIC = 3,
-}
-
-material :: struct
-{
-	Type : material_type,
-
-	using _ : struct #raw_union { Lambertian : lambertian, Metal : metal, Dielectric : dielectric }
+	lambertian,
+	metal,
+	dielectric,
 }
 
 AddMaterial :: proc{ AddLambertian, AddMetal, AddDielectric, }
@@ -41,12 +33,7 @@ AddLambertian :: proc(Scene : ^scene, Lambertian : lambertian) -> u32
 {
 	MaterialIndex := cast(u32)len(Scene.Materials)
 
-	Material : material
-
-	Material.Type = material_type.DIFFUSE
-	Material.Lambertian = Lambertian
-
-	append(&Scene.Materials, Material)
+	append(&Scene.Materials, Lambertian)
 
 	return MaterialIndex
 }
@@ -55,12 +42,7 @@ AddMetal :: proc(Scene : ^scene, Metal : metal) -> u32
 {
 	MaterialIndex := cast(u32)len(Scene.Materials)
 
-	Material : material
-
-	Material.Type = material_type.METAL
-	Material.Metal = Metal
-
-	append(&Scene.Materials, Material)
+	append(&Scene.Materials, Metal)
 
 	return MaterialIndex
 }
@@ -69,12 +51,7 @@ AddDielectric :: proc(Scene : ^scene, Dielectric : dielectric) -> u32
 {
 	MaterialIndex := cast(u32)len(Scene.Materials)
 
-	Material : material
-
-	Material.Type = material_type.DIELECTRIC
-	Material.Dielectric = Dielectric
-
-	append(&Scene.Materials, Material)
+	append(&Scene.Materials, Dielectric)
 
 	return MaterialIndex
 }

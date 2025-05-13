@@ -11,21 +11,19 @@ EvaluateBxDF :: proc(Material : material, wo, wi : v3) -> v3
 {
 	f : v3
 
-	Type := Material.Type
-
-	switch Type
+	switch Type in Material
 	{
-		case material_type.DIFFUSE:
+		case lambertian:
 		{
-			f = EvaluateLambertianBRDF(Material.Lambertian, wo, wi)
+			f = EvaluateLambertianBRDF(Material.(lambertian), wo, wi)
 		}
-		case material_type.METAL:
+		case metal:
 		{
-			f = EvaluateMetalBRDF(Material.Metal, wo, wi)
+			f = EvaluateMetalBRDF(Material.(metal), wo, wi)
 		}
-		case material_type.DIELECTRIC:
+		case dielectric:
 		{
-			f = EvaluateDielectricBRDF(Material.Dielectric, wo, wi)
+			f = EvaluateDielectricBRDF(Material.(dielectric), wo, wi)
 		}
 	}
 
@@ -36,21 +34,19 @@ SampleBxDF :: proc(Material : material, wo : v3, Record : hit_record) -> bxdf_sa
 {
 	Sample : bxdf_sample
 
-	Type := Material.Type
-
-	switch Type
+	switch Type in Material
 	{
-		case material_type.DIFFUSE:
+		case lambertian:
 		{
-			Sample = SampleLambertianBRDF(Material.Lambertian, wo, Record)
+			Sample = SampleLambertianBRDF(Material.(lambertian), wo, Record)
 		}
-		case material_type.METAL:
+		case metal:
 		{
-			Sample = SampleMetalBRDF(Material.Metal, wo, Record)
+			Sample = SampleMetalBRDF(Material.(metal), wo, Record)
 		}
-		case material_type.DIELECTRIC:
+		case dielectric:
 		{
-			Sample = SampleDielectricBRDF(Material.Dielectric, wo, Record)
+			Sample = SampleDielectricBRDF(Material.(dielectric), wo, Record)
 		}
 	}
 

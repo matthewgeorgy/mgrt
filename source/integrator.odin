@@ -34,7 +34,7 @@ PathTracingIntegrator :: proc(Ray : ray, Scene : ^scene, Depth : int) -> v3
 	}
 	else
 	{
-		return Scene.Materials[0].Lambertian.Rho
+		return Scene.Materials[0].(lambertian).Rho
 	}
 }
 
