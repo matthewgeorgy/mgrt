@@ -128,133 +128,133 @@ PathTracingIntegrator :: proc(Ray : ray, Scene : ^scene, Depth : int) -> v3
 // 	}
 // }
 
-// ComputeDirectIllumination :: proc(Ray : ray, Record : hit_record, Scene : ^scene) -> v3
-// {
-// 	DirectIllumination : v3
+ComputeDirectIllumination :: proc(Ray : ray, Record : hit_record, Scene : ^scene) -> v3
+{
+	DirectIllumination : v3
 
-// 	OnLight := v3{RandomFloat(213, 343), 554, RandomFloat(227, 332)}
-// 	ToLight := Normalize(OnLight - Record.HitPoint)
-// 	DistanceSquared := LengthSquared(OnLight - Record.HitPoint)
+	OnLight := v3{RandomFloat(213, 343), 554, RandomFloat(227, 332)}
+	ToLight := Normalize(OnLight - Record.HitPoint)
+	DistanceSquared := LengthSquared(OnLight - Record.HitPoint)
 
-// 	LightArea : f32 = (343 - 213) * (332 - 227)
-// 	LightCosine := Abs(ToLight.y)
-// 	LightPDF := DistanceSquared / (LightCosine * LightArea)
+	LightArea : f32 = (343 - 213) * (332 - 227)
+	LightCosine := Abs(ToLight.y)
+	LightPDF := DistanceSquared / (LightCosine * LightArea)
 
-// 	OriginalMaterial := Scene.Materials[Record.MaterialIndex]
+	OriginalMaterial := Scene.Materials[Record.MaterialIndex]
 
-// 	ShadowRay := ray{Record.HitPoint, ToLight}
+	ShadowRay := ray{Record.HitPoint, ToLight}
 
-// 	ShadowRecord : hit_record
+	ShadowRecord : hit_record
 
-// 	if GetIntersection(ShadowRay, Scene, &ShadowRecord)
-// 	{
-// 		HitMaterial := Scene.Materials[ShadowRecord.MaterialIndex]
+	if GetIntersection(ShadowRay, Scene, &ShadowRecord)
+	{
 
-// 		// We hit the light source without anything obstructing us
-// 		if HitMaterial.Type == .LIGHT
-// 		{
-// 			Le := HitMaterial.Light.Le
+		// We hit the light source without anything obstructing us
+		if HasLight(ShadowRecord)
+		{
+			HitLight := Scene.Lights[ShadowRecord.LightIndex]
 
-// 			f := EvaluateBxDF(OriginalMaterial.BxDF, Ray.Direction, ShadowRay.Direction)
-// 			CosAtten := Abs(Dot(ShadowRay.Direction, Record.SurfaceNormal))
+			Le := HitLight.Le
 
-// 			DirectIllumination = f * CosAtten * Le / LightPDF
-// 		}
-// 	}
+			f := EvaluateBxDF(OriginalMaterial, Ray.Direction, ShadowRay.Direction)
+			CosAtten := Abs(Dot(ShadowRay.Direction, Record.SurfaceNormal))
 
-// 	return DirectIllumination
-// }
+			DirectIllumination = f * CosAtten * Le / LightPDF
+		}
+	}
 
-// ComputeIndirectIllumination :: proc(Scene : ^scene, RayDirection : v3, Record : ^hit_record) -> v3
-// {
-// 	Indirect : v3
-// 	Map := Scene.PhotonMap
+	return DirectIllumination
+}
 
-// 	SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
-// 	Sample := SampleBxDF(SurfaceMaterial.BxDF, RayDirection, Record^)
+ComputeIndirectIllumination :: proc(Scene : ^scene, RayDirection : v3, Record : ^hit_record) -> v3
+{
+	Indirect : v3
+	Map := Scene.PhotonMap
 
-// 	f := Sample.f
-// 	CosAtten := Abs(Dot(Record.SurfaceNormal, Sample.wi))
+	SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
+	Sample := SampleBxDF(SurfaceMaterial, RayDirection, Record^)
 
-// 	FinalRecord : hit_record
-// 	FinalRay := ray{Record.HitPoint, Sample.wi}
+	f := Sample.f
+	CosAtten := Abs(Dot(Record.SurfaceNormal, Sample.wi))
 
-// 	if GetIntersection(FinalRay, Scene, &FinalRecord)
-// 	{
-// 		HitMaterial := Scene.Materials[FinalRecord.MaterialIndex]
+	FinalRecord : hit_record
+	FinalRay := ray{Record.HitPoint, Sample.wi}
 
-// 		if HitMaterial.Type == .BXDF
-// 		{
-// 			if HitMaterial.BxDF.Type == .DIFFUSE
-// 			{
-// 				Indirect = f * CosAtten * ComputeRadianceWithPhotonMap(Scene, FinalRay.Direction, FinalRecord) / Sample.PDF
-// 			}
-// 		}
-// 	}
+	if GetIntersection(FinalRay, Scene, &FinalRecord)
+	{
+		if !HasLight(FinalRecord)
+		{
+			HitMaterial := Scene.Materials[FinalRecord.MaterialIndex]
 
-// 	return Indirect
-// }
+			if _, ok := HitMaterial.(lambertian); ok
+			{
+				Indirect = f * CosAtten * ComputeRadianceWithPhotonMap(Scene, FinalRay.Direction, FinalRecord) / Sample.PDF
+			}
+		}
+	}
 
-// ComputeRadianceWithPhotonMap :: proc(Scene : ^scene, wo : v3, Record : hit_record) -> v3
-// {
-// 	Radiance : v3
-// 	Map := Scene.PhotonMap
-// 	MaxPhotonDistance : f32 = 2.5
+	return Indirect
+}
 
-// 	NearestPhotons := LocatePhotons(Map, Record.HitPoint, MaxPhotonDistance)
-// 	defer delete(NearestPhotons.PhotonsFound)
+ComputeRadianceWithPhotonMap :: proc(Scene : ^scene, wo : v3, Record : hit_record) -> v3
+{
+	Radiance : v3
+	Map := Scene.PhotonMap
+	MaxPhotonDistance : f32 = 2.5
 
-// 	if len(NearestPhotons.PhotonsFound) == 0
-// 	{
-// 		return v3{0, 0, 0}
-// 	}
+	NearestPhotons := LocatePhotons(Map, Record.HitPoint, MaxPhotonDistance)
+	defer delete(NearestPhotons.PhotonsFound)
 
-// 	SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
-// 	f := EvaluateBxDF(SurfaceMaterial.BxDF, wo, wo)
+	if len(NearestPhotons.PhotonsFound) == 0
+	{
+		return v3{0, 0, 0}
+	}
 
-// 	for Photon in NearestPhotons.PhotonsFound
-// 	{
-// 		PhotonDir := MapPhotonDirection(Map, Photon^)
-// 		if Dot(PhotonDir, Record.SurfaceNormal) < 0
-// 		{
-// 			Radiance += f * Photon.Power
-// 		}
-// 	}
+	SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
+	f := EvaluateBxDF(SurfaceMaterial, wo, wo)
 
-// 	AreaFactor := 1 / (PI * MaxPhotonDistance * MaxPhotonDistance)
+	for Photon in NearestPhotons.PhotonsFound
+	{
+		if Dot(Photon.Dir, Record.SurfaceNormal) < 0
+		{
+			Radiance += f * Photon.Power
+		}
+	}
 
-// 	Radiance *= AreaFactor
+	AreaFactor := 1 / (PI * MaxPhotonDistance * MaxPhotonDistance)
 
-// 	return Radiance
-// }
+	Radiance *= AreaFactor
 
-// PhotonMapIntegrator :: proc(Ray : ray, Scene : ^scene, Depth : int) -> v3
-// {
-// 	Record : hit_record
+	return Radiance
+}
 
-// 	if Depth <= 0
-// 	{
-// 		return v3{0, 0, 0}
-// 	}
+PhotonMapIntegrator :: proc(Ray : ray, Scene : ^scene, Depth : int) -> v3
+{
+	Record : hit_record
 
-// 	if GetIntersection(Ray, Scene, &Record)
-// 	{
-// 		SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
+	if Depth <= 0
+	{
+		return v3{0, 0, 0}
+	}
 
-// 		// Hit the light
-// 		if SurfaceMaterial.Type == .LIGHT
-// 		{
-// 			return SurfaceMaterial.Light.Le
-// 		}
+	if GetIntersection(Ray, Scene, &Record)
+	{
+		// Hit the light
+		if HasLight(Record)
+		{
+			SurfaceLight := Scene.Lights[Record.LightIndex]
 
-// 		DirectIllumination := ComputeDirectIllumination(Ray, Record, Scene)
-// 		IndirectIllumination := ComputeIndirectIllumination(Scene, Ray.Direction, &Record)
+			return SurfaceLight.Le
+		}
 
-// 		return DirectIllumination + IndirectIllumination
-// 	}
-// 	else
-// 	{
-// 		return Scene.Materials[0].BxDF.Lambertian.Rho
-// 	}
-// }
+		DirectIllumination := ComputeDirectIllumination(Ray, Record, Scene)
+		IndirectIllumination := ComputeIndirectIllumination(Scene, Ray.Direction, &Record)
+
+		return DirectIllumination + IndirectIllumination
+	}
+	else
+	{
+		return Scene.Materials[0].(lambertian).Rho
+	}
+}
 
