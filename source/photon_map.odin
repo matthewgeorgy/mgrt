@@ -12,7 +12,7 @@ photon :: struct
 
 photon_node :: struct
 {
-	PhotonIdx : i32,
+	Photon : photon,
 
 	Axis : i32,
 	Left, Right : i32,
@@ -25,10 +25,6 @@ photon_map :: struct
 	HalfStoredPhotons : i32,
 	MaxPhotons : i32,
 	PrevScale : i32,
-	CosTheta : [256]f32,
-	SinTheta : [256]f32,
-	CosPhi : [256]f32,
-	SinPhi : [256]f32,
 	Photons : [dynamic]photon,
 
 	// kd-tree
@@ -39,7 +35,7 @@ photon_map :: struct
 
 nearest_photons :: struct
 {
-	PhotonsFound : [dynamic]^photon
+	PhotonsFound : [dynamic]photon
 };
 
 ///////////////////////////////////////
@@ -54,15 +50,7 @@ CreatePhotonMap :: proc(MaxPhotons : i32) -> photon_map
 	Map.PrevScale = 1
 	Map.MaxPhotons = MaxPhotons
 
-	for AngleIndex := 0; AngleIndex < 256; AngleIndex += 1
-	{
-		Angle := f32(AngleIndex) * (1.0 / 256.0) * PI
-
-		Map.CosTheta[AngleIndex] = Cos(Angle)
-		Map.SinTheta[AngleIndex] = Sin(Angle)
-		Map.CosPhi[AngleIndex] = Cos(2.0 * Angle)
-		Map.SinPhi[AngleIndex] = Sin(2.0 * Angle)
-	}
+	Map.Photons = make([dynamic]photon, 0, MaxPhotons)
 
 	return Map
 }
@@ -80,30 +68,6 @@ StorePhoton :: proc(Map : ^photon_map, Pos, Power, Dir : v3)
 	Photon.Power = Power
 	Photon.Dir = Dir
 
-	// Theta := int(ACos(Dir[2]) * (256.0 / PI))
-	// if Theta > 255
-	// {
-	// 	Photon.Theta = 255
-	// }
-	// else
-	// {
-	// 	Photon.Theta = u8(Theta)
-	// }
-
-	// Phi := int(ATan2(Dir[1], Dir[0]) * (256.0 / (2.0 * PI)))
-	// if Phi > 255
-	// {
-	// 	Photon.Phi = 255
-	// }
-	// else if Phi < 0
-	// {
-	// 	Photon.Phi = 0
-	// }
-	// else
-	// {
-	// 	Photon.Phi = u8(Phi)
-	// }
-
 	append(&Map.Photons, Photon)
 	Map.StoredPhotons += 1
 }
@@ -117,17 +81,6 @@ ScalePhotonPower :: proc(Map : ^photon_map, Scale : f32)
 
 	Map.PrevScale = Map.StoredPhotons
 }
-
-// MapPhotonDirection :: proc(Map : ^photon_map, Photon : photon) -> v3
-// {
-// 	Direction : v3
-
-// 	Direction[0] = Map.SinTheta[Photon.Theta] * Map.CosPhi[Photon.Phi]
-// 	Direction[1] = Map.SinTheta[Photon.Theta] * Map.SinPhi[Photon.Phi]
-// 	Direction[2] = Map.CosTheta[Photon.Theta]
-
-// 	return Direction
-// }
 
 IrradianceEstimate :: proc(Map : ^photon_map, Pos, Normal : v3, MaxDistance : f32) -> v3
 {
@@ -277,7 +230,7 @@ InsertNode :: proc(Map : ^photon_map, Photons : []photon, Axis : i32) -> i32
 		Node := &Map.Nodes[Map.NodeCount]
 		Map.NodeCount += 1
 
-		Node.PhotonIdx = i32(MedianIndex)
+		Node.Photon = Photons[MedianIndex]
 		Node.Axis = Axis
 
 		NewAxis := (Axis + 1) % 3
@@ -298,7 +251,7 @@ LocatePhotons :: proc(Map : ^photon_map, Pos : v3, MaxDistance : f32) -> nearest
 	return Photons
 }
 
-FindPhotons :: proc(Map : ^photon_map, NodeIndex : i32, Pos : v3, MaxDistance : f32, PhotonsFound : ^[dynamic]^photon) -> int
+FindPhotons :: proc(Map : ^photon_map, NodeIndex : i32, Pos : v3, MaxDistance : f32, PhotonsFound : ^[dynamic]photon) -> int
 {
 	AddedRes : int = 0
 
@@ -308,17 +261,16 @@ FindPhotons :: proc(Map : ^photon_map, NodeIndex : i32, Pos : v3, MaxDistance : 
 	}
 
 	Node := &Map.Nodes[NodeIndex]
-	Photon := &Map.Photons[Node.PhotonIdx]
 
-	DistSq := LengthSquared(Photon.Pos - Pos)
+	DistSq := LengthSquared(Node.Photon.Pos - Pos)
 	if (DistSq <= MaxDistance * MaxDistance)
 	{
-		append(PhotonsFound, Photon)
+		append(PhotonsFound, Node.Photon)
 
 		AddedRes = 1
 	}
 
-	dx : f32 = Pos[Node.Axis] - Photon.Pos[Node.Axis]
+	dx : f32 = Pos[Node.Axis] - Node.Photon.Pos[Node.Axis]
 
 	Ret := FindPhotons(Map, dx < 0.0 ? Node.Left : Node.Right, Pos, MaxDistance, PhotonsFound)
 	if (Ret >= 0 && Abs(dx) < MaxDistance)
