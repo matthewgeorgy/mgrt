@@ -49,12 +49,13 @@ main :: proc()
 	win32.QueryPerformanceFrequency(&Frequency)
 
 	// Photon map
-	PHOTON_COUNT :: 1000000
+	EmittedPhotons ::  100000
+	MaxPhotonCount :: 5000000
 	MaxPhotonBounces := Scene.MaxDepth
-	PhotonMap := CreatePhotonMap(PHOTON_COUNT)
+	PhotonMap := CreatePhotonMap(MaxPhotonCount)
 
 	win32.QueryPerformanceCounter(&StartCounter)
-	for PhotonIndex := 0; PhotonIndex < PHOTON_COUNT / 4; PhotonIndex += 1
+	for PhotonIndex := 0; PhotonIndex < EmittedPhotons; PhotonIndex += 1
 	{
 		Ray, Power := SampleRayFromLight(Scene)
 
@@ -62,7 +63,7 @@ main :: proc()
 	}
 
 	fmt.println("\nStored", PhotonMap.StoredPhotons, "photons")
-	ScalePhotonPower(&PhotonMap, f32(1.0) / f32(len(PhotonMap.Photons)))
+	ScalePhotonPower(&PhotonMap, f32(1.0) / f32(EmittedPhotons))
 	BuildPhotonMap(&PhotonMap)
 
 	Scene.PhotonMap = &PhotonMap
