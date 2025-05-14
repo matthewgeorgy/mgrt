@@ -11,12 +11,17 @@ main :: proc()
 	// Image
 	Image := AllocateImage(640, 640)
 
-	// Scene & camera
-	Scene : scene
-	Camera : camera
+	// Initialize scene and camera from command line args
+	Config : config
+	if !ParseCommandLine(&Config)
+	{
+		return
+	}
 
-	// Scene
-	CornellBox(&Scene, &Camera, Image.Width, Image.Height)
+	Config.ImageWidth = Image.Width
+	Config.ImageHeight = Image.Height
+
+	Scene, Camera := InitializeFromConfig(Config)
 
 	// Work queue
 	Queue : work_queue

@@ -69,9 +69,6 @@ CornellBunny  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 	BVH.MaterialIndex = Blue
 
 	Scene.BVH = BVH
-
-	Scene.SamplesPerPixel = 50
-	Scene.MaxDepth = 10
 }
 
 GlassSuzanne :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : i32)
@@ -138,9 +135,6 @@ GlassSuzanne :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight :
 	Scene.BVH = BVH
 	Scene.BVH.MaterialIndex = Glass
 	Scene.BVH.Rotation = Degs2Rads(45)
-
-	Scene.SamplesPerPixel = 10
-	Scene.MaxDepth = 10
 }
 
 SpheresMaterial :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : i32)
@@ -164,9 +158,6 @@ SpheresMaterial :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeigh
     AddPrimitive(Scene, sphere{v3{ 1.0,    0.0, -1.0},   0.5}, Left, 0)
     AddPrimitive(Scene, sphere{v3{ 1.0,    0.0, -1.0},   0.4}, Bubble, 0)
     AddPrimitive(Scene, sphere{v3{-1.0,    0.0, -1.0},   0.5}, Right, 0)
-
-	Scene.SamplesPerPixel = 100
-	Scene.MaxDepth = 50
 }
 
 BunnyPlaneLamp :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : i32)
@@ -226,9 +217,6 @@ BunnyPlaneLamp :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight
 
 	Scene.BVH = BVH
 	Scene.BVH.MaterialIndex = Model
-
-	Scene.SamplesPerPixel = 10
-	Scene.MaxDepth = 10
 }
 
 CornellBox :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : i32)
@@ -260,8 +248,5 @@ CornellBox :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : i
 
 	CreateBox(v3{0, 0, 0}, v3{165, 330, 165}, -v3{265, 0, 295}, 15, Gray, 0, Scene)
 	CreateBox(v3{0, 0, 0}, v3{165, 165, 165}, -v3{130, 0, 65}, -18, Gray, 0, Scene)
-
-	Scene.SamplesPerPixel = 10
-	Scene.MaxDepth = 50
 }
 
