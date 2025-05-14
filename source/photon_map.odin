@@ -103,7 +103,12 @@ IrradianceEstimate :: proc(Map : ^photon_map, Pos, Normal : v3, MaxDistance : f3
 		}
 	}
 
-	// TODO(matthew): see if this needs to be changed? Was causing problems in the past
+	// TODO(matthew): This is alright for now, but in the future we can do better.
+	// At some point we want to switch to querying the k-nearest photons, where k
+	// is some integer, rather than querying all of the photons within some radius
+	// R.
+	// When we do this, the MaxDistance will then become the distance of the farthest
+	// photon from our search.
 	AreaFactor := 1.0  / (PI * MaxDistance * MaxDistance) // density estimate
 
 	Irradiance *= AreaFactor

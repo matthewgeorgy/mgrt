@@ -202,28 +202,16 @@ ComputeRadianceWithPhotonMap :: proc(Scene : ^scene, wo : v3, Record : hit_recor
 	Map := Scene.PhotonMap
 	MaxPhotonDistance : f32 = 2.5
 
-	NearestPhotons := LocatePhotons(Map, Record.HitPoint, MaxPhotonDistance)
-	defer delete(NearestPhotons.PhotonsFound)
-
-	if len(NearestPhotons.PhotonsFound) == 0
-	{
-		return v3{0, 0, 0}
-	}
-
 	SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
 	f := EvaluateBxDF(SurfaceMaterial, wo, wo)
 
-	for Photon in NearestPhotons.PhotonsFound
-	{
-		if Dot(Photon.Dir, Record.SurfaceNormal) < 0
-		{
-			Radiance += f * Photon.Power
-		}
-	}
-
-	AreaFactor := 1 / (PI * MaxPhotonDistance * MaxPhotonDistance)
-
-	Radiance *= AreaFactor
+	// NOTE(matthew): Probably good enough for now since all of our materials
+	// are lambertian, so the BRDF is just a constant
+	// When we start adding support to the photon map for more materials, this
+	// may have to change a little bit. That is, we might have to inline the
+	// IrradianceEstimate and query the BxDF on each photon direction.
+	Irradiance := IrradianceEstimate(Map, Record.HitPoint, Record.SurfaceNormal, MaxPhotonDistance)
+	Radiance = f * Irradiance
 
 	return Radiance
 }
