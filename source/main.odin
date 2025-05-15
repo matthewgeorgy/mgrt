@@ -62,7 +62,7 @@ main :: proc()
 	win32.QueryPerformanceCounter(&StartCounter)
 	for PhotonIndex := 0; PhotonIndex < EmittedPhotons; PhotonIndex += 1
 	{
-		Ray, Power := SampleRayFromLight(Scene)
+		Ray, Power := SampleRayFromLight(&Scene)
 
 		CastPhoton(&PhotonMap, Ray, Power, &Scene, MaxPhotonBounces)
 	}

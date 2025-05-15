@@ -132,11 +132,11 @@ ComputeDirectIllumination :: proc(Ray : ray, Record : hit_record, Scene : ^scene
 {
 	DirectIllumination : v3
 
-	OnLight := v3{RandomFloat(213, 343), 554, RandomFloat(227, 332)}
+	OnLight, _, LightAreaInv := SampleRandomLight(Scene)
 	ToLight := Normalize(OnLight - Record.HitPoint)
 	DistanceSquared := LengthSquared(OnLight - Record.HitPoint)
 
-	LightArea : f32 = (343 - 213) * (332 - 227)
+	LightArea := 1.0 / LightAreaInv
 	LightCosine := Abs(ToLight.y)
 	LightPDF := DistanceSquared / (LightCosine * LightArea)
 

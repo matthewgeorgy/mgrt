@@ -116,25 +116,23 @@ IrradianceEstimate :: proc(Map : ^photon_map, Pos, Normal : v3, MaxDistance : f3
 	return Irradiance
 }
 
-SampleRayFromLight :: proc(Scene : scene) -> (ray, v3)
+SampleRayFromLight :: proc(Scene : ^scene) -> (ray, v3)
 {
 	Ray : ray
 	Power : v3
-	LightColor := v3{15, 15, 15}
 	Normal := v3{0, -1, 0}
 
-	Ray.Origin = v3{RandomFloat(213, 343), 554, RandomFloat(227, 332)}
+	PointOnLight, LightColor, LightAreaPDF := SampleRandomLight(Scene)
+	Ray.Origin = PointOnLight
 
 	Basis := CreateBasis(Normal)
 	Ray.Direction = BasisTransform(Basis, RandomCosineDirection())
 	CosineTheta := Dot(Normalize(Ray.Direction), Basis.w)
 	LightDirPDF := Max(0, CosineTheta / PI)
 
-	LightArea : f32 = (343 - 213) * (332 - 227)
-	LightPosPDF := 1 / LightArea
 	CosAtten := Max(Dot(Normal, Ray.Direction), 0)
 
-	Power = LightColor * CosAtten / (LightPosPDF * LightDirPDF)
+	Power = LightColor * CosAtten / (LightAreaPDF * LightDirPDF)
 
 	return Ray, Power
 }

@@ -1,5 +1,7 @@
 package main
 
+import fmt "core:fmt"
+
 sphere :: struct
 {
 	Center : v3,
@@ -38,9 +40,9 @@ aabb :: struct
 shape :: union
 {
 	sphere,
-	quad, 
-	plane, 
-	triangle, 
+	quad,
+	plane,
+	triangle,
 	aabb,
 }
 
@@ -88,5 +90,61 @@ CreateBox :: proc(A, B : v3, Translation : v3, Rotation : f32, MaterialIndex : u
     AddPrimitive(Scene, CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaZ,  DeltaY, Translation, Rotation), MaterialIndex, LightIndex) // left
     AddPrimitive(Scene, CreateQuadTransformed(v3{MinCoord.x, MaxCoord.y, MaxCoord.z},  DeltaX, -DeltaZ, Translation, Rotation), MaterialIndex, LightIndex) // top
     AddPrimitive(Scene, CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaX,  DeltaZ, Translation, Rotation), MaterialIndex, LightIndex) // bottom
+}
+
+// TODO(matthew): Still quite hardcoded for now, as it assumes that the quads
+// are perfectly flat (lie in the xz-plane), as is the case with the cornell
+// lights.
+// Will need to extend this in the future to handle arbitrary orientations, as
+// well as a wider variety of shapes to sample points from.
+QuadArea :: proc(Quad : quad) -> f32
+{
+	MinPoint := Quad.Q
+	MaxPoint := Quad.Q + Quad.u + Quad.v
+
+	Area := Abs(MaxPoint.x - MinPoint.x) * Abs(MaxPoint.z - MinPoint.z)
+
+	return Area
+}
+
+SamplePoint :: proc{ SampleQuad }
+
+SampleQuad :: proc(Quad : quad) -> v3
+{
+	StartPoint := Quad.Q
+	EndPoint := Quad.Q + Quad.u + Quad.v
+
+	MinPoint := MinV3(StartPoint, EndPoint)
+	MaxPoint := MaxV3(StartPoint, EndPoint)
+
+	Point : v3
+
+	Point.x = RandomFloat(MinPoint.x, MaxPoint.x)
+	Point.y = MinPoint.y
+	Point.z = RandomFloat(MinPoint.z, MaxPoint.z)
+
+	return Point
+}
+
+// TODO(matthew): When we come back to update this to support more than one
+// light, we need to choose them at random and correct by the PDF in doing so.
+SampleRandomLight :: proc(Scene : ^scene) -> (v3, v3, f32)
+{
+	if len(Scene.LightIndices) == 0
+	{
+		fmt.println("no lights!")
+		return v3{0, 0, 0}, v3{0, 0, 0}, 1
+	}
+
+	QuadIndex := Scene.LightIndices[0]
+	Quad := Scene.Primitives[QuadIndex].Shape.(quad)
+	LightIndex := Scene.Primitives[QuadIndex].LightIndex
+	LightColor := Scene.Lights[LightIndex].Le
+
+	Point := SamplePoint(Quad)
+	Area := QuadArea(Quad)
+	PDF := 1.0 / Area
+
+	return Point, LightColor, PDF
 }
 
