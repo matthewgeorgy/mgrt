@@ -21,6 +21,7 @@ main :: proc()
 	Config.ImageWidth = Image.Width
 	Config.ImageHeight = Image.Height
 
+
 	Scene, Camera := InitializeFromConfig(Config)
 
 	// Work queue
@@ -54,29 +55,29 @@ main :: proc()
 	win32.QueryPerformanceFrequency(&Frequency)
 
 	// Photon map
-	EmittedPhotons ::  100000
-	MaxPhotonCount :: 5000000
-	MaxPhotonBounces := Scene.MaxDepth
-	PhotonMap := CreatePhotonMap(MaxPhotonCount)
+	// EmittedPhotons ::  100000
+	// MaxPhotonCount :: 5000000
+	// MaxPhotonBounces := Scene.MaxDepth
+	// PhotonMap := CreatePhotonMap(MaxPhotonCount)
 
-	win32.QueryPerformanceCounter(&StartCounter)
-	for PhotonIndex := 0; PhotonIndex < EmittedPhotons; PhotonIndex += 1
-	{
-		Ray, Power := SampleRayFromLight(&Scene)
+	// win32.QueryPerformanceCounter(&StartCounter)
+	// for PhotonIndex := 0; PhotonIndex < EmittedPhotons; PhotonIndex += 1
+	// {
+	// 	Ray, Power := SampleRayFromLight(&Scene)
 
-		CastPhoton(&PhotonMap, Ray, Power, &Scene, MaxPhotonBounces)
-	}
+	// 	CastPhoton(&PhotonMap, Ray, Power, &Scene, MaxPhotonBounces)
+	// }
 
-	fmt.println("\nStored", PhotonMap.StoredPhotons, "photons")
-	ScalePhotonPower(&PhotonMap, f32(1.0) / f32(EmittedPhotons))
-	BuildPhotonMap(&PhotonMap)
+	// fmt.println("\nStored", PhotonMap.StoredPhotons, "photons")
+	// ScalePhotonPower(&PhotonMap, f32(1.0) / f32(EmittedPhotons))
+	// BuildPhotonMap(&PhotonMap)
 
-	Scene.PhotonMap = &PhotonMap
+	// Scene.PhotonMap = &PhotonMap
 
-	win32.QueryPerformanceCounter(&EndCounter)
-	ElapsedTime = (EndCounter - StartCounter) * 1000 / Frequency
+	// win32.QueryPerformanceCounter(&EndCounter)
+	// ElapsedTime = (EndCounter - StartCounter) * 1000 / Frequency
 
-	fmt.println("Photon tracing took", ElapsedTime, "ms\n")
+	// fmt.println("Photon tracing took", ElapsedTime, "ms\n")
 
 	// Threading
 	THREADCOUNT :: 8

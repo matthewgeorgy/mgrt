@@ -25,6 +25,10 @@ EvaluateBxDF :: proc(Material : material, wo, wi : v3) -> v3
 		{
 			f = EvaluateDielectricBRDF(Material.(dielectric), wo, wi)
 		}
+		case merl:
+		{
+			f = EvaluateMERLBRDF(Material.(merl), wo, wi)
+		}
 	}
 
 	return f
@@ -47,6 +51,10 @@ SampleBxDF :: proc(Material : material, wo : v3, Record : hit_record) -> bxdf_sa
 		case dielectric:
 		{
 			Sample = SampleDielectricBRDF(Material.(dielectric), wo, Record)
+		}
+		case merl:
+		{
+			Sample = SampleMERLBRDF(Material.(merl), wo, Record)
 		}
 	}
 
@@ -133,6 +141,45 @@ SampleDielectricBRDF :: proc(Material : dielectric, wo : v3, Record : hit_record
 	Sample.f = Attenuation / Abs(Dot(NewDirection, Record.SurfaceNormal))
 	Sample.PDF = 1
 	Sample.wi = NewDirection
+
+	return Sample
+}
+
+// NOTE(matthew): see the big comment in merl.odin about all this stuff...
+EvaluateMERLBRDF :: proc(Material : merl, wo, wi : v3) -> v3
+{
+	// NOTE(matthew): delta function
+	return v3{0, 0, 0}
+}
+
+SampleMERLBRDF :: proc(Material : merl, wo : v3, Record : hit_record) -> bxdf_sample
+{
+	Sample : bxdf_sample
+
+	OnLight := v3{RandomFloat(213, 343), 554, RandomFloat(227, 332)}
+	ToLight := OnLight - Record.HitPoint
+	DistanceSquared := LengthSquared(ToLight)
+	ToLight = Normalize(ToLight)
+
+	LightArea : f32 = (343 - 213) * (332 - 227)
+	LightCosine := Abs(ToLight.y)
+
+	PDF := DistanceSquared / (LightCosine * LightArea)
+
+	Sample.wi = ToLight
+	Sample.PDF = PDF
+
+	CosAtten := Abs(Dot(Sample.wi, Record.SurfaceNormal))
+
+	Sample.PDF = 1 / (CosAtten)
+
+	Basis := CreateBasis(Record.SurfaceNormal)
+
+	Sample.wi = RandomOnHemisphere(Record.SurfaceNormal)
+	CosAtten = Abs(Dot(Sample.wi, Record.SurfaceNormal))
+	Sample.PDF = 1 / (2 * PI * CosAtten)
+
+	Sample.f = BRDFLookup(Material.Table, -wo, ToLight, Basis.w, Basis.u, Basis.v)
 
 	return Sample
 }

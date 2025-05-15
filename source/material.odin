@@ -20,14 +20,21 @@ dielectric :: struct
 {
 	RefractionIndex : f32,
 }
+
+merl :: struct
+{
+	Table : ^merl_table,
+}
+
 material :: union
 {
 	lambertian,
 	metal,
 	dielectric,
+	merl,
 }
 
-AddMaterial :: proc{ AddLambertian, AddMetal, AddDielectric, }
+AddMaterial :: proc{ AddLambertian, AddMetal, AddDielectric, AddMERL, }
 
 AddLambertian :: proc(Scene : ^scene, Lambertian : lambertian) -> u32
 {
@@ -52,6 +59,15 @@ AddDielectric :: proc(Scene : ^scene, Dielectric : dielectric) -> u32
 	MaterialIndex := cast(u32)len(Scene.Materials)
 
 	append(&Scene.Materials, Dielectric)
+
+	return MaterialIndex
+}
+
+AddMERL :: proc(Scene : ^scene, Table : merl) -> u32
+{
+	MaterialIndex := cast(u32)len(Scene.Materials)
+
+	append(&Scene.Materials, Table)
 
 	return MaterialIndex
 }

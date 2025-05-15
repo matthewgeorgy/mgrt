@@ -30,8 +30,6 @@ GatherLightIndices :: proc(Scene : ^scene)
 			}
 		}
 	}
-
-	fmt.println(len(Scene.LightIndices))
 }
 
 ///////////////////////////////////////
@@ -64,6 +62,9 @@ CornellBunny  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 
 	InitializeCamera(Camera, ImageWidth, ImageHeight)
 
+	Table := new(merl_table)
+	LoadMERL(string("assets/merl/brass.binary"), Table)
+
 	// Scene setup
 	// TODO(matthew): do this with a proper bounding box so that we can get
 	// other models in here!
@@ -74,8 +75,9 @@ CornellBunny  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 	Red := AddMaterial(Scene, lambertian{v3{0.65, 0.05, 0.05}})
 	Gray := AddMaterial(Scene, lambertian{v3{0.73, 0.73, 0.73}})
 	Green := AddMaterial(Scene, lambertian{v3{0.12, 0.45, 0.15}})
+	MERL := AddMaterial(Scene, merl{ Table })
+
 	Light := AddLight(Scene, light{v3{15, 15, 15}})
-	Blue := AddMaterial(Scene, lambertian{v3{0.05, 0.05, 0.85}})
 
 	AddPrimitive(Scene, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, -555}), Red, 0) 		// right
 	AddPrimitive(Scene, CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, -555}), Green, 0) 			// left
@@ -85,7 +87,7 @@ CornellBunny  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 	AddPrimitive(Scene, CreateQuad(v3{0, 0, -555}, v3{555, 0, 0}, v3{0, 555, 0}), Gray, 0)		// back
 
 	BVH.Translation = v3{-300, 0, 300}
-	BVH.MaterialIndex = Blue
+	BVH.MaterialIndex = MERL
 
 	Scene.BVH = BVH
 }
@@ -99,6 +101,7 @@ GlassSuzanne :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight :
 	Filename := string("assets/suzanne.obj")
 	Mesh := LoadMesh(Filename)
 	fmt.println("Loaded mesh:", Filename, "with", len(Mesh.Triangles), "triangles")
+
 
 	win32.QueryPerformanceCounter(&StartCounter)
 
@@ -146,7 +149,7 @@ GlassSuzanne :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight :
 	Floor := AddMaterial(Scene, lambertian{v3{0.2, 0.6, 0.8}})
 	Glass := AddMaterial(Scene, dielectric{1.33})
 
-	Light :=AddLight(Scene, light{v3{1, 1, 1}})
+	Light := AddLight(Scene, light{v3{1, 1, 1}})
 
 	AddPrimitive(Scene, plane{v3{0, 1, 0}, -10 * AABB.Min.y}, Floor, 0)
 	AddPrimitive(Scene, CreateQuad(AABB.Max / 2 + v3{0, 2, 0}, v3{2, 0, 0}, v3{0, 0, 2}), 0, Light)
