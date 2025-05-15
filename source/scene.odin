@@ -252,6 +252,11 @@ CornellBox :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : i
 
 	InitializeCamera(Camera, ImageWidth, ImageHeight)
 
+	GoldTable := new(merl_table)
+	ChromeTable := new(merl_table)
+	LoadMERL(string("assets/merl/gold-metallic-paint.binary"), GoldTable)
+	LoadMERL(string("assets/merl/chrome.binary"), ChromeTable)
+
 	// Scene setup
 	Background := AddMaterial(Scene, lambertian{v3{0.0, 0.0, 0.0}})
 	NullLight := AddLight(Scene, light{})
@@ -259,6 +264,9 @@ CornellBox :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : i
 	Red := AddMaterial(Scene, lambertian{v3{0.65, 0.05, 0.05}})
 	Gray := AddMaterial(Scene, lambertian{v3{0.73, 0.73, 0.73}})
 	Green := AddMaterial(Scene, lambertian{v3{0.12, 0.45, 0.15}})
+	Gold := AddMaterial(Scene, merl { GoldTable })
+	Chrome := AddMaterial(Scene, merl { ChromeTable })
+
 	Light := AddLight(Scene, light{v3{15, 15, 15}})
 
 	AddPrimitive(Scene, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}), Green, 0)
@@ -268,7 +276,7 @@ CornellBox :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : i
 	AddPrimitive(Scene, CreateQuad(v3{555, 555, 555}, v3{-555, 0, 0}, v3{0, 0, -555}), Gray, 0)
 	AddPrimitive(Scene, CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}), Gray, 0)
 
-	CreateBox(v3{0, 0, 0}, v3{165, 330, 165}, -v3{265, 0, 295}, 15, Gray, 0, Scene)
-	CreateBox(v3{0, 0, 0}, v3{165, 165, 165}, -v3{130, 0, 65}, -18, Gray, 0, Scene)
+	CreateBox(v3{0, 0, 0}, v3{165, 330, 165}, -v3{265, 0, 295}, 15, Gold, 0, Scene)
+	CreateBox(v3{0, 0, 0}, v3{165, 165, 165}, -v3{130, 0, 65}, -18, Chrome, 0, Scene)
 }
 

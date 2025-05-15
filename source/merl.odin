@@ -5,30 +5,29 @@ import libc		"core:c/libc"
 import strings	"core:strings"
 import runtime 	"base:runtime"
 
-// TODO(matthew): This MERL probably needs a LOT of work...
-// 1. LoadMERL seems to be fine, I don't see anything that could be problematic.
-// 2. BRDFLookup is a bit ad-hoc right now. It's more or less directly copied
-//    from Casey's implementation on Handmade Ray, which initially used the z
-//    coordinate for Theta, but we use y so I changed that. I'll have to spend
-//    some time looking back at on his video and the original paper to see if
-//    it's all being done correctly.
-// 3. SampleMERLBRDF is generating it's own random direction for Sample.wi, but
-//    then using a vector to the light source for the wi that we pass in to
-//    BRDFLookup. We really should be passing wi instead (unless this is actually
-//    what the paper wants - have to read it again), but that doesn't seem to work.
-// 4. Currently, EvaluateMERLBRDF doesn't do anything, just returns zero. It's
-//    going to have to call into the BRDFLookup, but this requires a lot more data
-//    than just wo and wi - we also need a basis, which the current inteface for
-//    EvaluateBxDF doesn't support. A simple way to fix this is to just pass in the
-//    hit record as well, as this will give us the surface normal we can use to
-//    construct a basis. With this we can just send the transformed vectors
-//    directly to BRDFLookup, without having to compute LW and HW internally.
+// TODO(matthew): This MERL stuff needs revisiting...
+// The big thing is the normal and bitangent vectors we're using for the rotation
+// to compute PhiDiff. They're a bit different than the reference code, but that's
+// just because my vectors are oriented differently. It seems in the paper they
+// have the z-coordinate as up, but I have the y-coordinate as up, and so on. 
+/*
+					+y    +z
+					 |   /
+					 |  /
+					 | /
+					 |/
+	   -x ___________O___________ +x
+					/|
+				   / |
+				  /  |
+				 /   |
+			   -z
+*/
+// I'm not actually sure if this is something I have to account for, but the way
+// things are right now seem reasonable enough for the time being.
 //
 // The implementation seems to be working alright for some of the glossier
-// materials, like brass.binary and gold-metallic-paint.binary. We do get a lot of
-// noise when using a low sample count, but with a high enough sample count (500+)
-// we actually get something pretty reasonable (see brass.bmp). This could be a
-// consequence of something in our BRDFLookup not being quite up to snuff.
+// materials, like brass.binary and gold-metallic-paint.binary.
 
 RED_SCALE 	:: ( 1.0 / 1500.0)
 GREEN_SCALE :: (1.15 / 1500.0)
@@ -114,21 +113,11 @@ BRDFLookup :: proc(Table : ^merl_table, ViewDir, LightDir : v3, Basis : basis) -
 	HW.y = Dot(Bitangent, HalfVector)
 	HW.z = Dot(Normal, HalfVector)
 
-	LocalNormal , LocalBitangent : v3
+	// TODO(matthew): This choice works for now, but probably needs a bit of
+	// bulletproofing.
+	LocalNormal    := v3{0, 1, 0}
+	LocalBitangent := v3{0, 0, -1}
 
-	// TODO(matthew): should we be doing this? or just taking
-	// Normal = (0, 0, 1), Bitangent = (0, 1, 0)
-	// instead? Need to experiment a bit more.
-	LocalNormal.x = Dot(Tangent, Normal)
-	LocalNormal.y = Dot(Bitangent, Normal)
-	LocalNormal.z = Dot(Normal, Normal)
-
-	LocalBitangent.x = Dot(Tangent, Bitangent)
-	LocalBitangent.y = Dot(Bitangent, Bitangent)
-	LocalBitangent.z = Dot(Bitangent, Bitangent)
-
-	// fmt.println("N:", LocalNormal)
-	// fmt.println("B:", LocalBitangent)
 
 	ThetaHalf : f32 = ACos(HW.z) //
 	PhiHalf : f32 = ATan2(HW.y, HW.x) //
