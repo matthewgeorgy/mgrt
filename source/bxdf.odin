@@ -179,7 +179,7 @@ SampleMERLBRDF :: proc(Material : merl, wo : v3, Record : hit_record) -> bxdf_sa
 	CosAtten = Abs(Dot(Sample.wi, Record.SurfaceNormal))
 	Sample.PDF = 1 / (2 * PI * CosAtten)
 
-	Sample.f = BRDFLookup(Material.Table, -wo, ToLight, Basis)
+	Sample.f = BRDFLookup(Material.Table, -wo, Sample.wi, Basis)
 
 	return Sample
 }

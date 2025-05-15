@@ -63,7 +63,7 @@ CornellBunny  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 	InitializeCamera(Camera, ImageWidth, ImageHeight)
 
 	Table := new(merl_table)
-	LoadMERL(string("assets/merl/brass.binary"), Table)
+	LoadMERL(string("assets/merl/gold-metallic-paint.binary"), Table)
 
 	// Scene setup
 	// TODO(matthew): do this with a proper bounding box so that we can get
@@ -76,6 +76,7 @@ CornellBunny  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 	Gray := AddMaterial(Scene, lambertian{v3{0.73, 0.73, 0.73}})
 	Green := AddMaterial(Scene, lambertian{v3{0.12, 0.45, 0.15}})
 	MERL := AddMaterial(Scene, merl{ Table })
+	Diffuse := AddMaterial(Scene, lambertian{v3{0.1, 0.1, 0.1}})
 
 	Light := AddLight(Scene, light{v3{15, 15, 15}})
 
@@ -259,7 +260,6 @@ CornellBox :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : i
 	Gray := AddMaterial(Scene, lambertian{v3{0.73, 0.73, 0.73}})
 	Green := AddMaterial(Scene, lambertian{v3{0.12, 0.45, 0.15}})
 	Light := AddLight(Scene, light{v3{15, 15, 15}})
-	Aluminum := AddMaterial(Scene, metal{v3{0.8, 0.85, 0.88}, 0})
 
 	AddPrimitive(Scene, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}), Green, 0)
 	AddPrimitive(Scene, CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}), Red, 0)

@@ -30,6 +30,10 @@ import runtime 	"base:runtime"
 // we actually get something pretty reasonable (see brass.bmp). This could be a
 // consequence of something in our BRDFLookup not being quite up to snuff.
 
+RED_SCALE 	:: ( 1.0 / 1500.0)
+GREEN_SCALE :: (1.15 / 1500.0)
+BLUE_SCALE	:: (1.66 / 1500.0)
+
 merl_table :: struct
 {
 	Count : [3]u32,
@@ -71,28 +75,73 @@ LoadMERL :: proc(Filename : string, Table : ^merl_table) -> bool
 	}
 }
 
+RotateVector :: proc(Vector : v3, Axis : v3, Angle : f32) -> v3
+{
+	Out : v3
+
+	CosAngle := Cos(Angle)
+	SinAngle := Sin(Angle)
+
+	Out = CosAngle * Vector
+
+	Temp := Dot(Axis, Vector)
+	Temp = (1.0 - CosAngle) * Temp
+
+	Out += Temp * Axis
+
+	CrossResult := Cross(Axis, Vector)
+
+	Out += SinAngle * CrossResult
+
+	return Out
+}
+
 BRDFLookup :: proc(Table : ^merl_table, ViewDir, LightDir : v3, Basis : basis) -> v3
 {
 	HalfVector := Normalize(0.5 * (ViewDir + LightDir))
 
 	Tangent := Basis.u
+	Bitangent := Basis.v
+	Normal := Basis.w
 
-	LW := BasisTransform(Basis, LightDir)
-	HW := BasisTransform(Basis, HalfVector)
+	LW, HW : v3
 
-    DiffY := Normalize(Cross(HW, Tangent))
-    DiffX := Cross(DiffY, HW)
+	LW.x = Dot(Tangent, LightDir)
+	LW.y = Dot(Bitangent, LightDir)
+	LW.z = Dot(Normal, LightDir)
 
-    DiffXInner := Dot(DiffX, LW);
-    DiffYInner := Dot(DiffY, LW);
-    DiffZInner := Dot(HW, LW);
+	HW.x = Dot(Tangent, HalfVector)
+	HW.y = Dot(Bitangent, HalfVector)
+	HW.z = Dot(Normal, HalfVector)
 
-	ThetaHalf : f32 = ACos(HW.y)
-	ThetaDiff : f32 = ACos(DiffZInner)
-	PhiDiff : f32 = ATan2(DiffYInner, DiffXInner)
+	LocalNormal , LocalBitangent : v3
+
+	// TODO(matthew): should we be doing this? or just taking
+	// Normal = (0, 0, 1), Bitangent = (0, 1, 0)
+	// instead? Need to experiment a bit more.
+	LocalNormal.x = Dot(Tangent, Normal)
+	LocalNormal.y = Dot(Bitangent, Normal)
+	LocalNormal.z = Dot(Normal, Normal)
+
+	LocalBitangent.x = Dot(Tangent, Bitangent)
+	LocalBitangent.y = Dot(Bitangent, Bitangent)
+	LocalBitangent.z = Dot(Bitangent, Bitangent)
+
+	// fmt.println("N:", LocalNormal)
+	// fmt.println("B:", LocalBitangent)
+
+	ThetaHalf : f32 = ACos(HW.z) //
+	PhiHalf : f32 = ATan2(HW.y, HW.x) //
+	ThetaDiff : f32 = ACos(Dot(HW, LW)) // technically don't need this...
+
+	Temp := RotateVector(LW, LocalNormal, -PhiHalf)
+	Diff := RotateVector(Temp, LocalBitangent, -ThetaHalf)
+
+	PhiDiff : f32 = ATan2(Diff.y, Diff.x)
+
 	if(PhiDiff < 0)
 	{
-		PhiDiff += PI;
+		PhiDiff += PI
 	}
 
 	// TODO(casey): Does this just undo what the acos did?  Because I
@@ -103,15 +152,20 @@ BRDFLookup :: proc(Table : ^merl_table, ViewDir, LightDir : v3, Basis : basis) -
 	F1 : f32 = clamp(ThetaDiff / (0.5 * PI), 0, 1)
 	I1 : u32 = u32(f32(Table.Count[1] - 1) * F1)
 
-	F2 : f32 = clamp(PhiDiff / PI, 0, 1);
-	I2 : u32 = u32(f32(Table.Count[2] - 1) * F2);
+	F2 : f32 = clamp(PhiDiff / PI, 0, 1)
+	I2 : u32 = u32(f32(Table.Count[2] - 1) * F2)
 
 	Index : u32 = I2 + I1 * Table.Count[2] + I0*Table.Count[1]*Table.Count[2]
 
 	runtime.assert(Index < (Table.Count[0]*Table.Count[1]*Table.Count[2]), "BRDF bad")
 
+	Result : v3
 	Color := Table.Values[Index]
 
-    return Color
+	Result.r = Color.r * RED_SCALE
+	Result.g = Color.g * GREEN_SCALE
+	Result.b = Color.b * BLUE_SCALE
+
+    return Result
 }
 
