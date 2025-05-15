@@ -126,7 +126,7 @@ SampleRayFromLight :: proc(Scene : ^scene) -> (ray, v3)
 	Ray.Origin = PointOnLight
 
 	Basis := CreateBasis(Normal)
-	Ray.Direction = BasisTransform(Basis, RandomCosineDirection())
+	Ray.Direction = LocalToGlobal(Basis, RandomCosineDirection())
 	CosineTheta := Dot(Normalize(Ray.Direction), Basis.w)
 	LightDirPDF := Max(0, CosineTheta / PI)
 

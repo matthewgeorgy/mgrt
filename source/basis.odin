@@ -17,8 +17,19 @@ CreateBasis :: proc(Normal : v3) -> basis
 	return Basis
 }
 
-BasisTransform :: proc(Basis : basis, Vector : v3) -> v3
+LocalToGlobal :: proc(Basis : basis, Vector : v3) -> v3
 {
 	return (Vector.x * Basis.u) + (Vector.y * Basis.v) + (Vector.z * Basis.w)
+}
+
+GlobalToLocal :: proc(Basis : basis, Vector : v3) -> v3
+{
+	Out : v3
+
+	Out.x = Dot(Basis.u, Vector)
+	Out.y = Dot(Basis.v, Vector)
+	Out.z = Dot(Basis.w, Vector)
+
+	return Out
 }
 

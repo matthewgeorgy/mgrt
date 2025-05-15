@@ -78,7 +78,7 @@ SampleLambertianBRDF :: proc(Material : lambertian, wo : v3, Record : hit_record
 	Sample : bxdf_sample
 
 	Basis := CreateBasis(Record.SurfaceNormal)
-	Sample.wi = BasisTransform(Basis, RandomCosineDirection())
+	Sample.wi = LocalToGlobal(Basis, RandomCosineDirection())
 
 	CosineTheta := Dot(Normalize(Sample.wi), Basis.w)
 	Sample.PDF = CosineTheta / PI

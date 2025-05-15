@@ -99,25 +99,13 @@ BRDFLookup :: proc(Table : ^merl_table, ViewDir, LightDir : v3, Basis : basis) -
 {
 	HalfVector := Normalize(0.5 * (ViewDir + LightDir))
 
-	Tangent := Basis.u
-	Bitangent := Basis.v
-	Normal := Basis.w
-
-	LW, HW : v3
-
-	LW.x = Dot(Tangent, LightDir)
-	LW.y = Dot(Bitangent, LightDir)
-	LW.z = Dot(Normal, LightDir)
-
-	HW.x = Dot(Tangent, HalfVector)
-	HW.y = Dot(Bitangent, HalfVector)
-	HW.z = Dot(Normal, HalfVector)
+	LW := GlobalToLocal(Basis, LightDir)
+	HW := GlobalToLocal(Basis, HalfVector)
 
 	// TODO(matthew): This choice works for now, but probably needs a bit of
 	// bulletproofing.
 	LocalNormal    := v3{0, 1, 0}
 	LocalBitangent := v3{0, 0, -1}
-
 
 	ThetaHalf : f32 = ACos(HW.z) //
 	PhiHalf : f32 = ATan2(HW.y, HW.x) //
