@@ -71,19 +71,14 @@ LoadMERL :: proc(Filename : string, Table : ^merl_table) -> bool
 	}
 }
 
-BRDFLookup :: proc(Table : ^merl_table, ViewDir, LightDir : v3, Normal, Tangent, Binormal : v3) -> v3
+BRDFLookup :: proc(Table : ^merl_table, ViewDir, LightDir : v3, Basis : basis) -> v3
 {
 	HalfVector := Normalize(0.5 * (ViewDir + LightDir))
 
-    LW : v3
-    LW.x = Dot(LightDir, Tangent)
-    LW.y = Dot(LightDir, Binormal)
-    LW.z = Dot(LightDir, Normal)
+	Tangent := Basis.u
 
-    HW : v3
-    HW.x = Dot(HalfVector, Tangent)
-    HW.y = Dot(HalfVector, Binormal)
-    HW.z = Dot(HalfVector, Normal)
+	LW := BasisTransform(Basis, LightDir)
+	HW := BasisTransform(Basis, HalfVector)
 
     DiffY := Normalize(Cross(HW, Tangent))
     DiffX := Cross(DiffY, HW)
@@ -114,6 +109,7 @@ BRDFLookup :: proc(Table : ^merl_table, ViewDir, LightDir : v3, Normal, Tangent,
 	Index : u32 = I2 + I1 * Table.Count[2] + I0*Table.Count[1]*Table.Count[2]
 
 	runtime.assert(Index < (Table.Count[0]*Table.Count[1]*Table.Count[2]), "BRDF bad")
+
 	Color := Table.Values[Index]
 
     return Color
