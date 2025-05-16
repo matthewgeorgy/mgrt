@@ -1,5 +1,26 @@
 package main
 
+/*
+	TODO(matthew): Things to add:
+	- Photon map caustics
+	- Oren-Nayar
+	- Microfacet BRDF models
+	- Disney BRDF
+	- NEE
+	- MIS 
+	- IBL / environment lighting 
+	- Improve our basis construction & usage
+	- Bidirectional path tracing
+
+	NOTE(matthew): Currently supporting:
+	- Standard backwards path tracing integrator
+	- Basic lambertian, metal, and glass BRDFs
+	- Photon mapping with diffuse only
+	- Measured BRDF data (MERL)
+	- Triangle meshes + BVH
+	- Tiled multithreaded rendering
+*/
+
 import fmt		"core:fmt"
 import thread	"core:thread"
 import win32	"core:sys/windows"
