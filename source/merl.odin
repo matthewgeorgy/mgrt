@@ -95,23 +95,20 @@ RotateVector :: proc(Vector : v3, Axis : v3, Angle : f32) -> v3
 	return Out
 }
 
-BRDFLookup :: proc(Table : ^merl_table, ViewDir, LightDir : v3, Basis : basis) -> v3
+BRDFLookup :: proc(Table : ^merl_table, ViewDir, LightDir : v3) -> v3
 {
 	HalfVector := Normalize(0.5 * (ViewDir + LightDir))
-
-	LW := GlobalToLocal(Basis, LightDir)
-	HW := GlobalToLocal(Basis, HalfVector)
 
 	// TODO(matthew): This choice works for now, but probably needs a bit of
 	// bulletproofing.
 	LocalNormal    := v3{0, 1, 0}
 	LocalBitangent := v3{0, 0, -1}
 
-	ThetaHalf : f32 = ACos(HW.z) //
-	PhiHalf : f32 = ATan2(HW.y, HW.x) //
-	ThetaDiff : f32 = ACos(Dot(HW, LW)) // technically don't need this...
+	ThetaHalf : f32 = ACos(HalfVector.z) //
+	PhiHalf : f32 = ATan2(HalfVector.y, HalfVector.x) //
+	ThetaDiff : f32 = ACos(Dot(HalfVector, LightDir)) // technically don't need this...
 
-	Temp := RotateVector(LW, LocalNormal, -PhiHalf)
+	Temp := RotateVector(LightDir, LocalNormal, -PhiHalf)
 	Diff := RotateVector(Temp, LocalBitangent, -ThetaHalf)
 
 	PhiDiff : f32 = ATan2(Diff.y, Diff.x)

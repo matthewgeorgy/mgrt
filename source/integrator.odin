@@ -156,7 +156,7 @@ ComputeDirectIllumination :: proc(Ray : ray, Record : hit_record, Scene : ^scene
 
 			Le := HitLight.Le
 
-			f := EvaluateBxDF(OriginalMaterial, Ray.Direction, ShadowRay.Direction)
+			f := EvaluateBxDF(OriginalMaterial, Ray.Direction, ShadowRay.Direction, Record)
 			CosAtten := Abs(Dot(ShadowRay.Direction, Record.SurfaceNormal))
 
 			DirectIllumination = f * CosAtten * Le / LightPDF
@@ -203,7 +203,7 @@ ComputeRadianceWithPhotonMap :: proc(Scene : ^scene, wo : v3, Record : hit_recor
 	MaxPhotonDistance : f32 = 2.5
 
 	SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
-	f := EvaluateBxDF(SurfaceMaterial, wo, wo)
+	f := EvaluateBxDF(SurfaceMaterial, wo, wo, Record)
 
 	// NOTE(matthew): Probably good enough for now since all of our materials
 	// are lambertian, so the BRDF is just a constant
