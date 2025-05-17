@@ -280,3 +280,44 @@ CornellBox :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : i
 	CreateBox(v3{0, 0, 0}, v3{165, 165, 165}, -v3{130, 0, 65}, -18, Gray, 0, Scene)
 }
 
+CornellSphere :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : i32)
+{
+	// Camera
+	Camera.LookFrom = v3{278, 278, -800}
+	Camera.LookAt = v3{278, 278, 0}
+	Camera.FocusDist = 10
+	Camera.FOV = 40
+
+	InitializeCamera(Camera, ImageWidth, ImageHeight)
+
+	GoldTable := new(merl_table)
+	ChromeTable := new(merl_table)
+	LoadMERL(string("assets/merl/gold-metallic-paint.binary"), GoldTable)
+	LoadMERL(string("assets/merl/chrome.binary"), ChromeTable)
+
+	// Scene setup
+	Background := AddMaterial(Scene, lambertian{v3{0.0, 0.0, 0.0}})
+	NullLight := AddLight(Scene, light{})
+
+	Red := AddMaterial(Scene, lambertian{v3{0.65, 0.05, 0.05}})
+	Gray := AddMaterial(Scene, lambertian{v3{0.73, 0.73, 0.73}})
+	Green := AddMaterial(Scene, lambertian{v3{0.12, 0.45, 0.15}})
+	Gold := AddMaterial(Scene, merl { GoldTable })
+
+	Light := AddLight(Scene, light{v3{15, 15, 15}})
+
+	AddPrimitive(Scene, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}), Green, 0) // right
+	AddPrimitive(Scene, CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}), Red, 0) // left
+	AddPrimitive(Scene, CreateQuad(v3{343, 554, 332}, v3{-130, 0, 0}, v3{0, 0, -105}), 0, Light) // light
+	AddPrimitive(Scene, CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, 555}), Gray, 0) // bottom
+	AddPrimitive(Scene, CreateQuad(v3{555, 555, 555}, v3{-555, 0, 0}, v3{0, 0, -555}), Gray, 0) // top
+	AddPrimitive(Scene, CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}), Gray, 0) // back
+
+	FloorCenter := 0.5 * v3{555, 0, 555}
+	SphereRadius : f32 = 125
+	SphereCenter := FloorCenter + v3{0, SphereRadius, 0}
+
+	AddPrimitive(Scene, sphere{SphereCenter, SphereRadius}, Gray, 0)
+}
+
+

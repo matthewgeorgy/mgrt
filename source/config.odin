@@ -11,6 +11,7 @@ SCENE_NAMES :: []string {
 	"SpheresMaterial",
 	"BunnyPlaneLamp",
 	"CornellBox",
+	"CornellSphere"
 }
 
 config :: struct
@@ -80,6 +81,10 @@ InitializeFromConfig :: proc(Config : config) -> (scene, camera)
 		case 4:
 		{
 			CornellBox(&Scene, &Camera, Config.ImageWidth, Config.ImageHeight)
+		}
+		case 5:
+		{
+			CornellSphere(&Scene, &Camera, Config.ImageWidth, Config.ImageHeight)
 		}
 	}
 
