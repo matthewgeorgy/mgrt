@@ -2,15 +2,17 @@ package main
 
 /*
 	TODO(matthew): Things to add:
-	- Photon map caustics
-	- Oren-Nayar
-	- Microfacet BRDF models
+	- Oren-Nayar BRDF
 	- Disney BRDF
 	- NEE
 	- MIS 
-	- IBL / environment lighting 
-	- Improve our basis construction & usage
 	- Bidirectional path tracing
+	- IBL / environment lighting 
+	- Path guiding techniques
+	- Improve our basis construction & usage, mostly for MERL
+	- Support for photon map with caustics and specular surfaces
+	- Scene file format that can be loaded at run-time
+	- Extend the OBJ reader to support the dragon mesh
 
 	NOTE(matthew): Currently supporting:
 	- Standard backwards path tracing integrator
