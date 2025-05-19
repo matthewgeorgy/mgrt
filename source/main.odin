@@ -103,7 +103,14 @@ main :: proc()
 	// fmt.println("Photon tracing took", ElapsedTime, "ms\n")
 
 	// Threading
-	THREADCOUNT :: 8
+	when ODIN_DEBUG == true
+	{
+		THREADCOUNT :: 8
+	}
+	else
+	{
+		THREADCOUNT :: 1
+	}
 	ThreadData : thread_data
 	Threads : [THREADCOUNT]^thread.Thread
 
