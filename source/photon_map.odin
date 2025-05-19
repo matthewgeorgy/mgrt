@@ -127,7 +127,7 @@ SampleRayFromLight :: proc(Scene : ^scene) -> (ray, v3)
 
 	Basis := CreateBasis(Normal)
 	Ray.Direction = LocalToGlobal(Basis, RandomCosineDirection())
-	CosineTheta := Dot(Normalize(Ray.Direction), Basis.w)
+	CosineTheta := Dot(Normalize(Ray.Direction), Basis.n)
 	LightDirPDF := Max(0, CosineTheta / PI)
 
 	CosAtten := Max(Dot(Normal, Ray.Direction), 0)
@@ -174,7 +174,7 @@ CastPhoton :: proc(Map : ^photon_map, InitialRay : ray, InitialPower : v3, Scene
 					Throughput /= RussianRouletteProb
 				}
 
-				Sample := SampleBxDF(SurfaceMaterial, Ray.Direction, Record)
+				Sample := SampleBxDF(SurfaceMaterial, -Ray.Direction, Record)
 				CosAtten := Abs(Dot(Record.SurfaceNormal, Sample.wi))
 
 				Throughput *= CosAtten * Sample.f / Sample.PDF

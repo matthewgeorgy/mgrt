@@ -317,7 +317,7 @@ CornellSphere :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 	SphereRadius : f32 = 125
 	SphereCenter := FloorCenter + v3{0, SphereRadius, 0}
 
-	AddPrimitive(Scene, sphere{SphereCenter, SphereRadius}, Gray, 0)
+	AddPrimitive(Scene, sphere{SphereCenter, SphereRadius}, Gold, 0)
 }
 
 

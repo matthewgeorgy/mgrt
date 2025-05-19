@@ -1,5 +1,35 @@
 package main
 
+/* NOTE(matthew):
+When evaluating BxDFs, we use the same geometric setting as PBRT:
+	- s: tangent vector in x-axis
+	- t: bitangent vector in y-axis
+	- n: normal vector in z-axis
+The input vectors wo and wi are always transformed with respect to this
+coordinate system and assumed normalized before any BxDFs are actually evaluated.
+
+We also use the standard convention that both wo and wi are OUTWARD pointing.
+In particular, this means that code calling into BxDF functions need to negate
+wo as the ray direction:
+		SampleBxDF(Material, -Ray.Direction, Record)
+		EvaluateBxDF(Material, -Outgoing, Incoming)
+rather than
+		SampleBxDF(Material, Ray.Direction, Record)
+		EvaluateBxDF(Material, Outgoing, Incoming)
+
+The real, internal EvaluateBxDF functions (eg, EvaluateLambertianBRDF) assume
+this convention is being adhered to. Therefore, the generic SampleBxDF and
+EvaluateBxDF functions will do the coordinate-system conversion internally before
+calling into any of the real BxDF functions.
+
+Furthermore, the sampled direction wi in the bxdf_sample will always be returned
+in global coordinates, so no additional remapping from the caller is necessary.
+*/
+
+BXDF_TANGENT 	:: v3{1, 0, 0} // s
+BXDF_BITANGENT	:: v3{0, 1, 0} // t
+BXDF_NORMAL 	:: v3{0, 0, 1} // n
+
 bxdf_sample :: struct
 {
 	wi : v3,
@@ -12,8 +42,8 @@ EvaluateBxDF :: proc(Material : material, Outgoing, Incoming : v3, Record : hit_
 	f : v3
 
 	Basis := CreateBasis(Record.SurfaceNormal)
-	wo := GlobalToLocal(Basis, Outgoing)
-	wi := GlobalToLocal(Basis, Incoming)
+	wo := GlobalToLocalNormalized(Basis, Outgoing)
+	wi := GlobalToLocalNormalized(Basis, Incoming)
 
 	switch Type in Material
 	{
@@ -38,9 +68,12 @@ EvaluateBxDF :: proc(Material : material, Outgoing, Incoming : v3, Record : hit_
 	return f
 }
 
-SampleBxDF :: proc(Material : material, wo : v3, Record : hit_record) -> bxdf_sample
+SampleBxDF :: proc(Material : material, Outgoing : v3, Record : hit_record) -> bxdf_sample
 {
 	Sample : bxdf_sample
+
+	Basis := CreateBasis(Record.SurfaceNormal)
+	wo := GlobalToLocalNormalized(Basis, Outgoing)
 
 	switch Type in Material
 	{
@@ -65,15 +98,16 @@ SampleBxDF :: proc(Material : material, wo : v3, Record : hit_record) -> bxdf_sa
 	return Sample
 }
 
-// TODO(matthew): need to correct this and Sample function, as the PDF should just be
-// CosineTheta / PI. However, we also need to check for valid angles when computing
-// the BRDF, since the case where the PDF is "0" is when wo and wi are under the surface.
-// Can do this by converting wo and wi to local coordinate system, checking their cosine
-// (which is just the z-component), and then returning either Rho / PI or 0 accordingly.
-// NOTE(matthew): this technically shouldn't be necessary, but I guess for completeness
-// I should add it...?
 EvaluateLambertianBRDF :: proc(Material : lambertian, wo, wi : v3) -> v3
 {
+	CosThetaO := wo.z
+	CosThetaI := wi.z
+
+	if (CosThetaO < 0) || (CosThetaI < 0)
+	{
+		return v3{0, 0, 0}
+	}
+
 	return Material.Rho / PI
 }
 
@@ -82,12 +116,13 @@ SampleLambertianBRDF :: proc(Material : lambertian, wo : v3, Record : hit_record
 	Sample : bxdf_sample
 
 	Basis := CreateBasis(Record.SurfaceNormal)
-	Sample.wi = LocalToGlobal(Basis, RandomCosineDirection())
 
-	CosineTheta := Dot(Normalize(Sample.wi), Basis.w)
+	wi := RandomCosineDirection()
+	CosineTheta := wi.z
+
+	Sample.wi = LocalToGlobal(Basis, wi)
 	Sample.PDF = CosineTheta / PI
-
-	Sample.f = EvaluateLambertianBRDF(Material, wo, Sample.wi)
+	Sample.f = EvaluateLambertianBRDF(Material, wo, wi)
 
 	return Sample
 }
@@ -102,9 +137,12 @@ SampleMetalBRDF :: proc(Material : metal, wo : v3, Record : hit_record) -> bxdf_
 {
 	Sample : bxdf_sample
 
-	Reflected := Reflect(wo, Record.SurfaceNormal)
-	Sample.wi = Normalize(Reflected) + (Material.Fuzz * RandomUnitVector())
+	Basis := CreateBasis(Record.SurfaceNormal)
 
+	Reflected := Reflect(-wo, BXDF_NORMAL)
+	Reflected = Normalize(Reflected) + (Material.Fuzz * RandomUnitVector())
+
+	Sample.wi = LocalToGlobal(Basis, Reflected)
 	Sample.f = Material.Color / Abs(Dot(Sample.wi, Record.SurfaceNormal)) // Cancel out CosAtten term
 	Sample.PDF = 1
 
@@ -121,13 +159,16 @@ SampleDielectricBRDF :: proc(Material : dielectric, wo : v3, Record : hit_record
 {
 	Sample : bxdf_sample
 
+	Basis := CreateBasis(Record.SurfaceNormal)
+
 	Attenuation := v3{1, 1, 1}
 	Ri := Record.IsFrontFace ? (1.0 / Material.RefractionIndex) : Material.RefractionIndex
 
-	UnitDirection := Normalize(wo)
+	// UnitDirection := Normalize(wo)
+	UnitDirection := -wo
 
 	// For handling total internal reflection
-	CosTheta := Min(Dot(-UnitDirection, Record.SurfaceNormal), 1)
+	CosTheta := Min(Dot(wo, BXDF_NORMAL), 1)
 	SinTheta := SquareRoot(1.0 - CosTheta * CosTheta)
 
 	NewDirection : v3
@@ -135,39 +176,37 @@ SampleDielectricBRDF :: proc(Material : dielectric, wo : v3, Record : hit_record
 
 	if (CannotRefract || FresnelReflectance(CosTheta, Ri) > RandomUnilateral())
 	{
-		NewDirection = Reflect(UnitDirection, Record.SurfaceNormal)
+		NewDirection = Reflect(UnitDirection, BXDF_NORMAL)
 	}
 	else
 	{
-		NewDirection = Refract(UnitDirection, Record.SurfaceNormal, Ri)
+		NewDirection = Refract(UnitDirection, BXDF_NORMAL, Ri)
 	}
 
-	Sample.f = Attenuation / Abs(Dot(NewDirection, Record.SurfaceNormal))
+	Sample.f = Attenuation / Abs(NewDirection.z) // Divide by CosAtten
 	Sample.PDF = 1
-	Sample.wi = NewDirection
+	Sample.wi = LocalToGlobal(Basis, NewDirection)
 
 	return Sample
 }
 
-// NOTE(matthew): see the big comment in merl.odin about all this stuff...
 EvaluateMERLBRDF :: proc(Material : merl, wo, wi : v3) -> v3
 {
 	return BRDFLookup(Material.Table, wo, wi)
 }
 
-SampleMERLBRDF :: proc(Material : merl, Outgoing : v3, Record : hit_record) -> bxdf_sample
+SampleMERLBRDF :: proc(Material : merl, wo : v3, Record : hit_record) -> bxdf_sample
 {
 	Sample : bxdf_sample
 
 	Basis := CreateBasis(Record.SurfaceNormal)
 
-	Sample.wi = RandomOnHemisphere(Record.SurfaceNormal)
-	CosAtten := Abs(Dot(Sample.wi, Record.SurfaceNormal))
+	wi := RandomOnHemisphere(BXDF_NORMAL)
+
+	CosAtten := Abs(wi.z)
+
 	Sample.PDF = 1 / (2 * PI * CosAtten)
-
-	wo := -GlobalToLocal(Basis, Outgoing)
-	wi := GlobalToLocal(Basis, Sample.wi)
-
+	Sample.wi = LocalToGlobal(Basis, wi)
 	Sample.f = EvaluateMERLBRDF(Material, wo, wi)
 
 	return Sample

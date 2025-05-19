@@ -20,7 +20,7 @@ PathTracingIntegrator :: proc(Ray : ray, Scene : ^scene, Depth : int) -> v3
 
 		SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
 
-		SampleResult := SampleBxDF(SurfaceMaterial, Ray.Direction, Record)
+		SampleResult := SampleBxDF(SurfaceMaterial, -Ray.Direction, Record)
 
 		f := SampleResult.f
 		Dir := SampleResult.wi
@@ -156,7 +156,7 @@ ComputeDirectIllumination :: proc(Ray : ray, Record : hit_record, Scene : ^scene
 
 			Le := HitLight.Le
 
-			f := EvaluateBxDF(OriginalMaterial, Ray.Direction, ShadowRay.Direction, Record)
+			f := EvaluateBxDF(OriginalMaterial, -Ray.Direction, ShadowRay.Direction, Record)
 			CosAtten := Abs(Dot(ShadowRay.Direction, Record.SurfaceNormal))
 
 			DirectIllumination = f * CosAtten * Le / LightPDF
@@ -172,7 +172,7 @@ ComputeIndirectIllumination :: proc(Scene : ^scene, RayDirection : v3, Record : 
 	Map := Scene.PhotonMap
 
 	SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
-	Sample := SampleBxDF(SurfaceMaterial, RayDirection, Record^)
+	Sample := SampleBxDF(SurfaceMaterial, -RayDirection, Record^)
 
 	f := Sample.f
 	CosAtten := Abs(Dot(Record.SurfaceNormal, Sample.wi))
@@ -188,7 +188,7 @@ ComputeIndirectIllumination :: proc(Scene : ^scene, RayDirection : v3, Record : 
 
 			if _, ok := HitMaterial.(lambertian); ok
 			{
-				Indirect = f * CosAtten * ComputeRadianceWithPhotonMap(Scene, FinalRay.Direction, FinalRecord) / Sample.PDF
+				Indirect = f * CosAtten * ComputeRadianceWithPhotonMap(Scene, -FinalRay.Direction, FinalRecord) / Sample.PDF
 			}
 		}
 	}

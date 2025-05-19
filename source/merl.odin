@@ -5,30 +5,6 @@ import libc		"core:c/libc"
 import strings	"core:strings"
 import runtime 	"base:runtime"
 
-// TODO(matthew): This MERL stuff needs revisiting...
-// The big thing is the normal and bitangent vectors we're using for the rotation
-// to compute PhiDiff. They're a bit different than the reference code, but that's
-// just because my vectors are oriented differently. It seems in the paper they
-// have the z-coordinate as up, but I have the y-coordinate as up, and so on. 
-/*
-					+y    +z
-					 |   /
-					 |  /
-					 | /
-					 |/
-	   -x ___________O___________ +x
-					/|
-				   / |
-				  /  |
-				 /   |
-			   -z
-*/
-// I'm not actually sure if this is something I have to account for, but the way
-// things are right now seem reasonable enough for the time being.
-//
-// The implementation seems to be working alright for some of the glossier
-// materials, like brass.binary and gold-metallic-paint.binary.
-
 RED_SCALE 	:: ( 1.0 / 1500.0)
 GREEN_SCALE :: (1.15 / 1500.0)
 BLUE_SCALE	:: (1.66 / 1500.0)
@@ -97,16 +73,14 @@ RotateVector :: proc(Vector : v3, Axis : v3, Angle : f32) -> v3
 
 BRDFLookup :: proc(Table : ^merl_table, ViewDir, LightDir : v3) -> v3
 {
-	HalfVector := Normalize(0.5 * (ViewDir + LightDir))
+	HalfVector := Normalize(ViewDir + LightDir)
 
-	// TODO(matthew): This choice works for now, but probably needs a bit of
-	// bulletproofing.
-	LocalNormal    := v3{0, 1, 0}
-	LocalBitangent := v3{0, 0, -1}
+	LocalNormal    := BXDF_NORMAL
+	LocalBitangent := BXDF_BITANGENT
 
-	ThetaHalf : f32 = ACos(HalfVector.z) //
-	PhiHalf : f32 = ATan2(HalfVector.y, HalfVector.x) //
-	ThetaDiff : f32 = ACos(Dot(HalfVector, LightDir)) // technically don't need this...
+	ThetaHalf : f32 = ACos(HalfVector.z)
+	PhiHalf : f32 = ATan2(HalfVector.y, HalfVector.x)
+	ThetaDiff : f32 = ACos(Dot(HalfVector, LightDir))
 
 	Temp := RotateVector(LightDir, LocalNormal, -PhiHalf)
 	Diff := RotateVector(Temp, LocalBitangent, -ThetaHalf)
@@ -131,6 +105,7 @@ BRDFLookup :: proc(Table : ^merl_table, ViewDir, LightDir : v3) -> v3
 
 	Index : u32 = I2 + I1 * Table.Count[2] + I0*Table.Count[1]*Table.Count[2]
 
+	// TODO(matthew): Remove this assert at some point, it all seems to be working well
 	runtime.assert(Index < (Table.Count[0]*Table.Count[1]*Table.Count[2]), "BRDF bad")
 
 	Result : v3

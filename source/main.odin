@@ -9,7 +9,6 @@ package main
 	- Bidirectional path tracing
 	- IBL / environment lighting 
 	- Path guiding techniques
-	- Improve our basis construction & usage, mostly for MERL
 	- Support for photon map with caustics and specular surfaces
 	- Scene file format that can be loaded at run-time
 	- Extend the OBJ reader to support the dragon mesh
