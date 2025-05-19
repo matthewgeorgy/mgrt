@@ -105,11 +105,11 @@ main :: proc()
 	// Threading
 	when ODIN_DEBUG == true
 	{
-		THREADCOUNT :: 8
+		THREADCOUNT :: 1
 	}
 	else
 	{
-		THREADCOUNT :: 1
+		THREADCOUNT :: 8
 	}
 	ThreadData : thread_data
 	Threads : [THREADCOUNT]^thread.Thread
