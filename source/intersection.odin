@@ -2,13 +2,11 @@ package main
 
 hit_record :: struct
 {
-	t : f32,
 	MaterialIndex  : u32,
 	LightIndex  : u32,
 	SurfaceNormal : v3,
 	HitPoint : v3,
 	IsFrontFace : bool,
-	BestTriangleIndex : u32,
 };
 
 HasLight :: proc(Record : hit_record) -> bool
@@ -127,7 +125,7 @@ RayIntersectTriangle :: proc(Ray : ray, Triangle : triangle) -> f32
 	return t
 }
 
-RayIntersectAABB :: proc(Ray : ray, Record : ^hit_record, AABB : aabb) -> b32
+RayIntersectAABB :: proc(Ray : ray, t : f32, AABB : aabb) -> b32
 {
 	BoxMin := AABB.Min
 	BoxMax := AABB.Max
@@ -150,14 +148,12 @@ RayIntersectAABB :: proc(Ray : ray, Record : ^hit_record, AABB : aabb) -> b32
 	tMin = Max(tMin, Min(tz1, tz2))
 	tMax = Min(tMax, Max(tz1, tz2))
 
-	return (tMax >= tMin) && (tMin < Record.t) && (tMax > 0)
+	return (tMax >= tMin) && (tMin < t) && (tMax > 0)
 }
 
 GetIntersection :: proc(Ray : ray, Scene : ^scene, Record : ^hit_record) -> bool
 {
-	Record.t = F32_MAX
-
-	HitDistance : f32 = F32_MAX
+	ClosestDistance : f32 = F32_MAX
 	HitSomething := false
 
 	for Primitive in Scene.Primitives
@@ -169,13 +165,13 @@ GetIntersection :: proc(Ray : ray, Scene : ^scene, Record : ^hit_record) -> bool
 				Quad := Primitive.Shape.(quad)
 				RotatedRay := TransformRay(Ray, Quad.Translation, Quad.Rotation)
 
-				Record.t = RayIntersectQuad(RotatedRay, Quad)
-				if (Record.t > 0.0001 && Record.t < HitDistance)
+				ThisDistance := RayIntersectQuad(RotatedRay, Quad)
+				if (ThisDistance > 0.0001 && ThisDistance < ClosestDistance)
 				{
 					HitSomething = true
-					HitDistance = Record.t
+					ClosestDistance = ThisDistance
 					SetFaceNormal(RotatedRay, Quad.N, Record)
-					Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
+					Record.HitPoint = RotatedRay.Origin + ClosestDistance * RotatedRay.Direction
 
 					InvertRayTransform(&Record.HitPoint, &Record.SurfaceNormal, Quad.Translation, Quad.Rotation)
 
@@ -186,14 +182,14 @@ GetIntersection :: proc(Ray : ray, Scene : ^scene, Record : ^hit_record) -> bool
 			case plane:
 			{
 				Plane := Primitive.Shape.(plane)
-				Record.t = RayIntersectPlane(Ray, Plane)
+				ThisDistance := RayIntersectPlane(Ray, Plane)
 
-				if Record.t > 0.0001 && Record.t < HitDistance
+				if ThisDistance > 0.0001 && ThisDistance < ClosestDistance
 				{
 					HitSomething = true
-					HitDistance = Record.t
+					ClosestDistance = ThisDistance
 					SetFaceNormal(Ray, Plane.N, Record)
-					Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
+					Record.HitPoint = Ray.Origin + ClosestDistance * Ray.Direction
 
 					Record.MaterialIndex = Primitive.MaterialIndex
 					Record.LightIndex = Primitive.LightIndex
@@ -202,13 +198,13 @@ GetIntersection :: proc(Ray : ray, Scene : ^scene, Record : ^hit_record) -> bool
 			case sphere:
 			{
 				Sphere := Primitive.Shape.(sphere)
-				Record.t = RayIntersectSphere(Ray, Sphere)
+				ThisDistance := RayIntersectSphere(Ray, Sphere)
 
-				if Record.t > 0.0001 && Record.t < HitDistance
+				if ThisDistance > 0.0001 && ThisDistance < ClosestDistance
 				{
 					HitSomething = true
-					HitDistance = Record.t
-					Record.HitPoint = Ray.Origin + HitDistance * Ray.Direction
+					ClosestDistance = ThisDistance
+					Record.HitPoint = Ray.Origin + ClosestDistance * Ray.Direction
 					OutwardNormal := Normalize(Record.HitPoint - Sphere.Center)
 
 					SetFaceNormal(Ray, OutwardNormal, Record)
@@ -221,10 +217,10 @@ GetIntersection :: proc(Ray : ray, Scene : ^scene, Record : ^hit_record) -> bool
 			// for Triangle in Scene.Triangles
 			// {
 			// 	RayIntersectTriangle(Ray, &Record, Triangle)
-			// 	if (Record.t > 0.0001 && Record.t < HitDistance)
+			// 	if (ThisDistance > 0.0001 && ThisDistance < ClosestDistance)
 			// 	{
 			// 		HitSomething = true
-			// 		HitDistance = Record.t
+			// 		ClosestDistance = ThisDistance
 			// 		// Record.MaterialIndex = 1 // TODO(matthew): set this in the scene!
 			// 		// Record.SurfaceNormal = v3{0, 0, 0} // TODO(matthew): set this!
 			// 	}
@@ -236,15 +232,15 @@ GetIntersection :: proc(Ray : ray, Scene : ^scene, Record : ^hit_record) -> bool
 	{
 		RotatedRay := TransformRay(Ray, Scene.BVH.Translation, Scene.BVH.Rotation)
 
-		TraverseBVH(RotatedRay, Record, Scene.BVH, Scene.BVH.RootNodeIndex)
-		if Record.t > 0.0001 && Record.t < HitDistance
+		TraversalResult := TraverseBVH(RotatedRay, ClosestDistance, Scene.BVH, Scene.BVH.RootNodeIndex)
+		if TraversalResult.t > 0.0001 && TraversalResult.t < ClosestDistance
 		{
 			HitSomething = true
-			HitDistance = Record.t
+			ClosestDistance = TraversalResult.t
 
 			// Compute surface normal from the best triangle intersection
 			{
-				Triangle := Scene.BVH.Triangles[Record.BestTriangleIndex]
+				Triangle := Scene.BVH.Triangles[TraversalResult.BestTriangleIndex]
 
 				V0 := Triangle.Vertices[0]
 				V1 := Triangle.Vertices[1]
@@ -254,7 +250,7 @@ GetIntersection :: proc(Ray : ray, Scene : ^scene, Record : ^hit_record) -> bool
 			}
 
 			SetFaceNormal(RotatedRay, Record.SurfaceNormal, Record)
-			Record.HitPoint = RotatedRay.Origin + HitDistance * RotatedRay.Direction
+			Record.HitPoint = RotatedRay.Origin + ClosestDistance * RotatedRay.Direction
 
 			InvertRayTransform(&Record.HitPoint, &Record.SurfaceNormal, Scene.BVH.Translation, Scene.BVH.Rotation)
 

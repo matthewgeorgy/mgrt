@@ -161,11 +161,26 @@ IsLeaf :: proc(Node : bvh_node) -> b32
 	return Node.TriangleCount > 0
 }
 
-TraverseBVH :: proc(Ray : ray, Record : ^hit_record, BVH : bvh, NodeIndex : u32)
+bvh_traversal_result :: struct
+{
+	t : f32,
+	BestTriangleIndex : u32,
+}
+
+TraverseBVH :: proc(Ray : ray, ClosestDistance : f32, BVH : bvh, NodeIndex : u32) -> bvh_traversal_result
+{
+	TraversalResult := bvh_traversal_result{ ClosestDistance, 0}
+
+	TraverseBVHRecursive(Ray, &TraversalResult, BVH, NodeIndex)
+
+	return TraversalResult
+}
+
+TraverseBVHRecursive :: proc(Ray : ray, Result : ^bvh_traversal_result, BVH : bvh, NodeIndex : u32)
 {
 	Node := BVH.Nodes[NodeIndex]
 
-	if !RayIntersectAABB(Ray, Record, Node.AABB)
+	if !RayIntersectAABB(Ray, Result.t, Node.AABB)
 	{
 		return
 	}
@@ -179,17 +194,17 @@ TraverseBVH :: proc(Ray : ray, Record : ^hit_record, BVH : bvh, NodeIndex : u32)
 			Triangle := BVH.Triangles[TriangleIndex]
 			Distance := RayIntersectTriangle(Ray, Triangle)
 
-			if Distance > 0.0001 && Distance < Record.t
+			if Distance > 0.0001 && Distance < Result.t
 			{
-				Record.t = Distance 
-				Record.BestTriangleIndex = TriangleIndex
+				Result.t = Distance 
+				Result.BestTriangleIndex = TriangleIndex
 			}
 		}
 	}
 	else
 	{
-		TraverseBVH(Ray, Record, BVH, Node.LeftFirst)
-		TraverseBVH(Ray, Record, BVH, Node.LeftFirst + 1)
+		TraverseBVHRecursive(Ray, Result, BVH, Node.LeftFirst)
+		TraverseBVHRecursive(Ray, Result, BVH, Node.LeftFirst + 1)
 	}
 }
 
