@@ -63,6 +63,10 @@ EvaluateBxDF :: proc(Material : material, Outgoing, Incoming : v3, Record : hit_
 		{
 			f = EvaluateMERLBRDF(Material.(merl), wo, wi)
 		}
+		case oren_nayar:
+		{
+			f = EvaluateOrenNayarBRDF(Material.(oren_nayar), wo, wi)
+		}
 	}
 
 	return f
@@ -92,6 +96,10 @@ SampleBxDF :: proc(Material : material, Outgoing : v3, Record : hit_record) -> b
 		case merl:
 		{
 			Sample = SampleMERLBRDF(Material.(merl), wo, Record)
+		}
+		case oren_nayar:
+		{
+			Sample = SampleOrenNayarBRDF(Material.(oren_nayar), wo, Record)
 		}
 	}
 
@@ -210,5 +218,123 @@ SampleMERLBRDF :: proc(Material : merl, wo : v3, Record : hit_record) -> bxdf_sa
 	Sample.f = EvaluateMERLBRDF(Material, wo, wi)
 
 	return Sample
+}
+
+EvaluateOrenNayarBRDF :: proc(Material : oren_nayar, wo, wi : v3) -> v3
+{
+	MaxCos : f32
+	SinAlpha, TanBeta : f32
+
+	SinThetaI := SinTheta(wi)
+	SinThetaO := SinTheta(wo)
+
+	// Cos term
+	if (SinThetaI > 0.0001) && (SinThetaO > 0.0001)
+	{
+		SinPhiI := SinPhi(wi)
+		CosPhiI := CosPhi(wi)
+
+		SinPhiO := SinPhi(wo)
+		CosPhiO := CosPhi(wo)
+
+		CosDiff := CosPhiI * CosPhiO + SinPhiI * SinPhiO
+
+		MaxCos = Max(0, CosDiff)
+	}
+
+	// Sin and Tan terms
+	if AbsCosTheta(wi) > AbsCosTheta(wo)
+	{
+		SinAlpha = SinThetaO
+		TanBeta = SinThetaI / AbsCosTheta(wi)
+	}
+	else
+	{
+		SinAlpha = SinThetaI
+		TanBeta = SinThetaO / AbsCosTheta(wo)
+	}
+
+	R := Material.R
+	A := Material.A
+	B := Material.B
+
+	return R * INV_PI * (A + B * MaxCos * SinAlpha * TanBeta)
+}
+
+SampleOrenNayarBRDF :: proc(Material : oren_nayar, wo : v3, Record : hit_record) -> bxdf_sample
+{
+	Sample : bxdf_sample
+
+	Basis := CreateBasis(Record.SurfaceNormal)
+
+	wi := RandomOnHemisphere(BXDF_NORMAL)
+
+	Sample.wi = LocalToGlobal(Basis, wi)
+	Sample.PDF = 1 / (2 * PI)
+	Sample.f = EvaluateOrenNayarBRDF(Material, wo, wi)
+
+	return Sample
+}
+
+///////////////////////////////////////
+// Utility functions for angles
+
+CosTheta :: proc(w : v3) -> f32
+{
+	return w.z
+}
+
+Cos2Theta :: proc(w : v3) -> f32
+{
+	return w.z * w.z
+}
+
+AbsCosTheta :: proc(w : v3) -> f32
+{
+	return Abs(w.z)
+}
+
+SinTheta :: proc(w : v3) -> f32
+{
+	return SquareRoot(Sin2Theta(w))
+}
+
+Sin2Theta :: proc(w : v3) -> f32
+{
+	return Max(0, 1 - Cos2Theta(w))
+}
+
+TanTheta :: proc(w : v3) -> f32
+{
+	return SinTheta(w) / CosTheta(w)
+}
+
+Tan2Theta :: proc(w : v3) -> f32
+{
+	return Sin2Theta(w) / Cos2Theta(w)
+}
+
+CosPhi :: proc(w : v3) -> f32
+{
+	SinTheta := SinTheta(w)
+
+	return (SinTheta == 0) ? 1 : Clamp(w.x / SinTheta, -1, 1)
+}
+
+SinPhi :: proc(w : v3) -> f32
+{
+	SinTheta := SinTheta(w)
+
+	return (SinTheta == 0) ? 0 : Clamp(w.y / SinTheta, -1, 1)
+}
+
+Cos2Phi :: proc(w : v3) -> f32
+{
+	return CosPhi(w) * CosPhi(w)
+}
+
+Sin2Phi :: proc(w : v3) -> f32
+{
+	return SinPhi(w) * SinPhi(w)
 }
 

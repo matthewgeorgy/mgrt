@@ -2,7 +2,6 @@ package main
 
 /*
 	TODO(matthew): Things to add:
-	- Oren-Nayar BRDF
 	- Disney BRDF
 	- NEE
 	- MIS 
@@ -16,6 +15,7 @@ package main
 	NOTE(matthew): Currently supporting:
 	- Standard backwards path tracing integrator
 	- Basic lambertian, metal, and glass BRDFs
+	- Oren-Nayar BRDF
 	- Photon mapping with diffuse only
 	- Measured BRDF data (MERL)
 	- Triangle meshes + BVH
