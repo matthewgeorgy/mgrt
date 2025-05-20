@@ -24,41 +24,27 @@ LoadMesh :: proc(Filename : string, Scale : f32 = 1) -> mesh
 
         for Line in strings.split_lines_iterator(&StringFile)
         {
-            Tokens := strings.split(strings.trim_right(Line, " "), " ")
+			Trimmed := strings.trim(Line, " ")
+
+            Tokens := strings.fields(Trimmed)
+
+			// This was just a blank line, skip to the next line
+			if len(Tokens) == 0
+			{
+				continue
+			}
 
             Header := Tokens[0]
-            Parts := Tokens[1 : len(Tokens)]
-
-			Components : [dynamic]string
-
-			// TODO(matthew): bullet proof this somehow...
-			// Things breaks without this if we havve leading whitespace before
-			// the components, eg:
-			// v 1.000 2.000 3.000		This works
-			// v  1.000 2.000 3.000		This doesn't!
-			for Part in Parts
-			{
-				if len(Part) != 0
-				{
-					append(&Components, Part)
-				}
-			}
+            Components := Tokens[1 : len(Tokens)]
 
             if strings.compare(Header, "v") == 0 // Vertex
             {
+
                 V0 := f32(libc.atof(strings.clone_to_cstring(Components[0])))
                 V1 := f32(libc.atof(strings.clone_to_cstring(Components[1])))
                 V2 := f32(libc.atof(strings.clone_to_cstring(Components[2])))
 
                 append(&Mesh.Vertices, v3{V0, V1, V2})
-            }
-            else if strings.compare(Header, "vn") == 0 // Normal
-            {
-                N0 := f32(libc.atof(strings.clone_to_cstring(Components[0])))
-                N1 := f32(libc.atof(strings.clone_to_cstring(Components[1])))
-                N2 := f32(libc.atof(strings.clone_to_cstring(Components[2])))
-
-                append(&Mesh.Normals, v3{N0, N1, N2})
             }
             else if strings.compare(Header, "f") == 0 // Face
             {
