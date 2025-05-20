@@ -80,9 +80,11 @@ LoadMesh :: proc(Filename : string, Scale : f32 = 1) -> mesh
 
         for Face in Mesh.Faces
         {
-            V0 := Mesh.Vertices[Face.x - 1] * Scale
-            V1 := Mesh.Vertices[Face.y - 1] * Scale
-            V2 := Mesh.Vertices[Face.z - 1] * Scale
+			Index := MapFaceToIndex(Face, i32(len(Mesh.Vertices)))
+
+            V0 := Mesh.Vertices[Index.x] * Scale
+            V1 := Mesh.Vertices[Index.y] * Scale
+            V2 := Mesh.Vertices[Index.z] * Scale
 
             Triangle := triangle{ Vertices = {V0, V1, V2}}
 
@@ -95,5 +97,28 @@ LoadMesh :: proc(Filename : string, Scale : f32 = 1) -> mesh
     }
 
     return Mesh
+}
+
+MapFaceToIndex :: proc(Face : v3i, Len : i32) -> v3i
+{
+	Index : v3i
+
+	Index.x = CorrectOBJIndex(Face.x, Len)
+	Index.y = CorrectOBJIndex(Face.y, Len)
+	Index.z = CorrectOBJIndex(Face.z, Len)
+
+	return Index
+}
+
+CorrectOBJIndex :: proc(Index : i32, Len : i32) -> i32
+{
+	if Index > 0
+	{
+		return Index - 1
+	}
+	else
+	{
+		return Len + Index
+	}
 }
 

@@ -10,7 +10,6 @@ package main
 	- Path guiding techniques
 	- Support for photon map with caustics and specular surfaces
 	- Scene file format that can be loaded at run-time
-	- Extend the OBJ reader to support the dragon mesh
 
 	NOTE(matthew): Currently supporting:
 	- Standard backwards path tracing integrator
@@ -18,7 +17,7 @@ package main
 	- Oren-Nayar BRDF
 	- Photon mapping with diffuse only
 	- Measured BRDF data (MERL)
-	- Triangle meshes + BVH
+	- Triangle meshes (Wavefront OBJ) + BVH
 	- Tiled multithreaded rendering
 */
 
