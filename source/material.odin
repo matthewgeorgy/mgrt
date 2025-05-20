@@ -26,15 +26,22 @@ merl :: struct
 	Table : ^merl_table,
 }
 
+oren_nayar :: struct
+{
+	R : v3,
+	A, B : f32,
+}
+
 material :: union
 {
 	lambertian,
 	metal,
 	dielectric,
 	merl,
+	oren_nayar,
 }
 
-AddMaterial :: proc{ AddLambertian, AddMetal, AddDielectric, AddMERL, }
+AddMaterial :: proc{ AddLambertian, AddMetal, AddDielectric, AddMERL, AddOrenNayar, }
 
 AddLambertian :: proc(Scene : ^scene, Lambertian : lambertian) -> u32
 {
@@ -70,6 +77,29 @@ AddMERL :: proc(Scene : ^scene, Table : merl) -> u32
 	append(&Scene.Materials, Table)
 
 	return MaterialIndex
+}
+
+AddOrenNayar :: proc(Scene : ^scene, OrenNayar : oren_nayar) -> u32
+{
+	MaterialIndex := cast(u32)len(Scene.Materials)
+
+	append(&Scene.Materials, OrenNayar)
+
+	return MaterialIndex
+}
+
+CreateOrenNayar :: proc(R : v3, Sigma : f32) -> oren_nayar
+{
+	Material : oren_nayar
+
+	SigmaRads := Degs2Rads(Sigma)
+	Sigma2 := SigmaRads * SigmaRads
+
+	Material.A = 1 - 0.5 * (Sigma2 / (Sigma2 + 0.33))
+	Material.B = 0.45 * Sigma2 / (Sigma2 + 0.09)
+	Material.R = R
+
+	return Material
 }
 
 AddLight :: proc(Scene : ^scene, Light : light) -> u32

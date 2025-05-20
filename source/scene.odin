@@ -78,6 +78,9 @@ CornellBunny  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 	MERL := AddMaterial(Scene, merl{ Table })
 	Diffuse := AddMaterial(Scene, lambertian{v3{0.1, 0.1, 0.1}})
 
+	OrenNayar := AddMaterial(Scene, CreateOrenNayar(v3{0.8, 0.6, 0.6}, 20))
+	Pink := AddMaterial(Scene, lambertian{v3{0.8, 0.6, 0.6}})
+
 	Light := AddLight(Scene, light{v3{15, 15, 15}})
 
 	AddPrimitive(Scene, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, -555}), Red, 0) 		// right
@@ -88,7 +91,7 @@ CornellBunny  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 	AddPrimitive(Scene, CreateQuad(v3{0, 0, -555}, v3{555, 0, 0}, v3{0, 555, 0}), Gray, 0)		// back
 
 	BVH.Translation = v3{-300, 0, 300}
-	BVH.MaterialIndex = MERL
+	BVH.MaterialIndex = Pink
 
 	Scene.BVH = BVH
 }
@@ -304,6 +307,9 @@ CornellSphere :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 	Green := AddMaterial(Scene, lambertian{v3{0.12, 0.45, 0.15}})
 	Gold := AddMaterial(Scene, merl { GoldTable })
 
+	OrenNayar := AddMaterial(Scene, CreateOrenNayar(v3{0.8, 0.6, 0.6}, 20))
+	Pink := AddMaterial(Scene, lambertian{v3{0.8, 0.6, 0.6}})
+
 	Light := AddLight(Scene, light{v3{15, 15, 15}})
 
 	AddPrimitive(Scene, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}), Green, 0) // right
@@ -317,7 +323,6 @@ CornellSphere :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 	SphereRadius : f32 = 125
 	SphereCenter := FloorCenter + v3{0, SphereRadius, 0}
 
-	AddPrimitive(Scene, sphere{SphereCenter, SphereRadius}, Gold, 0)
+	AddPrimitive(Scene, sphere{SphereCenter, SphereRadius}, OrenNayar, 0)
 }
-
 
