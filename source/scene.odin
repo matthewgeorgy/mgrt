@@ -46,6 +46,10 @@ CornellBunny  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 	Mesh := LoadMesh(FileName, 200)
 	fmt.println("Loaded mesh:", FileName, "with", len(Mesh.Triangles), "triangles")
 
+	BoundingBox := GetMeshBoundingBox(Mesh)
+	fmt.println("Min:", BoundingBox.Min)
+	fmt.println("Max:", BoundingBox.Max)
+
 	win32.QueryPerformanceCounter(&StartCounter)
 
 	BVH := BuildBVH(Mesh.Triangles)
@@ -343,7 +347,7 @@ FinalSceneRTW :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 	// Using a sphere is ok, but its curvature causes spheres that are far enough away to
 	// look like they're floating.
 	Floor := AddMaterial(Scene, lambertian{v3{0.5, 0.5, 0.5}})
-	AddPrimitive(Scene, CreateQuad(v3{50, 0, 50}, v3{-100, 0, 0}, v3{0, 0, -100}), Floor, 0) 
+	AddPrimitive(Scene, CreateQuad(v3{50, 0, 50}, v3{-100, 0, 0}, v3{0, 0, -100}), Floor, 0)
 
 	for a := -11; a < 11; a += 1
 	{
@@ -434,5 +438,87 @@ PlaneDragon :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : 
 	Scene.BVH = BVH
 	Scene.BVH.MaterialIndex = Model
 	Scene.BVH.Rotation = Degs2Rads(120)
+}
+
+CornellDragon  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : i32)
+{
+	StartCounter, EndCounter, Frequency : win32.LARGE_INTEGER
+	win32.QueryPerformanceFrequency(&Frequency)
+
+	// Mesh
+	FileName := string("assets/dragon.obj")
+	Mesh := LoadMesh(FileName, 500)
+	fmt.println("Loaded mesh:", FileName, "with", len(Mesh.Triangles), "triangles")
+
+	BoundingBox := GetMeshBoundingBox(Mesh)
+	fmt.println("Min:", BoundingBox.Min)
+	fmt.println("Max:", BoundingBox.Max)
+
+	win32.QueryPerformanceCounter(&StartCounter)
+
+	BVH := BuildBVH(Mesh.Triangles)
+
+	win32.QueryPerformanceCounter(&EndCounter)
+	ElapsedTime := (EndCounter - StartCounter) * 1000
+	fmt.println("BVH construction took", ElapsedTime / Frequency, "ms")
+
+	// Camera
+	Camera.LookFrom = v3{278, 278, -800}
+	Camera.LookAt = v3{278, 278, 0}
+	Camera.FOV = 40
+	Camera.FocusDist = 10
+
+	InitializeCamera(Camera, ImageWidth, ImageHeight)
+
+	Table := new(merl_table)
+	LoadMERL(string("assets/merl/gold-metallic-paint.binary"), Table)
+
+	Background := AddMaterial(Scene, lambertian{v3{0.0, 0.0, 0.0}})
+	NullLight := AddLight(Scene, light{})
+
+	Red := AddMaterial(Scene, lambertian{v3{0.65, 0.05, 0.05}})
+	Gray := AddMaterial(Scene, lambertian{v3{0.73, 0.73, 0.73}})
+	Green := AddMaterial(Scene, lambertian{v3{0.12, 0.45, 0.15}})
+	MERL := AddMaterial(Scene, merl{ Table })
+	Diffuse := AddMaterial(Scene, lambertian{v3{0.1, 0.1, 0.1}})
+
+	OrenNayar := AddMaterial(Scene, CreateOrenNayar(v3{0.8, 0.6, 0.6}, 20))
+	Pink := AddMaterial(Scene, lambertian{v3{0.8, 0.6, 0.6}})
+
+	Light := AddLight(Scene, light{v3{15, 15, 15}})
+
+	AddPrimitive(Scene, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}), Green, 0) // right
+	AddPrimitive(Scene, CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}), Red, 0) // left
+	AddPrimitive(Scene, CreateQuad(v3{343, 554, 332}, v3{-130, 0, 0}, v3{0, 0, -105}), 0, Light) // light
+	AddPrimitive(Scene, CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, 555}), Gray, 0) // bottom
+	AddPrimitive(Scene, CreateQuad(v3{555, 555, 555}, v3{-555, 0, 0}, v3{0, 0, -555}), Gray, 0) // top
+	AddPrimitive(Scene, CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}), Gray, 0) // back
+
+	BVH.MaterialIndex = Gray
+
+	// Bounding box transform
+
+	AlignedBox : aabb
+
+	AlignedBox.Min = v3{0, 0, 0}
+	AlignedBox.Max = BoundingBox.Max - BoundingBox.Min
+	fmt.println("Aligned min:", AlignedBox.Min)
+	fmt.println("Aligned max:", AlignedBox.Max)
+
+	TranslationToAlign := BoundingBox.Min
+
+	FloorWidth : f32 = 555
+	FloorDepth : f32 = 555
+
+	OffsetX := Abs(FloorWidth - AlignedBox.Max.x) / 2
+	OffsetZ := Abs(FloorDepth - AlignedBox.Max.z) / 2
+
+	TranslationX := -v3{OffsetX, 0, 0}
+	TranslationZ := v3{0, 0, -OffsetZ}
+
+	BVH.Translation = TranslationToAlign + TranslationX + TranslationZ
+	BVH.Rotation = Degs2Rads(-60)
+
+	Scene.BVH = BVH
 }
 

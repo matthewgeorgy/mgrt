@@ -14,6 +14,7 @@ SCENE_NAMES :: []string {
 	"CornellSphere",
 	"FinalSceneRTW",
 	"PlaneDragon",
+	"CornellDragon",
 }
 
 config :: struct
@@ -109,6 +110,10 @@ InitializeFromConfig :: proc(Config : config) -> (scene, camera, image_u32)
 		case 7:
 		{
 			PlaneDragon(&Scene, &Camera, Config.ImageWidth, Config.ImageHeight)
+		}
+		case 8:
+		{
+			CornellDragon(&Scene, &Camera, Config.ImageWidth, Config.ImageHeight)
 		}
 	}
 
