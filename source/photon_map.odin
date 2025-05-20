@@ -156,10 +156,13 @@ CastPhoton :: proc(Map : ^photon_map, InitialRay : ray, InitialPower : v3, Scene
 
 			SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
 
+			_, IsLambertian := SurfaceMaterial.(lambertian)
+			_, IsOrenNayar := SurfaceMaterial.(oren_nayar)
+
 			// Store diffuse interaction
-			if _, ok := SurfaceMaterial.(lambertian); ok
+			if IsLambertian || IsOrenNayar
 			{
-				StorePhoton(Map, Record.HitPoint, Throughput, Ray.Direction)
+				StorePhoton(Map, Record.HitPoint, Throughput, -Ray.Direction)
 
 				// Russian roulette to start a new photon
 				if BounceCount > 0

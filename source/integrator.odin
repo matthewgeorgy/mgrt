@@ -186,7 +186,10 @@ ComputeIndirectIllumination :: proc(Scene : ^scene, RayDirection : v3, Record : 
 		{
 			HitMaterial := Scene.Materials[FinalRecord.MaterialIndex]
 
-			if _, ok := HitMaterial.(lambertian); ok
+			_, IsLambertian := HitMaterial.(lambertian)
+			_, IsOrenNayar := HitMaterial.(oren_nayar)
+
+			if IsLambertian || IsOrenNayar
 			{
 				Indirect = f * CosAtten * ComputeRadianceWithPhotonMap(Scene, -FinalRay.Direction, FinalRecord) / Sample.PDF
 			}
@@ -200,18 +203,27 @@ ComputeRadianceWithPhotonMap :: proc(Scene : ^scene, wo : v3, Record : hit_recor
 {
 	Radiance : v3
 	Map := Scene.PhotonMap
-	MaxPhotonDistance : f32 = 2.5
+	MaxPhotonDistance : f32 = 10
 
 	SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
-	f := EvaluateBxDF(SurfaceMaterial, wo, wo, Record)
 
-	// NOTE(matthew): Probably good enough for now since all of our materials
-	// are lambertian, so the BRDF is just a constant
-	// When we start adding support to the photon map for more materials, this
-	// may have to change a little bit. That is, we might have to inline the
-	// IrradianceEstimate and query the BxDF on each photon direction.
-	Irradiance := IrradianceEstimate(Map, Record.HitPoint, Record.SurfaceNormal, MaxPhotonDistance)
-	Radiance = f * Irradiance
+	NearestPhotons := LocatePhotons(Scene.PhotonMap, Record.HitPoint, MaxPhotonDistance)
+	defer delete(NearestPhotons.PhotonsFound)
+
+	if len(NearestPhotons.PhotonsFound) < 0
+	{
+		return v3{0, 0, 0}
+	}
+
+	for Photon in NearestPhotons.PhotonsFound
+	{
+		f := EvaluateBxDF(SurfaceMaterial, wo, Photon.Dir, Record)
+		Radiance += f * Photon.Power
+	}
+
+	AreaFactor := 1.0  / (PI * MaxPhotonDistance * MaxPhotonDistance) // density estimate
+
+	Radiance *= AreaFactor
 
 	return Radiance
 }
