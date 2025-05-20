@@ -30,27 +30,20 @@ import strings	"core:strings"
 
 main :: proc()
 {
-	// Image
-	Image := AllocateImage(640, 640)
-
-	// Initialize scene and camera from command line args
+	// Initialize scene, camera, and image from command line args
 	Config : config
 	if !ParseCommandLine(&Config)
 	{
 		return
 	}
 
-	Config.ImageWidth = Image.Width
-	Config.ImageHeight = Image.Height
-
-
-	Scene, Camera := InitializeFromConfig(Config)
+	Scene, Camera, Image := InitializeFromConfig(Config)
 
 	// Work queue
 	Queue : work_queue
 
-	TilesX : u32 = 16
-	TilesY : u32 = 16
+	TilesX : u32 = 20
+	TilesY : u32 = 20
 	TileWidth : u32 = u32(Image.Width) / TilesX
 	TileHeight : u32 = u32(Image.Height) / TilesY
 

@@ -326,3 +326,69 @@ CornellSphere :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 	AddPrimitive(Scene, sphere{SphereCenter, SphereRadius}, OrenNayar, 0)
 }
 
+FinalSceneRTW :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : i32)
+{
+	Camera.LookFrom = v3{13, 2, 3}
+	Camera.LookAt = v3{0, 0, 0}
+	Camera.FOV = 20
+	Camera.FocusDist = 10
+
+	InitializeCamera(Camera, ImageWidth, ImageHeight)
+
+	Background := AddMaterial(Scene, lambertian{v3{0.5, 0.7, 1.0}})
+	NullLight := AddLight(Scene, light{})
+
+	// RTW uses a huge sphere instead since they don't have a flat primitive like a plane,
+	// but we do!
+	// Using a sphere is ok, but its curvature causes spheres that are far enough away to
+	// look like they're floating.
+	Floor := AddMaterial(Scene, lambertian{v3{0.5, 0.5, 0.5}})
+	AddPrimitive(Scene, CreateQuad(v3{50, 0, 50}, v3{-100, 0, 0}, v3{0, 0, -100}), Floor, 0) 
+
+	for a := -11; a < 11; a += 1
+	{
+		for b := -11; b < 11; b += 1
+		{
+			ChooseMaterial := RandomUnilateral()
+
+			SphereCenter := v3{f32(a) + 0.9 * RandomUnilateral(),
+							   0.2,
+							   f32(b) + 0.9 * RandomUnilateral()}
+
+			if Length(SphereCenter - v3{4, 0.2, 0}) > 0.9
+			{
+				if ChooseMaterial < 0.8
+				{
+					// Lambertian
+					Albedo := RandomV3() * RandomV3()
+					SphereMaterial := AddMaterial(Scene, lambertian{Albedo})
+					AddPrimitive(Scene, sphere{SphereCenter, 0.2}, SphereMaterial, 0)
+				}
+				else if ChooseMaterial < 0.95
+				{
+					// Metal
+					Albedo := RandomV3(0.5, 1)
+					Fuzz := RandomFloat(0.0, 0.5)
+					SphereMaterial := AddMaterial(Scene, metal{Albedo, Fuzz})
+					AddPrimitive(Scene, sphere{SphereCenter, 0.2}, SphereMaterial, 0)
+				}
+				else
+				{
+					// Glass
+					SphereMaterial := AddMaterial(Scene, dielectric{1.5})
+					AddPrimitive(Scene, sphere{SphereCenter, 0.2}, SphereMaterial, 0)
+				}
+			}
+		}
+	}
+
+	Material1 := AddMaterial(Scene, dielectric{1.5})
+	Material2 := AddMaterial(Scene, lambertian{v3{0.4, 0.2, 0.1}})
+	Material3 := AddMaterial(Scene, metal{v3{0.7, 0.6, 0.5}, 0})
+
+	AddPrimitive(Scene, sphere{v3{0, 1, 0}, 1}, Material1, 0)
+	AddPrimitive(Scene, sphere{v3{-4, 1, 0}, 1}, Material2, 0)
+	AddPrimitive(Scene, sphere{v3{4, 1, 0}, 1}, Material3, 0)
+}
+
+

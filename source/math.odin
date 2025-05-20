@@ -67,6 +67,18 @@ RandomUnitVector :: proc() -> v3
 	}
 }
 
+RandomV3 :: proc{ RandomV3_Unilateral, RandomV3_Ranged, }
+
+RandomV3_Unilateral :: proc() -> v3
+{
+	return v3{RandomUnilateral(), RandomUnilateral(), RandomUnilateral()}
+}
+
+RandomV3_Ranged :: proc(Min, Max : f32) -> v3
+{
+	return v3{RandomFloat(Min, Max), RandomFloat(Min, Max), RandomFloat(Min, Max)}
+}
+
 RandomOnHemisphere :: proc(Normal : v3) -> v3
 {
 	OnUnitSphere := RandomUnitVector()

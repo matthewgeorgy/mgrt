@@ -11,7 +11,8 @@ SCENE_NAMES :: []string {
 	"SpheresMaterial",
 	"BunnyPlaneLamp",
 	"CornellBox",
-	"CornellSphere"
+	"CornellSphere",
+	"FinalSceneRTW"
 }
 
 config :: struct
@@ -26,9 +27,9 @@ ParseCommandLine :: proc(Config : ^config) -> bool
 {
 	Args := os.args[1:]
 
-	if len(Args) != 3
+	if len(Args) != 5
 	{
-		fmt.println("\nUsage: [SceneName] [SamplesPerPixel] [MaxDepth]")
+		fmt.println("\nUsage: [SceneName] [ImageWidth] [ImageHeight] [SamplesPerPixel] [MaxDepth]")
 		fmt.println("Available scenes:")
 		for SceneName in SCENE_NAMES
 		{
@@ -39,26 +40,40 @@ ParseCommandLine :: proc(Config : ^config) -> bool
 	}
 
 	GivenSceneName := Args[0]
+	SceneFound := false
 
 	for SceneName, Index in SCENE_NAMES
 	{
 		if strings.compare(SceneName, GivenSceneName) == 0
 		{
+			SceneFound = true
 			Config.SceneIndex = Index 
+
 			break
 		}
 	}
 
-	Config.SamplesPerPixel = u32(strconv.atoi(Args[1]))
-	Config.MaxDepth = strconv.atoi(Args[2])
+	if !SceneFound
+	{
+		fmt.println("INVALID SCENE SPECIFIED")
+		os.exit(-1)
+	}
+
+	Config.ImageWidth = i32(strconv.atoi(Args[1]))
+	Config.ImageHeight = i32(strconv.atoi(Args[2]))
+	Config.SamplesPerPixel = u32(strconv.atoi(Args[3]))
+	Config.MaxDepth = strconv.atoi(Args[4])
 
 	return true
 }
 
-InitializeFromConfig :: proc(Config : config) -> (scene, camera)
+InitializeFromConfig :: proc(Config : config) -> (scene, camera, image_u32)
 {
 	Scene : scene
 	Camera : camera
+	Image : image_u32
+
+	Image = AllocateImage(Config.ImageWidth, Config.ImageHeight)
 
 	switch Config.SceneIndex
 	{
@@ -86,6 +101,10 @@ InitializeFromConfig :: proc(Config : config) -> (scene, camera)
 		{
 			CornellSphere(&Scene, &Camera, Config.ImageWidth, Config.ImageHeight)
 		}
+		case 6:
+		{
+			FinalSceneRTW(&Scene, &Camera, Config.ImageWidth, Config.ImageHeight)
+		}
 	}
 
 	Scene.SamplesPerPixel = Config.SamplesPerPixel
@@ -93,6 +112,6 @@ InitializeFromConfig :: proc(Config : config) -> (scene, camera)
 
 	GatherLightIndices(&Scene)
 
-	return Scene, Camera
+	return Scene, Camera, Image
 }
 
