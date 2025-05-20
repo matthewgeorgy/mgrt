@@ -122,3 +122,23 @@ CorrectOBJIndex :: proc(Index : i32, Len : i32) -> i32
 	}
 }
 
+GetMeshBoundingBox :: proc(Mesh : mesh) -> aabb
+{
+	BoundingBox : aabb
+
+	BoundingBox.Min = v3{ F32_MAX,  F32_MAX,  F32_MAX}
+	BoundingBox.Max = v3{-F32_MAX, -F32_MAX, -F32_MAX}
+
+	for Triangle in Mesh.Triangles
+	{
+		BoundingBox.Min = MinV3(BoundingBox.Min, Triangle.Vertices[0])
+		BoundingBox.Min = MinV3(BoundingBox.Min, Triangle.Vertices[1])
+		BoundingBox.Min = MinV3(BoundingBox.Min, Triangle.Vertices[2])
+		BoundingBox.Max = MaxV3(BoundingBox.Max, Triangle.Vertices[0])
+		BoundingBox.Max = MaxV3(BoundingBox.Max, Triangle.Vertices[1])
+		BoundingBox.Max = MaxV3(BoundingBox.Max, Triangle.Vertices[2])
+	}
+
+	return BoundingBox
+}
+

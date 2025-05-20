@@ -12,7 +12,8 @@ SCENE_NAMES :: []string {
 	"BunnyPlaneLamp",
 	"CornellBox",
 	"CornellSphere",
-	"FinalSceneRTW"
+	"FinalSceneRTW",
+	"PlaneDragon",
 }
 
 config :: struct
@@ -104,6 +105,10 @@ InitializeFromConfig :: proc(Config : config) -> (scene, camera, image_u32)
 		case 6:
 		{
 			FinalSceneRTW(&Scene, &Camera, Config.ImageWidth, Config.ImageHeight)
+		}
+		case 7:
+		{
+			PlaneDragon(&Scene, &Camera, Config.ImageWidth, Config.ImageHeight)
 		}
 	}
 

@@ -391,4 +391,48 @@ FinalSceneRTW :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 	AddPrimitive(Scene, sphere{v3{4, 1, 0}, 1}, Material3, 0)
 }
 
+PlaneDragon :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : i32)
+{
+	StartCounter, EndCounter, Frequency, ElapsedTime: win32.LARGE_INTEGER
+	win32.QueryPerformanceFrequency(&Frequency)
+
+	// Mesh
+	Filename := string("assets/dragon.obj")
+	Mesh := LoadMesh(Filename)
+	fmt.println("Loaded mesh:", Filename, "with", len(Mesh.Triangles), "triangles")
+
+	BoundingBox := GetMeshBoundingBox(Mesh)
+
+	fmt.println("Min:", BoundingBox.Min)
+	fmt.println("Max:", BoundingBox.Max)
+
+	win32.QueryPerformanceCounter(&StartCounter)
+
+	BVH := BuildBVH(Mesh.Triangles)
+
+	win32.QueryPerformanceCounter(&EndCounter)
+
+	ElapsedTime = (EndCounter - StartCounter) * 1000
+	fmt.println("BVH construction took", ElapsedTime / Frequency, "ms")
+
+	// Camera
+	Camera.LookFrom = v3{0, 0.25, 1}
+	Camera.LookAt = v3{0, 0, 0}
+	Camera.FocusDist = 1
+	Camera.FOV = 90
+
+	InitializeCamera(Camera, ImageWidth, ImageHeight)
+
+	// Scene
+	Background := AddMaterial(Scene, lambertian{v3{0.2, 0.2, 0.2}})
+	NullLight := AddLight(Scene, light{})
+	Model := AddMaterial(Scene, lambertian{v3{0.8, 0.2, 0.2}})
+	Plane := AddMaterial(Scene, lambertian{v3{0.2, 0.6, 0.8}})
+
+	AddPrimitive(Scene, plane{v3{0, 1, 0}, -BoundingBox.Min.y}, Plane, 0)
+
+	Scene.BVH = BVH
+	Scene.BVH.MaterialIndex = Model
+	Scene.BVH.Rotation = Degs2Rads(120)
+}
 
