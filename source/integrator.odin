@@ -166,12 +166,7 @@ ComputeDirectIllumination :: proc(Ray : ray, Record : hit_record, Scene : ^scene
 	return DirectIllumination
 }
 
-ComputeIndirectIllumination :: proc(Scene : ^scene, RayDirection : v3, Record : ^hit_record) -> v3
-{
-	return ComputeIndirectIlluminationRecursive(Scene, RayDirection, Record, Scene.MaxDepth)
-}
-
-ComputeIndirectIlluminationRecursive :: proc(Scene : ^scene, RayDirection : v3, Record : ^hit_record, Depth : int) -> v3
+ComputeIndirectIllumination :: proc(Scene : ^scene, RayDirection : v3, Record : ^hit_record, Depth : int) -> v3
 {
 	Indirect : v3
 
@@ -204,7 +199,7 @@ ComputeIndirectIlluminationRecursive :: proc(Scene : ^scene, RayDirection : v3, 
 			}
 			else if MaterialType == .SPECULAR
 			{
-				Indirect = f * CosAtten * ComputeIndirectIlluminationRecursive(Scene, -FinalRay.Direction, &FinalRecord, Depth - 1) / Sample.PDF
+				Indirect = f * CosAtten * ComputeIndirectIllumination(Scene, -FinalRay.Direction, &FinalRecord, Depth - 1) / Sample.PDF
 			}
 		}
 	}
@@ -238,7 +233,7 @@ PhotonMapIntegrator :: proc(Ray : ray, Scene : ^scene, Depth : int) -> v3
 		{
 			DirectIllumination := ComputeDirectIllumination(Ray, Record, Scene)
 
-			IndirectIllumination := ComputeIndirectIllumination(Scene, Ray.Direction, &Record)
+			IndirectIllumination := ComputeIndirectIllumination(Scene, Ray.Direction, &Record, Scene.MaxDepth)
 
 			CausticsQuery := photon_map_query{ SurfaceMaterial, Record, -Ray.Direction, 10 }
 			Caustics := RadianceEstimate(Scene.CausticPhotonMap, CausticsQuery)
