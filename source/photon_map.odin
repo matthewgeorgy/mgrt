@@ -352,7 +352,10 @@ LocatePhotons :: proc(Map : ^photon_map, Pos : v3, MaxDistance : f32) -> nearest
 {
 	Photons : nearest_photons
 
-	FindPhotons(Map, 0, Pos, MaxDistance, &Photons.PhotonsFound)
+	if Map.StoredPhotons != 0
+	{
+		FindPhotons(Map, 0, Pos, MaxDistance, &Photons.PhotonsFound)
+	}
 
 	return Photons
 }

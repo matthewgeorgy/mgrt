@@ -8,7 +8,6 @@ import strings  "core:strings"
 mesh :: struct
 {
     Vertices : [dynamic]v3,
-    Normals : [dynamic]v3,
     Faces : [dynamic]v3i,
     Triangles : [dynamic]triangle,
 };
@@ -18,6 +17,8 @@ LoadMesh :: proc(Filename : string, Scale : f32 = 1) -> mesh
     Mesh : mesh
 
     File, ok := os.read_entire_file(Filename)
+	defer delete(File)
+
     if ok
     {
         StringFile := string(File)
@@ -95,6 +96,9 @@ LoadMesh :: proc(Filename : string, Scale : f32 = 1) -> mesh
     {
         fmt.println("Failed to load", Filename)
     }
+
+	delete(Mesh.Faces)
+	delete(Mesh.Vertices)
 
     return Mesh
 }
