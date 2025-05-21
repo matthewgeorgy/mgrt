@@ -28,7 +28,6 @@ photon_map :: struct
 	Photons : [dynamic]photon,
 
 	// kd-tree
-	Root : ^photon_node,
 	Nodes : []photon_node,
 	NodeCount : int,
 };
@@ -57,19 +56,13 @@ CreatePhotonMap :: proc(MaxPhotons : i32) -> photon_map
 
 StorePhoton :: proc(Map : ^photon_map, Pos, Power, Dir : v3)
 {
-	if Map.StoredPhotons >= Map.MaxPhotons
+	if Map.StoredPhotons < Map.MaxPhotons
 	{
-		return
+		Photon := photon{ Pos, Dir, Power }
+
+		append(&Map.Photons, Photon)
+		Map.StoredPhotons += 1
 	}
-
-	Photon : photon
-
-	Photon.Pos = Pos
-	Photon.Power = Power
-	Photon.Dir = Dir
-
-	append(&Map.Photons, Photon)
-	Map.StoredPhotons += 1
 }
 
 ScalePhotonPower :: proc(Map : ^photon_map, Scale : f32)
@@ -137,7 +130,45 @@ SampleRayFromLight :: proc(Scene : ^scene) -> (ray, v3)
 	return Ray, Power
 }
 
-CastPhoton :: proc(Map : ^photon_map, InitialRay : ray, InitialPower : v3, Scene : ^scene, MaxPhotonBounces : int)
+BuildGlobalPhotonMap :: proc(Map : ^photon_map, Scene : ^scene)
+{
+	EmittedPhotons :: 100000
+	MaxPhotonBounces := Scene.MaxDepth
+
+	for PhotonIndex := 0; PhotonIndex < EmittedPhotons; PhotonIndex += 1
+	{
+		Ray, Power := SampleRayFromLight(Scene)
+
+		CastGlobalPhoton(Map, Ray, Power, Scene, MaxPhotonBounces)
+	}
+
+	fmt.println("\nStored", Map.StoredPhotons, "photons")
+	fmt.println(Map.StoredPhotons * size_of(photon) / (1024 * 1024), "MB of photons")
+	ScalePhotonPower(Map, f32(1.0) / f32(EmittedPhotons))
+
+	BuildPhotonMap(Map)
+}
+
+BuildCausticPhotonMap :: proc(Map : ^photon_map, Scene : ^scene)
+{
+	EmittedPhotons :: 100000
+	MaxPhotonBounces := Scene.MaxDepth
+
+	for PhotonIndex := 0; PhotonIndex < EmittedPhotons; PhotonIndex += 1
+	{
+		Ray, Power := SampleRayFromLight(Scene)
+
+		CastGlobalPhoton(Map, Ray, Power, Scene, MaxPhotonBounces)
+	}
+
+	fmt.println("\nStored", Map.StoredPhotons, "photons")
+	fmt.println(Map.StoredPhotons * size_of(photon) / (1024 * 1024), "MB of photons")
+	ScalePhotonPower(Map, f32(1.0) / f32(EmittedPhotons))
+
+	BuildPhotonMap(Map)
+}
+
+CastGlobalPhoton :: proc(Map : ^photon_map, InitialRay : ray, InitialPower : v3, Scene : ^scene, MaxPhotonBounces : int)
 {
 	Throughput := InitialPower
 	Ray := InitialRay
@@ -191,6 +222,67 @@ CastPhoton :: proc(Map : ^photon_map, InitialRay : ray, InitialPower : v3, Scene
 	}
 }
 
+CastCausticPhoton :: proc(Map : ^photon_map, InitialRay : ray, InitialPower : v3, Scene : ^scene, MaxPhotonBounces : int)
+{
+	Throughput := InitialPower
+	Ray := InitialRay
+	BounceCount : int
+
+	PrevSpecular := false
+
+	for BounceCount = 0; BounceCount < MaxPhotonBounces; BounceCount += 1
+	{
+		Record : hit_record
+
+		if GetIntersection(Ray, Scene, &Record)
+		{
+			if HasLight(Record)
+			{
+				break
+			}
+
+			SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
+
+			_, IsLambertian := SurfaceMaterial.(lambertian)
+			_, IsOrenNayar := SurfaceMaterial.(oren_nayar)
+			_, IsDielectric := SurfaceMaterial.(dielectric)
+
+			IsDiffuse := IsLambertian || IsOrenNayar
+
+			// Break when hitting diffuse surface without a previous specular hit
+			if IsDiffuse && !PrevSpecular
+			{
+				break
+			}
+
+			PrevSpecular = IsDielectric
+
+			// Russian roulette for new photon
+			if BounceCount > 0
+			{
+				RussianRouletteProb := Min(Max(Throughput.x, Throughput.y, Throughput.z), 1)
+				RandomRoll := RandomUnilateral()
+
+				if RandomRoll >= RussianRouletteProb
+				{
+					break
+				}
+				Throughput /= RussianRouletteProb
+			}
+
+			Sample := SampleBxDF(SurfaceMaterial, -Ray.Direction, Record)
+			CosAtten := Abs(Dot(Record.SurfaceNormal, Sample.wi))
+
+			Throughput *= CosAtten * Sample.f / Sample.PDF
+			Ray = ray{Record.HitPoint, Sample.wi}
+		}
+		else
+		{
+			break
+		}
+	}
+}
+
 ///////////////////////////////////////
 // These functions are for working with the kd-structure of the photon map
 ///////////////////////////////////////
@@ -216,6 +308,9 @@ BuildPhotonMap :: proc(Map : ^photon_map)
 {
 	Map.Nodes = make([]photon_node, Map.StoredPhotons)
 	_ = InsertNode(Map, Map.Photons[:], 0)
+
+	// Photons are in the k-d structure nodes, no longer need original array
+	delete(Map.Photons)
 }
 
 InsertNode :: proc(Map : ^photon_map, Photons : []photon, Axis : i32) -> i32

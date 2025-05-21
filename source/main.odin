@@ -69,29 +69,26 @@ main :: proc()
 	win32.QueryPerformanceFrequency(&Frequency)
 
 	// Photon map
-	EmittedPhotons ::  100000
-	MaxPhotonCount :: 5000000
-	MaxPhotonBounces := Scene.MaxDepth
-	PhotonMap := CreatePhotonMap(MaxPhotonCount)
+	MaxGlobalPhotonCount :: 5000000
+	MaxCausticPhotonCount :: 5000000
+	GlobalPhotonMap := CreatePhotonMap(MaxGlobalPhotonCount)
+	CausticPhotonMap := CreatePhotonMap(MaxGlobalPhotonCount)
 
+	// Global
 	win32.QueryPerformanceCounter(&StartCounter)
-	for PhotonIndex := 0; PhotonIndex < EmittedPhotons; PhotonIndex += 1
-	{
-		Ray, Power := SampleRayFromLight(&Scene)
-
-		CastPhoton(&PhotonMap, Ray, Power, &Scene, MaxPhotonBounces)
-	}
-
-	fmt.println("\nStored", PhotonMap.StoredPhotons, "photons")
-	ScalePhotonPower(&PhotonMap, f32(1.0) / f32(EmittedPhotons))
-	BuildPhotonMap(&PhotonMap)
-
-	Scene.PhotonMap = &PhotonMap
-
+	BuildGlobalPhotonMap(&GlobalPhotonMap, &Scene)
 	win32.QueryPerformanceCounter(&EndCounter)
+	Scene.PhotonMap = &GlobalPhotonMap
 	ElapsedTime = (EndCounter - StartCounter) * 1000 / Frequency
+	fmt.println("Global photon tracing took", ElapsedTime, "ms\n")
 
-	fmt.println("Photon tracing took", ElapsedTime, "ms\n")
+	// Caustic
+	win32.QueryPerformanceCounter(&StartCounter)
+	BuildCausticPhotonMap(&CausticPhotonMap, &Scene)
+	win32.QueryPerformanceCounter(&EndCounter)
+	Scene.PhotonMap = &CausticPhotonMap
+	ElapsedTime = (EndCounter - StartCounter) * 1000 / Frequency
+	fmt.println("Caustic photon tracing took", ElapsedTime, "ms\n")
 
 	// Threading
 	when ODIN_DEBUG == true
