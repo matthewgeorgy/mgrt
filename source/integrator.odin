@@ -198,7 +198,9 @@ ComputeIndirectIlluminationRecursive :: proc(Scene : ^scene, RayDirection : v3, 
 
 			if MaterialType == .DIFFUSE
 			{
-				Indirect = f * CosAtten * ComputeRadianceWithPhotonMap(Scene, -FinalRay.Direction, FinalRecord) / Sample.PDF
+				Query := photon_map_query{ HitMaterial, FinalRecord, -FinalRay.Direction, 10 }
+
+				Indirect = f * CosAtten * RadianceEstimate(Scene.GlobalPhotonMap, Query) / Sample.PDF
 			}
 			else if MaterialType == .SPECULAR
 			{
@@ -208,64 +210,6 @@ ComputeIndirectIlluminationRecursive :: proc(Scene : ^scene, RayDirection : v3, 
 	}
 
 	return Indirect
-}
-
-ComputeRadianceWithPhotonMap :: proc(Scene : ^scene, wo : v3, Record : hit_record) -> v3
-{
-	Radiance : v3
-	GlobalPhotonMap := Scene.GlobalPhotonMap
-	MaxPhotonDistance : f32 = 10
-
-	SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
-
-	NearestPhotons := LocatePhotons(GlobalPhotonMap, Record.HitPoint, MaxPhotonDistance)
-	defer delete(NearestPhotons.PhotonsFound)
-
-	if len(NearestPhotons.PhotonsFound) < 0
-	{
-		return v3{0, 0, 0}
-	}
-
-	for Photon in NearestPhotons.PhotonsFound
-	{
-		f := EvaluateBxDF(SurfaceMaterial, wo, Photon.Dir, Record)
-		Radiance += f * Photon.Power
-	}
-
-	AreaFactor := 1.0  / (PI * MaxPhotonDistance * MaxPhotonDistance) // density estimate
-
-	Radiance *= AreaFactor
-
-	return Radiance
-}
-
-ComputeCausticsWithPhotonMap :: proc(Scene : ^scene, wo : v3, Record : hit_record) -> v3
-{
-	Radiance : v3
-	PhotonMap := Scene.CausticPhotonMap
-	MaxPhotonDistance : f32 = 10
-
-	SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
-
-	NearestPhotons := LocatePhotons(PhotonMap, Record.HitPoint, MaxPhotonDistance)
-	defer delete(NearestPhotons.PhotonsFound)
-
-	if len(NearestPhotons.PhotonsFound) < 0
-	{
-		return v3{0, 0, 0}
-	}
-
-	for Photon in NearestPhotons.PhotonsFound
-	{
-		f := EvaluateBxDF(SurfaceMaterial, wo, Photon.Dir, Record)
-		Radiance += f * Photon.Power
-	}
-
-	AreaFactor := 1.0  / (PI * MaxPhotonDistance * MaxPhotonDistance) // density estimate
-
-	Radiance *= AreaFactor
-
-	return Radiance
 }
 
 PhotonMapIntegrator :: proc(Ray : ray, Scene : ^scene, Depth : int) -> v3
@@ -293,8 +237,11 @@ PhotonMapIntegrator :: proc(Ray : ray, Scene : ^scene, Depth : int) -> v3
 		if MaterialType == .DIFFUSE
 		{
 			DirectIllumination := ComputeDirectIllumination(Ray, Record, Scene)
+
 			IndirectIllumination := ComputeIndirectIllumination(Scene, Ray.Direction, &Record)
-			Caustics := ComputeCausticsWithPhotonMap(Scene, -Ray.Direction, Record)
+
+			CausticsQuery := photon_map_query{ SurfaceMaterial, Record, -Ray.Direction, 10 }
+			Caustics := RadianceEstimate(Scene.CausticPhotonMap, CausticsQuery)
 
 			return DirectIllumination + IndirectIllumination + Caustics
 		}

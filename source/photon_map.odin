@@ -75,12 +75,19 @@ ScalePhotonPower :: proc(Map : ^photon_map, Scale : f32)
 	Map.PrevScale = Map.StoredPhotons
 }
 
-IrradianceEstimate :: proc(Map : ^photon_map, Pos, Normal : v3, MaxDistance : f32) -> v3
+photon_map_query :: struct
 {
-	Irradiance : v3
-	Dir : v3
+	Material : material,
+	Record : hit_record,
+	wo : v3,
+	MaxDistance : f32,
+}
 
-	NearestPhotons := LocatePhotons(Map, Pos, MaxDistance)
+RadianceEstimate :: proc(Map : ^photon_map, Query : photon_map_query) -> v3
+{
+	Radiance : v3
+
+	NearestPhotons := LocatePhotons(Map, Query.Record.HitPoint, Query.MaxDistance)
 	defer delete(NearestPhotons.PhotonsFound)
 
 	if len(NearestPhotons.PhotonsFound) < 0
@@ -90,10 +97,9 @@ IrradianceEstimate :: proc(Map : ^photon_map, Pos, Normal : v3, MaxDistance : f3
 
 	for Photon in NearestPhotons.PhotonsFound
 	{
-		if Dot(Photon.Dir, Normal) < 0
-		{
-			Irradiance += Photon.Power
-		}
+		f := EvaluateBxDF(Query.Material, Query.wo, Photon.Dir, Query.Record)
+
+		Radiance += f * Photon.Power
 	}
 
 	// TODO(matthew): This is alright for now, but in the future we can do better.
@@ -102,11 +108,11 @@ IrradianceEstimate :: proc(Map : ^photon_map, Pos, Normal : v3, MaxDistance : f3
 	// R.
 	// When we do this, the MaxDistance will then become the distance of the farthest
 	// photon from our search.
-	AreaFactor := 1.0  / (PI * MaxDistance * MaxDistance) // density estimate
+	AreaFactor := 1.0  / (PI * Query.MaxDistance * Query.MaxDistance) // density estimate
 
-	Irradiance *= AreaFactor
+	Radiance *= AreaFactor
 
-	return Irradiance
+	return Radiance
 }
 
 SampleRayFromLight :: proc(Scene : ^scene) -> (ray, v3)
