@@ -4,18 +4,18 @@ package main
 	TODO(matthew): Things to add:
 	- Disney BRDF
 	- NEE
-	- MIS 
+	- MIS
 	- Bidirectional path tracing
-	- IBL / environment lighting 
+	- IBL / environment lighting
 	- Path guiding techniques
-	- Support for photon map with caustics and specular surfaces
 	- Scene file format that can be loaded at run-time
+	- Reduce Fresnel reflectancen noise with photon mapping
 
 	NOTE(matthew): Currently supporting:
 	- Standard backwards path tracing integrator
 	- Basic lambertian, metal, and glass BRDFs
 	- Oren-Nayar BRDF
-	- Photon mapping with Lambertian and Oren-Nayar materials
+	- Photon mapping with both diffuse and specular
 	- Measured BRDF data (MERL)
 	- Triangle meshes (Wavefront OBJ) + BVH
 	- Tiled multithreaded rendering

@@ -198,30 +198,26 @@ CastGlobalPhoton :: proc(Map : ^photon_map, InitialRay : ray, InitialPower : v3,
 			if MaterialType == .DIFFUSE
 			{
 				StorePhoton(Map, Record.HitPoint, Throughput, -Ray.Direction)
-
-				// Russian roulette to start a new photon
-				if BounceCount > 0
-				{
-					RussianRouletteProb := Min(Max(Throughput.x, Throughput.y, Throughput.z), 1)
-					RandomRoll := RandomUnilateral()
-
-					if RandomRoll >= RussianRouletteProb
-					{
-						break
-					}
-					Throughput /= RussianRouletteProb
-				}
-
-				Sample := SampleBxDF(SurfaceMaterial, -Ray.Direction, Record)
-				CosAtten := Abs(Dot(Record.SurfaceNormal, Sample.wi))
-
-				Throughput *= CosAtten * Sample.f / Sample.PDF
-				Ray = ray{Record.HitPoint, Sample.wi}
 			}
-			else
+
+			// Russian roulette to start a new photon
+			if BounceCount > 0
 			{
-				break
+				RussianRouletteProb := Min(Max(Throughput.x, Throughput.y, Throughput.z), 1)
+				RandomRoll := RandomUnilateral()
+
+				if RandomRoll >= RussianRouletteProb
+				{
+					break
+				}
+				Throughput /= RussianRouletteProb
 			}
+
+			Sample := SampleBxDF(SurfaceMaterial, -Ray.Direction, Record)
+			CosAtten := Abs(Dot(Record.SurfaceNormal, Sample.wi))
+
+			Throughput *= CosAtten * Sample.f / Sample.PDF
+			Ray = ray{Record.HitPoint, Sample.wi}
 		}
 		else
 		{
