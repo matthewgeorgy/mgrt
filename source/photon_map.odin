@@ -132,7 +132,7 @@ SampleRayFromLight :: proc(Scene : ^scene) -> (ray, v3)
 
 BuildGlobalPhotonMap :: proc(Map : ^photon_map, Scene : ^scene)
 {
-	EmittedPhotons :: 1000000
+	EmittedPhotons :: 100000
 	MaxPhotonBounces := Scene.MaxDepth
 
 	for PhotonIndex := 0; PhotonIndex < EmittedPhotons; PhotonIndex += 1
@@ -143,7 +143,7 @@ BuildGlobalPhotonMap :: proc(Map : ^photon_map, Scene : ^scene)
 	}
 
 	fmt.println("\nStored", Map.StoredPhotons, "photons")
-	fmt.println(Map.StoredPhotons * size_of(photon) / (1024 * 1024), "MB of photons")
+	fmt.println(Map.StoredPhotons * size_of(photon) / (1024), "KB of photons")
 	ScalePhotonPower(Map, f32(1.0) / f32(EmittedPhotons))
 
 	BuildPhotonMap(Map)
@@ -151,7 +151,7 @@ BuildGlobalPhotonMap :: proc(Map : ^photon_map, Scene : ^scene)
 
 BuildCausticPhotonMap :: proc(Map : ^photon_map, Scene : ^scene)
 {
-	EmittedPhotons :: 1000000
+	EmittedPhotons :: 100000
 	MaxPhotonBounces := Scene.MaxDepth
 
 	for PhotonIndex := 0; PhotonIndex < EmittedPhotons; PhotonIndex += 1
@@ -186,12 +186,10 @@ CastGlobalPhoton :: proc(Map : ^photon_map, InitialRay : ray, InitialPower : v3,
 			}
 
 			SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
-
-			_, IsLambertian := SurfaceMaterial.(lambertian)
-			_, IsOrenNayar := SurfaceMaterial.(oren_nayar)
+			MaterialType := GetMaterialType(SurfaceMaterial)
 
 			// Store diffuse interaction
-			if IsLambertian || IsOrenNayar
+			if MaterialType == .DIFFUSE
 			{
 				StorePhoton(Map, Record.HitPoint, Throughput, -Ray.Direction)
 
@@ -247,24 +245,20 @@ CastCausticPhoton :: proc(Map : ^photon_map, InitialRay : ray, InitialPower : v3
 
 			SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
 
-			_, IsLambertian := SurfaceMaterial.(lambertian)
-			_, IsOrenNayar := SurfaceMaterial.(oren_nayar)
-			_, IsDielectric := SurfaceMaterial.(dielectric)
-
-			IsDiffuse := IsLambertian || IsOrenNayar
+			MaterialType := GetMaterialType(SurfaceMaterial)
 
 			// Break when hitting diffuse surface without a previous specular hit
-			if IsDiffuse && !PrevSpecular
+			if MaterialType == .DIFFUSE && !PrevSpecular
 			{
 				break
 			}
 
-			if IsDiffuse && PrevSpecular
+			if MaterialType == .DIFFUSE && PrevSpecular
 			{
 				StorePhoton(Map, Record.HitPoint, Throughput, -Ray.Direction)
 			}
 
-			PrevSpecular = IsDielectric
+			PrevSpecular = (MaterialType == .SPECULAR)
 
 			// Russian roulette for new photon
 			if BounceCount > 0

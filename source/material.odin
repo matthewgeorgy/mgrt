@@ -32,6 +32,12 @@ oren_nayar :: struct
 	A, B : f32,
 }
 
+material_type :: enum
+{
+	DIFFUSE,
+	SPECULAR,
+}
+
 material :: union
 {
 	lambertian,
@@ -39,6 +45,29 @@ material :: union
 	dielectric,
 	merl,
 	oren_nayar,
+}
+
+GetMaterialType :: proc(Material : material) -> material_type
+{
+	MaterialType : material_type
+
+	switch Type in Material
+	{
+		case lambertian:
+		case merl:
+		case oren_nayar:
+		{
+			MaterialType = .DIFFUSE
+		}
+
+		case metal:
+		case dielectric:
+		{
+			MaterialType = .SPECULAR
+		}
+	}
+
+	return MaterialType
 }
 
 AddMaterial :: proc{ AddLambertian, AddMetal, AddDielectric, AddMERL, AddOrenNayar, }

@@ -194,16 +194,13 @@ ComputeIndirectIlluminationRecursive :: proc(Scene : ^scene, RayDirection : v3, 
 		if !HasLight(FinalRecord)
 		{
 			HitMaterial := Scene.Materials[FinalRecord.MaterialIndex]
+			MaterialType := GetMaterialType(HitMaterial)
 
-			_, IsLambertian := HitMaterial.(lambertian)
-			_, IsOrenNayar := HitMaterial.(oren_nayar)
-			_, IsDielectric := HitMaterial.(dielectric)
-
-			if IsLambertian || IsOrenNayar
+			if MaterialType == .DIFFUSE
 			{
 				Indirect = f * CosAtten * ComputeRadianceWithPhotonMap(Scene, -FinalRay.Direction, FinalRecord) / Sample.PDF
 			}
-			else if IsDielectric
+			else if MaterialType == .SPECULAR
 			{
 				Indirect = f * CosAtten * ComputeIndirectIlluminationRecursive(Scene, -FinalRay.Direction, &FinalRecord, Depth - 1) / Sample.PDF
 			}
@@ -291,21 +288,17 @@ PhotonMapIntegrator :: proc(Ray : ray, Scene : ^scene, Depth : int) -> v3
 		}
 
 		SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
+		MaterialType := GetMaterialType(SurfaceMaterial)
 
-		_, IsLambertian := SurfaceMaterial.(lambertian)
-		_, IsOrenNayar := SurfaceMaterial.(oren_nayar)
-		_, IsDielectric := SurfaceMaterial.(dielectric)
-		IsDiffuse := IsLambertian || IsOrenNayar
-
-		if IsDiffuse
+		if MaterialType == .DIFFUSE
 		{
 			DirectIllumination := ComputeDirectIllumination(Ray, Record, Scene)
-			Caustics := ComputeCausticsWithPhotonMap(Scene, -Ray.Direction, Record)
 			IndirectIllumination := ComputeIndirectIllumination(Scene, Ray.Direction, &Record)
+			Caustics := ComputeCausticsWithPhotonMap(Scene, -Ray.Direction, Record)
 
 			return DirectIllumination + IndirectIllumination + Caustics
 		}
-		else if IsDielectric
+		else if MaterialType == .SPECULAR
 		{
 			Sample := SampleBxDF(SurfaceMaterial, -Ray.Direction, Record)
 
