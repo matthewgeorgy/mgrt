@@ -168,8 +168,17 @@ ComputeDirectIllumination :: proc(Ray : ray, Record : hit_record, Scene : ^scene
 
 ComputeIndirectIllumination :: proc(Scene : ^scene, RayDirection : v3, Record : ^hit_record) -> v3
 {
+	return ComputeIndirectIlluminationRecursive(Scene, RayDirection, Record, Scene.MaxDepth)
+}
+
+ComputeIndirectIlluminationRecursive :: proc(Scene : ^scene, RayDirection : v3, Record : ^hit_record, Depth : int) -> v3
+{
 	Indirect : v3
-	Map := Scene.PhotonMap
+
+	if Depth <= 0
+	{
+		return v3{0, 0, 0}
+	}
 
 	SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
 	Sample := SampleBxDF(SurfaceMaterial, -RayDirection, Record^)
@@ -188,10 +197,15 @@ ComputeIndirectIllumination :: proc(Scene : ^scene, RayDirection : v3, Record : 
 
 			_, IsLambertian := HitMaterial.(lambertian)
 			_, IsOrenNayar := HitMaterial.(oren_nayar)
+			_, IsDielectric := HitMaterial.(dielectric)
 
 			if IsLambertian || IsOrenNayar
 			{
 				Indirect = f * CosAtten * ComputeRadianceWithPhotonMap(Scene, -FinalRay.Direction, FinalRecord) / Sample.PDF
+			}
+			else if IsDielectric
+			{
+				Indirect = f * CosAtten * ComputeIndirectIlluminationRecursive(Scene, -FinalRay.Direction, &FinalRecord, Depth - 1) / Sample.PDF
 			}
 		}
 	}
@@ -202,12 +216,41 @@ ComputeIndirectIllumination :: proc(Scene : ^scene, RayDirection : v3, Record : 
 ComputeRadianceWithPhotonMap :: proc(Scene : ^scene, wo : v3, Record : hit_record) -> v3
 {
 	Radiance : v3
-	Map := Scene.PhotonMap
+	GlobalPhotonMap := Scene.GlobalPhotonMap
 	MaxPhotonDistance : f32 = 10
 
 	SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
 
-	NearestPhotons := LocatePhotons(Scene.PhotonMap, Record.HitPoint, MaxPhotonDistance)
+	NearestPhotons := LocatePhotons(GlobalPhotonMap, Record.HitPoint, MaxPhotonDistance)
+	defer delete(NearestPhotons.PhotonsFound)
+
+	if len(NearestPhotons.PhotonsFound) < 0
+	{
+		return v3{0, 0, 0}
+	}
+
+	for Photon in NearestPhotons.PhotonsFound
+	{
+		f := EvaluateBxDF(SurfaceMaterial, wo, Photon.Dir, Record)
+		Radiance += f * Photon.Power
+	}
+
+	AreaFactor := 1.0  / (PI * MaxPhotonDistance * MaxPhotonDistance) // density estimate
+
+	Radiance *= AreaFactor
+
+	return Radiance
+}
+
+ComputeCausticsWithPhotonMap :: proc(Scene : ^scene, wo : v3, Record : hit_record) -> v3
+{
+	Radiance : v3
+	PhotonMap := Scene.CausticPhotonMap
+	MaxPhotonDistance : f32 = 10
+
+	SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
+
+	NearestPhotons := LocatePhotons(PhotonMap, Record.HitPoint, MaxPhotonDistance)
 	defer delete(NearestPhotons.PhotonsFound)
 
 	if len(NearestPhotons.PhotonsFound) < 0
@@ -247,10 +290,38 @@ PhotonMapIntegrator :: proc(Ray : ray, Scene : ^scene, Depth : int) -> v3
 			return SurfaceLight.Le
 		}
 
-		DirectIllumination := ComputeDirectIllumination(Ray, Record, Scene)
-		IndirectIllumination := ComputeIndirectIllumination(Scene, Ray.Direction, &Record)
+		SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
 
-		return DirectIllumination + IndirectIllumination
+		_, IsLambertian := SurfaceMaterial.(lambertian)
+		_, IsOrenNayar := SurfaceMaterial.(oren_nayar)
+		_, IsDielectric := SurfaceMaterial.(dielectric)
+		IsDiffuse := IsLambertian || IsOrenNayar
+
+		if IsDiffuse
+		{
+			DirectIllumination := ComputeDirectIllumination(Ray, Record, Scene)
+			Caustics := ComputeCausticsWithPhotonMap(Scene, -Ray.Direction, Record)
+			IndirectIllumination := ComputeIndirectIllumination(Scene, Ray.Direction, &Record)
+
+			return DirectIllumination + IndirectIllumination + Caustics
+		}
+		else if IsDielectric
+		{
+			Sample := SampleBxDF(SurfaceMaterial, -Ray.Direction, Record)
+
+			f := Sample.f
+			PDF := Sample.PDF
+			wi := Sample.wi
+
+			CosAtten := Abs(Dot(wi, Record.SurfaceNormal))
+			NewRay := ray{Record.HitPoint, wi}
+
+			return f * CosAtten * PhotonMapIntegrator(NewRay, Scene, Depth - 1) / PDF
+		}
+		else
+		{
+			return v3{0, 0, 0}
+		}
 	}
 	else
 	{

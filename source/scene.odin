@@ -12,7 +12,8 @@ scene :: struct
 	LightIndices : [dynamic]u32,
 
 	BVH : bvh,
-	PhotonMap : ^photon_map,
+	GlobalPhotonMap : ^photon_map,
+	CausticPhotonMap : ^photon_map,
 
 	SamplesPerPixel : u32,
 	MaxDepth : int,
@@ -84,6 +85,7 @@ CornellBunny  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 
 	OrenNayar := AddMaterial(Scene, CreateOrenNayar(v3{0.8, 0.6, 0.6}, 20))
 	Pink := AddMaterial(Scene, lambertian{v3{0.8, 0.6, 0.6}})
+	Glass := AddMaterial(Scene, dielectric{1.33})
 
 	Light := AddLight(Scene, light{v3{15, 15, 15}})
 
@@ -95,7 +97,7 @@ CornellBunny  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 	AddPrimitive(Scene, CreateQuad(v3{0, 0, -555}, v3{555, 0, 0}, v3{0, 555, 0}), Gray, 0)		// back
 
 	BVH.Translation = v3{-300, 0, 300}
-	BVH.MaterialIndex = OrenNayar
+	BVH.MaterialIndex = Glass
 
 	Scene.BVH = BVH
 }

@@ -132,7 +132,7 @@ SampleRayFromLight :: proc(Scene : ^scene) -> (ray, v3)
 
 BuildGlobalPhotonMap :: proc(Map : ^photon_map, Scene : ^scene)
 {
-	EmittedPhotons :: 100000
+	EmittedPhotons :: 1000000
 	MaxPhotonBounces := Scene.MaxDepth
 
 	for PhotonIndex := 0; PhotonIndex < EmittedPhotons; PhotonIndex += 1
@@ -151,18 +151,18 @@ BuildGlobalPhotonMap :: proc(Map : ^photon_map, Scene : ^scene)
 
 BuildCausticPhotonMap :: proc(Map : ^photon_map, Scene : ^scene)
 {
-	EmittedPhotons :: 100000
+	EmittedPhotons :: 1000000
 	MaxPhotonBounces := Scene.MaxDepth
 
 	for PhotonIndex := 0; PhotonIndex < EmittedPhotons; PhotonIndex += 1
 	{
 		Ray, Power := SampleRayFromLight(Scene)
 
-		CastGlobalPhoton(Map, Ray, Power, Scene, MaxPhotonBounces)
+		CastCausticPhoton(Map, Ray, Power, Scene, MaxPhotonBounces)
 	}
 
 	fmt.println("\nStored", Map.StoredPhotons, "photons")
-	fmt.println(Map.StoredPhotons * size_of(photon) / (1024 * 1024), "MB of photons")
+	fmt.println(Map.StoredPhotons * size_of(photon) / (1024), "KB of photons")
 	ScalePhotonPower(Map, f32(1.0) / f32(EmittedPhotons))
 
 	BuildPhotonMap(Map)
@@ -214,6 +214,10 @@ CastGlobalPhoton :: proc(Map : ^photon_map, InitialRay : ray, InitialPower : v3,
 				Throughput *= CosAtten * Sample.f / Sample.PDF
 				Ray = ray{Record.HitPoint, Sample.wi}
 			}
+			else
+			{
+				break
+			}
 		}
 		else
 		{
@@ -253,6 +257,11 @@ CastCausticPhoton :: proc(Map : ^photon_map, InitialRay : ray, InitialPower : v3
 			if IsDiffuse && !PrevSpecular
 			{
 				break
+			}
+
+			if IsDiffuse && PrevSpecular
+			{
+				StorePhoton(Map, Record.HitPoint, Throughput, -Ray.Direction)
 			}
 
 			PrevSpecular = IsDielectric

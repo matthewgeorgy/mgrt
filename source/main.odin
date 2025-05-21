@@ -78,7 +78,7 @@ main :: proc()
 	win32.QueryPerformanceCounter(&StartCounter)
 	BuildGlobalPhotonMap(&GlobalPhotonMap, &Scene)
 	win32.QueryPerformanceCounter(&EndCounter)
-	Scene.PhotonMap = &GlobalPhotonMap
+	Scene.GlobalPhotonMap = &GlobalPhotonMap
 	ElapsedTime = (EndCounter - StartCounter) * 1000 / Frequency
 	fmt.println("Global photon tracing took", ElapsedTime, "ms\n")
 
@@ -86,7 +86,7 @@ main :: proc()
 	win32.QueryPerformanceCounter(&StartCounter)
 	BuildCausticPhotonMap(&CausticPhotonMap, &Scene)
 	win32.QueryPerformanceCounter(&EndCounter)
-	Scene.PhotonMap = &CausticPhotonMap
+	Scene.CausticPhotonMap = &CausticPhotonMap
 	ElapsedTime = (EndCounter - StartCounter) * 1000 / Frequency
 	fmt.println("Caustic photon tracing took", ElapsedTime, "ms\n")
 
