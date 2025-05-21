@@ -53,15 +53,12 @@ GetMaterialType :: proc(Material : material) -> material_type
 
 	switch Type in Material
 	{
-		case lambertian:
-		case merl:
-		case oren_nayar:
+		case lambertian, merl, oren_nayar:
 		{
 			MaterialType = .DIFFUSE
 		}
 
-		case metal:
-		case dielectric:
+		case metal, dielectric:
 		{
 			MaterialType = .SPECULAR
 		}
