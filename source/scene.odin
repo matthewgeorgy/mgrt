@@ -1,5 +1,7 @@
 package main
 
+import fmt "core:fmt"
+
 scene :: struct
 {
 	Materials : [dynamic]material,
@@ -15,6 +17,30 @@ scene :: struct
 	SamplesPerPixel : u32,
 	MaxDepth : int,
 };
+
+// TODO(matthew): When we come back to update this to support more than one
+// light, we need to choose them at random and correct by the PDF in doing so.
+SampleRandomLight :: proc(Scene : ^scene) -> (v3, v3, f32)
+{
+	if len(Scene.LightIndices) == 0
+	{
+		fmt.println("no lights!")
+		return v3{0, 0, 0}, v3{0, 0, 0}, 1
+	}
+
+	PrimitiveIndex := Scene.LightIndices[0]
+	Primitive := Scene.Primitives[PrimitiveIndex]
+	Shape := Primitive.Shape
+
+	LightIndex := Primitive.LightIndex
+	LightColor := Scene.Lights[LightIndex].Le
+
+	Point := SamplePoint(Shape)
+	Area := GetArea(Shape)
+	PDF := 1.0 / Area
+
+	return Point, LightColor, PDF
+}
 
 GatherLightIndices :: proc(Scene : ^scene)
 {

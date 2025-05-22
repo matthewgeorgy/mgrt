@@ -92,59 +92,101 @@ CreateBox :: proc(A, B : v3, Translation : v3, Rotation : f32, MaterialIndex : u
     AddPrimitive(Scene, CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaX,  DeltaZ, Translation, Rotation), MaterialIndex, LightIndex) // bottom
 }
 
-// TODO(matthew): Still quite hardcoded for now, as it assumes that the quads
-// are perfectly flat (lie in the xz-plane), as is the case with the cornell
-// lights.
-// Will need to extend this in the future to handle arbitrary orientations, as
-// well as a wider variety of shapes to sample points from.
-QuadArea :: proc(Quad : quad) -> f32
+GetArea :: proc(Shape : shape) -> f32
 {
-	MinPoint := Quad.Q
-	MaxPoint := Quad.Q + Quad.u + Quad.v
+	Area : f32
 
-	Area := Abs(MaxPoint.x - MinPoint.x) * Abs(MaxPoint.z - MinPoint.z)
+	#partial switch Type in Shape
+	{
+		case sphere:
+		{
+			Area = GetArea_Sphere(Shape.(sphere))
+		}
+
+		case quad:
+		{
+			Area = GetArea_Quad(Shape.(quad))
+		}
+
+		case triangle:
+		{
+			Area = GetArea_Triangle(Shape.(triangle))
+		}
+	}
 
 	return Area
 }
 
-SamplePoint :: proc{ SampleQuad }
-
-SampleQuad :: proc(Quad : quad) -> v3
+GetArea_Sphere :: proc(Sphere : sphere) -> f32
 {
-	StartPoint := Quad.Q
-	EndPoint := Quad.Q + Quad.u + Quad.v
+	return 4 * PI * Sphere.Radius * Sphere.Radius
+}
 
-	MinPoint := MinV3(StartPoint, EndPoint)
-	MaxPoint := MaxV3(StartPoint, EndPoint)
+GetArea_Quad :: proc(Quad : quad) -> f32
+{
+	V0 := Quad.Q
+	V1 := Quad.Q + Quad.u
+	V2 := Quad.Q + Quad.v
 
+	Edge1 := V1 - V0
+	Edge2 := V2 - V0
+
+	Area := Length(Cross(Edge1, Edge2))
+
+	return Area
+}
+
+GetArea_Triangle :: proc(Triangle : triangle) -> f32
+{
+	Edge1 := Triangle.Vertices[1] - Triangle.Vertices[0]
+	Edge2 := Triangle.Vertices[2] - Triangle.Vertices[0]
+
+	Area := 0.5 * Length(Cross(Edge1, Edge2))
+
+	return Area
+}
+
+SamplePoint :: proc(Shape : shape) -> v3
+{
 	Point : v3
 
-	Point.x = RandomFloat(MinPoint.x, MaxPoint.x)
-	Point.y = MinPoint.y
-	Point.z = RandomFloat(MinPoint.z, MaxPoint.z)
+	#partial switch Type in Shape
+	{
+		case quad:
+		{
+			Point = SamplePoint_Quad(Shape.(quad))
+		}
+
+		case triangle:
+		{
+			Point = SamplePoint_Triangle(Shape.(triangle))
+		}
+	}
 
 	return Point
 }
 
-// TODO(matthew): When we come back to update this to support more than one
-// light, we need to choose them at random and correct by the PDF in doing so.
-SampleRandomLight :: proc(Scene : ^scene) -> (v3, v3, f32)
+SamplePoint_Triangle :: proc(Triangle : triangle) -> v3
 {
-	if len(Scene.LightIndices) == 0
-	{
-		fmt.println("no lights!")
-		return v3{0, 0, 0}, v3{0, 0, 0}, 1
-	}
+	uv := v2{RandomUnilateral(), RandomUnilateral()}
+	su0 := SquareRoot(uv[0])
 
-	QuadIndex := Scene.LightIndices[0]
-	Quad := Scene.Primitives[QuadIndex].Shape.(quad)
-	LightIndex := Scene.Primitives[QuadIndex].LightIndex
-	LightColor := Scene.Lights[LightIndex].Le
+	Barycentric := v2{1 - su0, uv[1] * su0}
 
-	Point := SamplePoint(Quad)
-	Area := QuadArea(Quad)
-	PDF := 1.0 / Area
+	Point := (1 - Barycentric[0] - Barycentric[1]) * Triangle.Vertices[0] +
+			 (Barycentric[0] * Triangle.Vertices[1]) +
+			 (Barycentric[1] * Triangle.Vertices[2])
 
-	return Point, LightColor, PDF
+	return Point
+}
+
+SamplePoint_Quad :: proc(Quad : quad) -> v3
+{
+	u := RandomUnilateral()
+	v := RandomUnilateral()
+
+	Point := Quad.Q + (u * Quad.u) + (v * Quad.v)
+
+	return Point
 }
 
