@@ -130,3 +130,65 @@ FresnelReflectance :: proc(Cosine, RefractionIndex : f32) -> f32
 	return r0 + (1 - r0) * Pow(1 - Cosine, 5)
 }
 
+///////////////////////////////////////
+// Utility functions for angles
+
+CosTheta :: proc(w : v3) -> f32
+{
+	return w.z
+}
+
+Cos2Theta :: proc(w : v3) -> f32
+{
+	return w.z * w.z
+}
+
+AbsCosTheta :: proc(w : v3) -> f32
+{
+	return Abs(w.z)
+}
+
+SinTheta :: proc(w : v3) -> f32
+{
+	return SquareRoot(Sin2Theta(w))
+}
+
+Sin2Theta :: proc(w : v3) -> f32
+{
+	return Max(0, 1 - Cos2Theta(w))
+}
+
+TanTheta :: proc(w : v3) -> f32
+{
+	return SinTheta(w) / CosTheta(w)
+}
+
+Tan2Theta :: proc(w : v3) -> f32
+{
+	return Sin2Theta(w) / Cos2Theta(w)
+}
+
+CosPhi :: proc(w : v3) -> f32
+{
+	SinTheta := SinTheta(w)
+
+	return (SinTheta == 0) ? 1 : Clamp(w.x / SinTheta, -1, 1)
+}
+
+SinPhi :: proc(w : v3) -> f32
+{
+	SinTheta := SinTheta(w)
+
+	return (SinTheta == 0) ? 0 : Clamp(w.y / SinTheta, -1, 1)
+}
+
+Cos2Phi :: proc(w : v3) -> f32
+{
+	return CosPhi(w) * CosPhi(w)
+}
+
+Sin2Phi :: proc(w : v3) -> f32
+{
+	return SinPhi(w) * SinPhi(w)
+}
+

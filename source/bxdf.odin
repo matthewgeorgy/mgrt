@@ -49,23 +49,23 @@ EvaluateBxDF :: proc(Material : material, Outgoing, Incoming : v3, Record : hit_
 	{
 		case lambertian:
 		{
-			f = EvaluateLambertianBRDF(Material.(lambertian), wo, wi)
+			f = EvaluateBxDF_Lambertian(Material.(lambertian), wo, wi)
 		}
 		case metal:
 		{
-			f = EvaluateMetalBRDF(Material.(metal), wo, wi)
+			f = EvaluateBxDF_Metal(Material.(metal), wo, wi)
 		}
 		case dielectric:
 		{
-			f = EvaluateDielectricBRDF(Material.(dielectric), wo, wi)
+			f = EvaluateBxDF_Dielectric(Material.(dielectric), wo, wi)
 		}
 		case merl:
 		{
-			f = EvaluateMERLBRDF(Material.(merl), wo, wi)
+			f = EvaluateBxDF_MERL(Material.(merl), wo, wi)
 		}
 		case oren_nayar:
 		{
-			f = EvaluateOrenNayarBRDF(Material.(oren_nayar), wo, wi)
+			f = EvaluateBxDF_OrenNayar(Material.(oren_nayar), wo, wi)
 		}
 	}
 
@@ -83,30 +83,30 @@ SampleBxDF :: proc(Material : material, Outgoing : v3, Record : hit_record) -> b
 	{
 		case lambertian:
 		{
-			Sample = SampleLambertianBRDF(Material.(lambertian), wo, Record)
+			Sample = SampleBxDF_Lambertian(Material.(lambertian), wo, Record)
 		}
 		case metal:
 		{
-			Sample = SampleMetalBRDF(Material.(metal), wo, Record)
+			Sample = SampleBxDF_Metal(Material.(metal), wo, Record)
 		}
 		case dielectric:
 		{
-			Sample = SampleDielectricBRDF(Material.(dielectric), wo, Record)
+			Sample = SampleBxDF_Dielectric(Material.(dielectric), wo, Record)
 		}
 		case merl:
 		{
-			Sample = SampleMERLBRDF(Material.(merl), wo, Record)
+			Sample = SampleBxDF_MERL(Material.(merl), wo, Record)
 		}
 		case oren_nayar:
 		{
-			Sample = SampleOrenNayarBRDF(Material.(oren_nayar), wo, Record)
+			Sample = SampleBxDF_OrenNayar(Material.(oren_nayar), wo, Record)
 		}
 	}
 
 	return Sample
 }
 
-EvaluateLambertianBRDF :: proc(Material : lambertian, wo, wi : v3) -> v3
+EvaluateBxDF_Lambertian :: proc(Material : lambertian, wo, wi : v3) -> v3
 {
 	CosThetaO := wo.z
 	CosThetaI := wi.z
@@ -119,7 +119,7 @@ EvaluateLambertianBRDF :: proc(Material : lambertian, wo, wi : v3) -> v3
 	return Material.Rho / PI
 }
 
-SampleLambertianBRDF :: proc(Material : lambertian, wo : v3, Record : hit_record) -> bxdf_sample
+SampleBxDF_Lambertian :: proc(Material : lambertian, wo : v3, Record : hit_record) -> bxdf_sample
 {
 	Sample : bxdf_sample
 
@@ -130,18 +130,18 @@ SampleLambertianBRDF :: proc(Material : lambertian, wo : v3, Record : hit_record
 
 	Sample.wi = LocalToGlobal(Basis, wi)
 	Sample.PDF = CosineTheta / PI
-	Sample.f = EvaluateLambertianBRDF(Material, wo, wi)
+	Sample.f = EvaluateBxDF_Lambertian(Material, wo, wi)
 
 	return Sample
 }
 
-EvaluateMetalBRDF :: proc(Material : metal, wo, wi : v3) -> v3
+EvaluateBxDF_Metal :: proc(Material : metal, wo, wi : v3) -> v3
 {
 	// NOTE(matthew): delta function
 	return v3{0, 0, 0}
 }
 
-SampleMetalBRDF :: proc(Material : metal, wo : v3, Record : hit_record) -> bxdf_sample
+SampleBxDF_Metal :: proc(Material : metal, wo : v3, Record : hit_record) -> bxdf_sample
 {
 	Sample : bxdf_sample
 
@@ -157,13 +157,13 @@ SampleMetalBRDF :: proc(Material : metal, wo : v3, Record : hit_record) -> bxdf_
 	return Sample
 }
 
-EvaluateDielectricBRDF :: proc(Material : dielectric, wo, wi : v3) -> v3
+EvaluateBxDF_Dielectric :: proc(Material : dielectric, wo, wi : v3) -> v3
 {
 	// NOTE(matthew): delta function
 	return v3{0, 0, 0}
 }
 
-SampleDielectricBRDF :: proc(Material : dielectric, wo : v3, Record : hit_record) -> bxdf_sample
+SampleBxDF_Dielectric :: proc(Material : dielectric, wo : v3, Record : hit_record) -> bxdf_sample
 {
 	Sample : bxdf_sample
 
@@ -198,12 +198,12 @@ SampleDielectricBRDF :: proc(Material : dielectric, wo : v3, Record : hit_record
 	return Sample
 }
 
-EvaluateMERLBRDF :: proc(Material : merl, wo, wi : v3) -> v3
+EvaluateBxDF_MERL :: proc(Material : merl, wo, wi : v3) -> v3
 {
 	return BRDFLookup(Material.Table, wo, wi)
 }
 
-SampleMERLBRDF :: proc(Material : merl, wo : v3, Record : hit_record) -> bxdf_sample
+SampleBxDF_MERL :: proc(Material : merl, wo : v3, Record : hit_record) -> bxdf_sample
 {
 	Sample : bxdf_sample
 
@@ -215,12 +215,12 @@ SampleMERLBRDF :: proc(Material : merl, wo : v3, Record : hit_record) -> bxdf_sa
 
 	Sample.PDF = 1 / (2 * PI * CosAtten)
 	Sample.wi = LocalToGlobal(Basis, wi)
-	Sample.f = EvaluateMERLBRDF(Material, wo, wi)
+	Sample.f = EvaluateBxDF_MERL(Material, wo, wi)
 
 	return Sample
 }
 
-EvaluateOrenNayarBRDF :: proc(Material : oren_nayar, wo, wi : v3) -> v3
+EvaluateBxDF_OrenNayar :: proc(Material : oren_nayar, wo, wi : v3) -> v3
 {
 	MaxCos : f32
 	SinAlpha, TanBeta : f32
@@ -261,7 +261,7 @@ EvaluateOrenNayarBRDF :: proc(Material : oren_nayar, wo, wi : v3) -> v3
 	return R * INV_PI * (A + B * MaxCos * SinAlpha * TanBeta)
 }
 
-SampleOrenNayarBRDF :: proc(Material : oren_nayar, wo : v3, Record : hit_record) -> bxdf_sample
+SampleBxDF_OrenNayar :: proc(Material : oren_nayar, wo : v3, Record : hit_record) -> bxdf_sample
 {
 	Sample : bxdf_sample
 
@@ -271,70 +271,8 @@ SampleOrenNayarBRDF :: proc(Material : oren_nayar, wo : v3, Record : hit_record)
 
 	Sample.wi = LocalToGlobal(Basis, wi)
 	Sample.PDF = 1 / (2 * PI)
-	Sample.f = EvaluateOrenNayarBRDF(Material, wo, wi)
+	Sample.f = EvaluateBxDF_OrenNayar(Material, wo, wi)
 
 	return Sample
-}
-
-///////////////////////////////////////
-// Utility functions for angles
-
-CosTheta :: proc(w : v3) -> f32
-{
-	return w.z
-}
-
-Cos2Theta :: proc(w : v3) -> f32
-{
-	return w.z * w.z
-}
-
-AbsCosTheta :: proc(w : v3) -> f32
-{
-	return Abs(w.z)
-}
-
-SinTheta :: proc(w : v3) -> f32
-{
-	return SquareRoot(Sin2Theta(w))
-}
-
-Sin2Theta :: proc(w : v3) -> f32
-{
-	return Max(0, 1 - Cos2Theta(w))
-}
-
-TanTheta :: proc(w : v3) -> f32
-{
-	return SinTheta(w) / CosTheta(w)
-}
-
-Tan2Theta :: proc(w : v3) -> f32
-{
-	return Sin2Theta(w) / Cos2Theta(w)
-}
-
-CosPhi :: proc(w : v3) -> f32
-{
-	SinTheta := SinTheta(w)
-
-	return (SinTheta == 0) ? 1 : Clamp(w.x / SinTheta, -1, 1)
-}
-
-SinPhi :: proc(w : v3) -> f32
-{
-	SinTheta := SinTheta(w)
-
-	return (SinTheta == 0) ? 0 : Clamp(w.y / SinTheta, -1, 1)
-}
-
-Cos2Phi :: proc(w : v3) -> f32
-{
-	return CosPhi(w) * CosPhi(w)
-}
-
-Sin2Phi :: proc(w : v3) -> f32
-{
-	return SinPhi(w) * SinPhi(w)
 }
 

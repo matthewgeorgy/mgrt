@@ -67,9 +67,15 @@ GetMaterialType :: proc(Material : material) -> material_type
 	return MaterialType
 }
 
-AddMaterial :: proc{ AddLambertian, AddMetal, AddDielectric, AddMERL, AddOrenNayar, }
+AddMaterial :: proc{
+	AddMaterial_Lambertian,
+	AddMaterial_Metal,
+	AddMaterial_Dielectric,
+	AddMaterial_MERL,
+	AddMaterial_OrenNayar,
+}
 
-AddLambertian :: proc(Scene : ^scene, Lambertian : lambertian) -> u32
+AddMaterial_Lambertian :: proc(Scene : ^scene, Lambertian : lambertian) -> u32
 {
 	MaterialIndex := cast(u32)len(Scene.Materials)
 
@@ -78,7 +84,7 @@ AddLambertian :: proc(Scene : ^scene, Lambertian : lambertian) -> u32
 	return MaterialIndex
 }
 
-AddMetal :: proc(Scene : ^scene, Metal : metal) -> u32
+AddMaterial_Metal :: proc(Scene : ^scene, Metal : metal) -> u32
 {
 	MaterialIndex := cast(u32)len(Scene.Materials)
 
@@ -87,7 +93,7 @@ AddMetal :: proc(Scene : ^scene, Metal : metal) -> u32
 	return MaterialIndex
 }
 
-AddDielectric :: proc(Scene : ^scene, Dielectric : dielectric) -> u32
+AddMaterial_Dielectric :: proc(Scene : ^scene, Dielectric : dielectric) -> u32
 {
 	MaterialIndex := cast(u32)len(Scene.Materials)
 
@@ -96,7 +102,7 @@ AddDielectric :: proc(Scene : ^scene, Dielectric : dielectric) -> u32
 	return MaterialIndex
 }
 
-AddMERL :: proc(Scene : ^scene, Table : merl) -> u32
+AddMaterial_MERL :: proc(Scene : ^scene, Table : merl) -> u32
 {
 	MaterialIndex := cast(u32)len(Scene.Materials)
 
@@ -105,7 +111,7 @@ AddMERL :: proc(Scene : ^scene, Table : merl) -> u32
 	return MaterialIndex
 }
 
-AddOrenNayar :: proc(Scene : ^scene, OrenNayar : oren_nayar) -> u32
+AddMaterial_OrenNayar :: proc(Scene : ^scene, OrenNayar : oren_nayar) -> u32
 {
 	MaterialIndex := cast(u32)len(Scene.Materials)
 

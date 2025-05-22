@@ -27,6 +27,15 @@ import win32	"core:sys/windows"
 import libc		"core:c/libc"
 import strings	"core:strings"
 
+when ODIN_DEBUG == true
+{
+	THREADCOUNT :: 1
+}
+else
+{
+	THREADCOUNT :: 8
+}
+
 main :: proc()
 {
 	// Initialize scene, camera, and image from command line args
@@ -91,14 +100,6 @@ main :: proc()
 	fmt.println("Caustic photon tracing took", ElapsedTime, "ms\n")
 
 	// Threading
-	when ODIN_DEBUG == true
-	{
-		THREADCOUNT :: 1
-	}
-	else
-	{
-		THREADCOUNT :: 8
-	}
 	ThreadData : thread_data
 	Threads : [THREADCOUNT]^thread.Thread
 
