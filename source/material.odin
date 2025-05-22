@@ -67,57 +67,44 @@ GetMaterialType :: proc(Material : material) -> material_type
 	return MaterialType
 }
 
-AddMaterial :: proc{
-	AddMaterial_Lambertian,
-	AddMaterial_Metal,
-	AddMaterial_Dielectric,
-	AddMaterial_MERL,
-	AddMaterial_OrenNayar,
+CreateLambertian :: proc(R : v3) -> lambertian
+{
+	Material : lambertian
+
+	Material.Rho = R
+
+	return Material
 }
 
-AddMaterial_Lambertian :: proc(Scene : ^scene, Lambertian : lambertian) -> u32
+CreateMetal :: proc(Color : v3, Fuzz : f32) -> metal
 {
-	MaterialIndex := cast(u32)len(Scene.Materials)
+	Material : metal
 
-	append(&Scene.Materials, Lambertian)
+	Material.Color = Color
+	Material.Fuzz = Fuzz
 
-	return MaterialIndex
+	return Material
 }
 
-AddMaterial_Metal :: proc(Scene : ^scene, Metal : metal) -> u32
+CreateDielectric :: proc(RefractionIndex : f32) -> dielectric
 {
-	MaterialIndex := cast(u32)len(Scene.Materials)
+	Material : dielectric
 
-	append(&Scene.Materials, Metal)
+	Material.RefractionIndex = RefractionIndex
 
-	return MaterialIndex
+	return Material
 }
 
-AddMaterial_Dielectric :: proc(Scene : ^scene, Dielectric : dielectric) -> u32
+CreateMERL :: proc(Filename : string) -> merl
 {
-	MaterialIndex := cast(u32)len(Scene.Materials)
+	Material : merl
 
-	append(&Scene.Materials, Dielectric)
+	Table := new(merl_table)
+	LoadMERL(Filename, Table)
 
-	return MaterialIndex
-}
+	Material.Table = Table
 
-AddMaterial_MERL :: proc(Scene : ^scene, Table : merl) -> u32
-{
-	MaterialIndex := cast(u32)len(Scene.Materials)
-
-	append(&Scene.Materials, Table)
-
-	return MaterialIndex
-}
-
-AddMaterial_OrenNayar :: proc(Scene : ^scene, OrenNayar : oren_nayar) -> u32
-{
-	MaterialIndex := cast(u32)len(Scene.Materials)
-
-	append(&Scene.Materials, OrenNayar)
-
-	return MaterialIndex
+	return Material
 }
 
 CreateOrenNayar :: proc(R : v3, Sigma : f32) -> oren_nayar
@@ -132,14 +119,5 @@ CreateOrenNayar :: proc(R : v3, Sigma : f32) -> oren_nayar
 	Material.R = R
 
 	return Material
-}
-
-AddLight :: proc(Scene : ^scene, Light : light) -> u32
-{
-	MaterialIndex := cast(u32)len(Scene.Lights)
-
-	append(&Scene.Lights, Light)
-
-	return MaterialIndex
 }
 

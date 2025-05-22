@@ -37,25 +37,22 @@ CornellBunny  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 
 	InitializeCamera(Camera, ImageWidth, ImageHeight)
 
-	Table := new(merl_table)
-	LoadMERL(string("assets/merl/gold-metallic-paint.binary"), Table)
-
 	// Scene setup
 	// TODO(matthew): do this with a proper bounding box so that we can get
 	// other models in here!
 
-	Background := AddMaterial(Scene, lambertian{v3{0.0, 0.0, 0.0}})
+	Background := AddMaterial(Scene, CreateLambertian(v3{0.0, 0.0, 0.0}))
 	NullLight := AddLight(Scene, light{})
 
-	Red := AddMaterial(Scene, lambertian{v3{0.65, 0.05, 0.05}})
-	Gray := AddMaterial(Scene, lambertian{v3{0.73, 0.73, 0.73}})
-	Green := AddMaterial(Scene, lambertian{v3{0.12, 0.45, 0.15}})
-	MERL := AddMaterial(Scene, merl{ Table })
-	Diffuse := AddMaterial(Scene, lambertian{v3{0.1, 0.1, 0.1}})
+	Red := AddMaterial(Scene, CreateLambertian(v3{0.65, 0.05, 0.05}))
+	Gray := AddMaterial(Scene, CreateLambertian(v3{0.73, 0.73, 0.73}))
+	Green := AddMaterial(Scene, CreateLambertian(v3{0.12, 0.45, 0.15}))
+	MERL := AddMaterial(Scene, CreateMERL(string("assets/merl/gold-metallic-paint.binary")))
+	Diffuse := AddMaterial(Scene, CreateLambertian(v3{0.1, 0.1, 0.1}))
 
 	OrenNayar := AddMaterial(Scene, CreateOrenNayar(v3{0.8, 0.6, 0.6}, 20))
-	Pink := AddMaterial(Scene, lambertian{v3{0.8, 0.6, 0.6}})
-	Glass := AddMaterial(Scene, dielectric{1.33})
+	Pink := AddMaterial(Scene, CreateLambertian(v3{0.8, 0.6, 0.6}))
+	Glass := AddMaterial(Scene, CreateDielectric(1.33))
 
 	Light := AddLight(Scene, light{v3{15, 15, 15}})
 
@@ -81,7 +78,6 @@ GlassSuzanne :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight :
 	Filename := string("assets/suzanne.obj")
 	Mesh := LoadMesh(Filename)
 	fmt.println("Loaded mesh:", Filename, "with", len(Mesh.Triangles), "triangles")
-
 
 	win32.QueryPerformanceCounter(&StartCounter)
 
@@ -123,11 +119,11 @@ GlassSuzanne :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight :
 	InitializeCamera(Camera, ImageWidth, ImageHeight)
 
 	// Scene
-	Background := AddMaterial(Scene, lambertian{v3{0.2, 0.2, 0.2}})
+	Background := AddMaterial(Scene, CreateLambertian(v3{0.2, 0.2, 0.2}))
 	NullLight := AddLight(Scene, light{})
 
-	Floor := AddMaterial(Scene, lambertian{v3{0.2, 0.6, 0.8}})
-	Glass := AddMaterial(Scene, dielectric{1.33})
+	Floor := AddMaterial(Scene, CreateLambertian(v3{0.2, 0.6, 0.8}))
+	Glass := AddMaterial(Scene, CreateDielectric(1.33))
 
 	Light := AddLight(Scene, light{v3{1, 1, 1}})
 
@@ -148,12 +144,12 @@ SpheresMaterial :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeigh
 
 	InitializeCamera(Camera, ImageWidth, ImageHeight)
 
-	Background := AddMaterial(Scene, lambertian{v3{0.5, 0.7, 1.0}})
-	Ground := AddMaterial(Scene, lambertian{v3{0.8, 0.8, 0.0}});
-    Center := AddMaterial(Scene, lambertian{v3{0.1, 0.2, 0.5}});
-    Left   := AddMaterial(Scene, dielectric{1.5})
-    Bubble   := AddMaterial(Scene, dielectric{1.0 / 1.5})
-    Right  := AddMaterial(Scene, metal{v3{0.8, 0.6, 0.2}, 1.0});
+	Background := AddMaterial(Scene, CreateLambertian(v3{0.5, 0.7, 1.0}))
+	Ground := AddMaterial(Scene, CreateLambertian(v3{0.8, 0.8, 0.0}))
+    Center := AddMaterial(Scene, CreateLambertian(v3{0.1, 0.2, 0.5}))
+    Left   := AddMaterial(Scene, CreateDielectric(1.5))
+    Bubble   := AddMaterial(Scene, CreateDielectric(1.0 / 1.5))
+    Right  := AddMaterial(Scene, CreateMetal(v3{0.8, 0.6, 0.2}, 1.0))
 
     AddPrimitive(Scene, sphere{v3{ 0.0, -100.5, -1.0}, 100.0}, Ground, 0)
     AddPrimitive(Scene, sphere{v3{ 0.0,    0.0, -1.2},   0.5}, Center, 0)
@@ -208,10 +204,10 @@ BunnyPlaneLamp :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight
 	InitializeCamera(Camera, ImageWidth, ImageHeight)
 
 	// Scene
-	Background := AddMaterial(Scene, lambertian{v3{0.2, 0.2, 0.2}})
+	Background := AddMaterial(Scene, CreateLambertian(v3{0.2, 0.2, 0.2}))
 	NullLight := AddLight(Scene, light{})
-	Model := AddMaterial(Scene, lambertian{v3{0.8, 0.2, 0.2}})
-	Plane := AddMaterial(Scene, lambertian{v3{0.2, 0.6, 0.8}})
+	Model := AddMaterial(Scene, CreateLambertian(v3{0.8, 0.2, 0.2}))
+	Plane := AddMaterial(Scene, CreateLambertian(v3{0.2, 0.6, 0.8}))
 	Light := AddLight(Scene, light{v3{1, 1, 1}})
 
 	AddPrimitive(Scene, plane{v3{0, 1, 0}, 0}, Plane, 0)
@@ -231,22 +227,13 @@ CornellBox :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : i
 
 	InitializeCamera(Camera, ImageWidth, ImageHeight)
 
-	GoldTable := new(merl_table)
-	ChromeTable := new(merl_table)
-	LoadMERL(string("assets/merl/gold-metallic-paint.binary"), GoldTable)
-	LoadMERL(string("assets/merl/chrome.binary"), ChromeTable)
-
 	// Scene setup
-	Background := AddMaterial(Scene, lambertian{v3{0.0, 0.0, 0.0}})
+	Background := AddMaterial(Scene, CreateLambertian(v3{0.0, 0.0, 0.0}))
 	NullLight := AddLight(Scene, light{})
 
-	Red := AddMaterial(Scene, lambertian{v3{0.65, 0.05, 0.05}})
-	Gray := AddMaterial(Scene, lambertian{v3{0.73, 0.73, 0.73}})
-	Green := AddMaterial(Scene, lambertian{v3{0.12, 0.45, 0.15}})
-	Gold := AddMaterial(Scene, merl { GoldTable })
-	Chrome := AddMaterial(Scene, merl { ChromeTable })
-	Glass := AddMaterial(Scene, dielectric{1.33})
-	Aluminum := AddMaterial(Scene, metal{v3{0.8, 0.85, 0.88}, 0})
+	Red := AddMaterial(Scene, CreateLambertian(v3{0.65, 0.05, 0.05}))
+	Gray := AddMaterial(Scene, CreateLambertian(v3{0.73, 0.73, 0.73}))
+	Green := AddMaterial(Scene, CreateLambertian(v3{0.12, 0.45, 0.15}))
 
 	Light := AddLight(Scene, light{v3{15, 15, 15}})
 
@@ -271,22 +258,16 @@ CornellSphere :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 
 	InitializeCamera(Camera, ImageWidth, ImageHeight)
 
-	GoldTable := new(merl_table)
-	ChromeTable := new(merl_table)
-	LoadMERL(string("assets/merl/gold-metallic-paint.binary"), GoldTable)
-	LoadMERL(string("assets/merl/chrome.binary"), ChromeTable)
-
 	// Scene setup
-	Background := AddMaterial(Scene, lambertian{v3{0.0, 0.0, 0.0}})
+	Background := AddMaterial(Scene, CreateLambertian(v3{0.0, 0.0, 0.0}))
 	NullLight := AddLight(Scene, light{})
 
-	Red := AddMaterial(Scene, lambertian{v3{0.65, 0.05, 0.05}})
-	Gray := AddMaterial(Scene, lambertian{v3{0.73, 0.73, 0.73}})
-	Green := AddMaterial(Scene, lambertian{v3{0.12, 0.45, 0.15}})
-	Gold := AddMaterial(Scene, merl { GoldTable })
+	Red := AddMaterial(Scene, CreateLambertian(v3{0.65, 0.05, 0.05}))
+	Gray := AddMaterial(Scene, CreateLambertian(v3{0.73, 0.73, 0.73}))
+	Green := AddMaterial(Scene, CreateLambertian(v3{0.12, 0.45, 0.15}))
 
 	OrenNayar := AddMaterial(Scene, CreateOrenNayar(v3{0.8, 0.6, 0.6}, 20))
-	Pink := AddMaterial(Scene, lambertian{v3{0.8, 0.6, 0.6}})
+	Pink := AddMaterial(Scene, CreateLambertian(v3{0.8, 0.6, 0.6}))
 
 	Light := AddLight(Scene, light{v3{15, 15, 15}})
 
@@ -313,14 +294,14 @@ FinalSceneRTW :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 
 	InitializeCamera(Camera, ImageWidth, ImageHeight)
 
-	Background := AddMaterial(Scene, lambertian{v3{0.5, 0.7, 1.0}})
+	Background := AddMaterial(Scene, CreateLambertian(v3{0.5, 0.7, 1.0}))
 	NullLight := AddLight(Scene, light{})
 
 	// RTW uses a huge sphere instead since they don't have a flat primitive like a plane,
 	// but we do!
 	// Using a sphere is ok, but its curvature causes spheres that are far enough away to
 	// look like they're floating.
-	Floor := AddMaterial(Scene, lambertian{v3{0.5, 0.5, 0.5}})
+	Floor := AddMaterial(Scene, CreateLambertian(v3{0.5, 0.5, 0.5}))
 	AddPrimitive(Scene, CreateQuad(v3{50, 0, 50}, v3{-100, 0, 0}, v3{0, 0, -100}), Floor, 0)
 
 	for a := -11; a < 11; a += 1
@@ -339,7 +320,7 @@ FinalSceneRTW :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 				{
 					// Lambertian
 					Albedo := RandomV3() * RandomV3()
-					SphereMaterial := AddMaterial(Scene, lambertian{Albedo})
+					SphereMaterial := AddMaterial(Scene, CreateLambertian(Albedo))
 					AddPrimitive(Scene, sphere{SphereCenter, 0.2}, SphereMaterial, 0)
 				}
 				else if ChooseMaterial < 0.95
@@ -347,22 +328,22 @@ FinalSceneRTW :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 					// Metal
 					Albedo := RandomV3(0.5, 1)
 					Fuzz := RandomFloat(0.0, 0.5)
-					SphereMaterial := AddMaterial(Scene, metal{Albedo, Fuzz})
+					SphereMaterial := AddMaterial(Scene, CreateMetal(Albedo, Fuzz))
 					AddPrimitive(Scene, sphere{SphereCenter, 0.2}, SphereMaterial, 0)
 				}
 				else
 				{
 					// Glass
-					SphereMaterial := AddMaterial(Scene, dielectric{1.5})
+					SphereMaterial := AddMaterial(Scene, CreateDielectric(1.5))
 					AddPrimitive(Scene, sphere{SphereCenter, 0.2}, SphereMaterial, 0)
 				}
 			}
 		}
 	}
 
-	Material1 := AddMaterial(Scene, dielectric{1.5})
-	Material2 := AddMaterial(Scene, lambertian{v3{0.4, 0.2, 0.1}})
-	Material3 := AddMaterial(Scene, metal{v3{0.7, 0.6, 0.5}, 0})
+	Material1 := AddMaterial(Scene, CreateDielectric(1.5))
+	Material2 := AddMaterial(Scene, CreateLambertian(v3{0.4, 0.2, 0.1}))
+	Material3 := AddMaterial(Scene, CreateMetal(v3{0.7, 0.6, 0.5}, 0))
 
 	AddPrimitive(Scene, sphere{v3{0, 1, 0}, 1}, Material1, 0)
 	AddPrimitive(Scene, sphere{v3{-4, 1, 0}, 1}, Material2, 0)
@@ -402,10 +383,10 @@ PlaneDragon :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : 
 	InitializeCamera(Camera, ImageWidth, ImageHeight)
 
 	// Scene
-	Background := AddMaterial(Scene, lambertian{v3{0.2, 0.2, 0.2}})
+	Background := AddMaterial(Scene, CreateLambertian(v3{0.2, 0.2, 0.2}))
 	NullLight := AddLight(Scene, light{})
-	Model := AddMaterial(Scene, lambertian{v3{0.8, 0.2, 0.2}})
-	Plane := AddMaterial(Scene, lambertian{v3{0.2, 0.6, 0.8}})
+	Model := AddMaterial(Scene, CreateLambertian(v3{0.8, 0.2, 0.2}))
+	Plane := AddMaterial(Scene, CreateLambertian(v3{0.2, 0.6, 0.8}))
 
 	AddPrimitive(Scene, plane{v3{0, 1, 0}, -BoundingBox.Min.y}, Plane, 0)
 
@@ -444,21 +425,17 @@ CornellDragon  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight
 
 	InitializeCamera(Camera, ImageWidth, ImageHeight)
 
-	Table := new(merl_table)
-	LoadMERL(string("assets/merl/gold-metallic-paint.binary"), Table)
-
-	Background := AddMaterial(Scene, lambertian{v3{0.0, 0.0, 0.0}})
+	Background := AddMaterial(Scene, CreateLambertian(v3{0.0, 0.0, 0.0}))
 	NullLight := AddLight(Scene, light{})
 
-	Red := AddMaterial(Scene, lambertian{v3{0.65, 0.05, 0.05}})
-	Gray := AddMaterial(Scene, lambertian{v3{0.73, 0.73, 0.73}})
-	Green := AddMaterial(Scene, lambertian{v3{0.12, 0.45, 0.15}})
-	MERL := AddMaterial(Scene, merl{ Table })
-	Diffuse := AddMaterial(Scene, lambertian{v3{0.1, 0.1, 0.1}})
-	Glass := AddMaterial(Scene, dielectric{1.33})
+	Red := AddMaterial(Scene, CreateLambertian(v3{0.65, 0.05, 0.05}))
+	Gray := AddMaterial(Scene, CreateLambertian(v3{0.73, 0.73, 0.73}))
+	Green := AddMaterial(Scene, CreateLambertian(v3{0.12, 0.45, 0.15}))
+	Diffuse := AddMaterial(Scene, CreateLambertian(v3{0.1, 0.1, 0.1}))
+	Glass := AddMaterial(Scene, CreateDielectric(1.33))
 
 	OrenNayar := AddMaterial(Scene, CreateOrenNayar(v3{0.8, 0.6, 0.6}, 20))
-	Pink := AddMaterial(Scene, lambertian{v3{0.8, 0.6, 0.6}})
+	Pink := AddMaterial(Scene, CreateLambertian(v3{0.8, 0.6, 0.6}))
 
 	Light := AddLight(Scene, light{v3{15, 15, 15}})
 
