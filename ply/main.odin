@@ -54,6 +54,70 @@ ply_file :: struct
 	Data : [dynamic]string
 }
 
+mesh_data :: struct
+{
+	Vertices : [dynamic]v3,
+	Faces : [dynamic]v3i,
+}
+
+ReadPLYData_Ascii :: proc(File : ply_file) -> mesh_data
+{
+	MeshData : mesh_data
+
+	DataIdx := 0
+	for Element in File.Header.Elements
+	{
+		if Element.Name == "vertex"
+		{
+			// Repeat for how many of these elements we have
+			for ElemIdx := 0; ElemIdx < Element.Count; ElemIdx += 1
+			{
+				// Grab line of data
+				Line := strings.fields(File.Data[DataIdx])
+
+				// Add data according to the properties
+				Vertex : v3
+				for Property, ValueIdx in Element.Properties
+				{
+					if Property.Type == .FLOAT32
+					{
+						Value := f32(strconv.atof(Line[ValueIdx]))
+						Vertex[ValueIdx] = Value
+					}
+				}
+
+				// Append and move to next data line
+				append(&MeshData.Vertices, Vertex)
+				DataIdx += 1
+			}
+		}
+		else if Element.Name == "face"
+		{
+			for ElemIdx := 0; ElemIdx < Element.Count; ElemIdx += 1
+			{
+				// Grab line of data
+				Line := strings.fields(File.Data[DataIdx])
+				FaceValues := Line[1 : len(Line)]
+
+				TriangleCount := strconv.atoi(Line[0])
+
+				for Offset := 0; Offset < TriangleCount - 2; Offset += 1
+				{
+					I0 := i32(strconv.atoi(FaceValues[0]))
+					I1 := i32(strconv.atoi(FaceValues[Offset + 1]))
+					I2 := i32(strconv.atoi(FaceValues[Offset + 2]))
+
+					append(&MeshData.Faces, v3i{I0, I1, I2})
+				}
+
+				DataIdx += 1
+			}
+		}
+	}
+
+	return MeshData
+}
+
 OpenPLYFile :: proc(Filename : string) -> ply_file
 {
 	File : ply_file
@@ -70,6 +134,9 @@ OpenPLYFile :: proc(Filename : string) -> ply_file
 	StringFile := string(Data)
 	StrippedHeader : [dynamic]string
 	Format : string
+
+	fmt.println(len(Data))
+	fmt.println(len(StringFile))
 
 	ParsingHeader := true
 	for Line in strings.split_lines_iterator(&StringFile)
@@ -179,68 +246,16 @@ main :: proc()
 		fmt.println()
 	}
 
-	DataIdx := 0
-	Vertices : [dynamic]v3
-	Faces : [dynamic]v3i
-
-	for Element in File.Header.Elements
-	{
-		if Element.Name == "vertex"
-		{
-			// Repeat for how many of these elements we have
-			for ElemIdx := 0; ElemIdx < Element.Count; ElemIdx += 1
-			{
-				// Grab line of data
-				Line := strings.fields(File.Data[DataIdx])
-
-				// Add data according to the properties
-				Vertex : v3
-				for Property, ValueIdx in Element.Properties
-				{
-					if Property.Type == .FLOAT32
-					{
-						Value := f32(strconv.atof(Line[ValueIdx]))
-						Vertex[ValueIdx] = Value
-					}
-				}
-
-				// Append and move to next data line
-				append(&Vertices, Vertex)
-				DataIdx += 1
-			}
-		}
-		else if Element.Name == "face"
-		{
-			for ElemIdx := 0; ElemIdx < Element.Count; ElemIdx += 1
-			{
-				// Grab line of data
-				Line := strings.fields(File.Data[DataIdx])
-				FaceValues := Line[1 : len(Line)]
-
-				TriangleCount := strconv.atoi(Line[0])
-
-				for Offset := 0; Offset < TriangleCount - 2; Offset += 1
-				{
-					I0 := i32(strconv.atoi(FaceValues[0]))
-					I1 := i32(strconv.atoi(FaceValues[Offset + 1]))
-					I2 := i32(strconv.atoi(FaceValues[Offset + 2]))
-
-					append(&Faces, v3i{I0, I1, I2})
-				}
-
-				DataIdx += 1
-			}
-		}
-	}
+	MeshData := ReadPLYData_Ascii(File)
 	
 	fmt.println("Vertices:")
-	for V in Vertices
+	for V in MeshData.Vertices
 	{
 		fmt.println(V)
 	}
 
 	fmt.println("\nFaces:")
-	for F in Faces
+	for F in MeshData.Faces
 	{
 		fmt.println(F)
 	}
