@@ -132,12 +132,12 @@ ComputeDirectIllumination :: proc(Ray : ray, Record : hit_record, Scene : ^scene
 {
 	DirectIllumination : v3
 
-	OnLight, _, LightAreaInv := SampleRandomLight(Scene)
-	ToLight := Normalize(OnLight - Record.HitPoint)
-	DistanceSquared := LengthSquared(OnLight - Record.HitPoint)
+	LightSurface := SampleRandomLight(Scene)
+	ToLight := Normalize(LightSurface.Point - Record.HitPoint)
+	DistanceSquared := LengthSquared(LightSurface.Point - Record.HitPoint)
 
-	LightArea := 1.0 / LightAreaInv
-	LightCosine := Abs(ToLight.y)
+	LightArea := 1.0 / LightSurface.PDF
+	LightCosine := Abs(Dot(ToLight, Normalize(LightSurface.Normal)))
 	LightPDF := DistanceSquared / (LightCosine * LightArea)
 
 	OriginalMaterial := Scene.Materials[Record.MaterialIndex]

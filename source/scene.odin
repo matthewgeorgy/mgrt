@@ -18,14 +18,24 @@ scene :: struct
 	MaxDepth : int,
 };
 
+light_surface :: struct
+{
+	Point : v3,
+	Normal : v3,
+	Color : v3,
+	PDF : f32,
+}
+
 // TODO(matthew): When we come back to update this to support more than one
 // light, we need to choose them at random and correct by the PDF in doing so.
-SampleRandomLight :: proc(Scene : ^scene) -> (v3, v3, f32)
+SampleRandomLight :: proc(Scene : ^scene) -> light_surface
 {
+	LightSurface : light_surface
+
 	if len(Scene.LightIndices) == 0
 	{
 		fmt.println("no lights!")
-		return v3{0, 0, 0}, v3{0, 0, 0}, 1
+		return LightSurface
 	}
 
 	PrimitiveIndex := Scene.LightIndices[0]
@@ -35,11 +45,18 @@ SampleRandomLight :: proc(Scene : ^scene) -> (v3, v3, f32)
 	LightIndex := Primitive.LightIndex
 	LightColor := Scene.Lights[LightIndex].Le
 
-	Point := SamplePoint(Shape)
 	Area := GetArea(Shape)
-	PDF := 1.0 / Area
 
-	return Point, LightColor, PDF
+	if _, ok := Shape.(quad); ok
+	{
+		LightSurface.Normal = Shape.(quad).N
+	}
+
+	LightSurface.Point = SamplePoint(Shape)
+	LightSurface.Color = LightColor
+	LightSurface.PDF = 1.0 / Area
+
+	return LightSurface
 }
 
 GatherLightIndices :: proc(Scene : ^scene)

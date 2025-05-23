@@ -119,19 +119,18 @@ SampleRayFromLight :: proc(Scene : ^scene) -> (ray, v3)
 {
 	Ray : ray
 	Power : v3
-	Normal := v3{0, -1, 0}
 
-	PointOnLight, LightColor, LightAreaPDF := SampleRandomLight(Scene)
-	Ray.Origin = PointOnLight
+	LightSurface := SampleRandomLight(Scene)
+	Ray.Origin = LightSurface.Point
 
-	Basis := CreateBasis(Normal)
+	Basis := CreateBasis(LightSurface.Normal)
 	Ray.Direction = LocalToGlobal(Basis, RandomCosineDirection())
 	CosineTheta := Dot(Normalize(Ray.Direction), Basis.n)
 	LightDirPDF := Max(0, CosineTheta / PI)
 
-	CosAtten := Max(Dot(Normal, Ray.Direction), 0)
+	CosAtten := Max(Dot(LightSurface.Normal, Ray.Direction), 0)
 
-	Power = LightColor * CosAtten / (LightAreaPDF * LightDirPDF)
+	Power = LightSurface.Color * CosAtten / (LightSurface.PDF * LightDirPDF)
 
 	return Ray, Power
 }

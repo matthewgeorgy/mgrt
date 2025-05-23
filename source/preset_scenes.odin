@@ -500,8 +500,8 @@ CornellPLY  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : 
 	win32.QueryPerformanceFrequency(&Frequency)
 
 	// Mesh
-	FileName := string("assets/ply/mesh_00054.ply")
-	Scale : f32 = 50
+	FileName := string("assets/ply/caustic_glass.ply")
+	Scale : f32 = 100
 	Mesh := LoadMesh(FileName)
 	MeshTriangles := AssembleTrianglesFromMesh(Mesh, Scale)
 	fmt.println("Loaded mesh:", FileName, "with", len(MeshTriangles), "triangles")
@@ -542,12 +542,13 @@ CornellPLY  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : 
 
 	AddPrimitive(Scene, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}), Green, 0) // right
 	AddPrimitive(Scene, CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}), Red, 0) // left
-	AddPrimitive(Scene, CreateQuad(v3{343, 554, 332}, v3{-130, 0, 0}, v3{0, 0, -105}), 0, Light) // light
+	// AddPrimitive(Scene, CreateQuad(v3{343, 554.9, 332}, v3{-130, 0, 0}, v3{0, 0, -105}), 0, Light) // light
+	AddPrimitive(Scene, CreateQuad(v3{554.9, 343, 332}, v3{0, 0, -105}, v3{0, -130, 0}), 0, Light)
 	AddPrimitive(Scene, CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, 555}), Gray, 0) // bottom
 	AddPrimitive(Scene, CreateQuad(v3{555, 555, 555}, v3{-555, 0, 0}, v3{0, 0, -555}), Gray, 0) // top
 	AddPrimitive(Scene, CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}), Gray, 0) // back
 
-	BVH.MaterialIndex = OrenNayar
+	BVH.MaterialIndex = Glass
 
 	// Bounding box transform
 
