@@ -14,16 +14,18 @@ CornellBunny  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 
 	// Mesh
 	FileName := string("assets/bunny.obj")
-	Mesh := LoadMesh(FileName, 200)
-	fmt.println("Loaded mesh:", FileName, "with", len(Mesh.Triangles), "triangles")
+	Scale : f32 = 200
+	Mesh := LoadMesh(FileName)
+	MeshTriangles := AssembleTrianglesFromMesh(Mesh, Scale)
+	fmt.println("Loaded mesh:", FileName, "with", len(MeshTriangles), "triangles")
 
-	BoundingBox := GetMeshBoundingBox(Mesh)
+	BoundingBox := GetMeshBoundingBox(Mesh, Scale)
 	fmt.println("Min:", BoundingBox.Min)
 	fmt.println("Max:", BoundingBox.Max)
 
 	win32.QueryPerformanceCounter(&StartCounter)
 
-	BVH := BuildBVH(Mesh.Triangles)
+	BVH := BuildBVH(MeshTriangles)
 
 	win32.QueryPerformanceCounter(&EndCounter)
 	ElapsedTime := (EndCounter - StartCounter) * 1000
@@ -64,7 +66,7 @@ CornellBunny  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 	AddPrimitive(Scene, CreateQuad(v3{0, 0, -555}, v3{555, 0, 0}, v3{0, 555, 0}), Gray, 0)		// back
 
 	BVH.Translation = v3{-300, 0, 300}
-	BVH.MaterialIndex = Glass
+	BVH.MaterialIndex = OrenNayar
 
 	Scene.BVH = BVH
 }
@@ -77,11 +79,12 @@ GlassSuzanne :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight :
 	// Mesh
 	Filename := string("assets/suzanne.obj")
 	Mesh := LoadMesh(Filename)
-	fmt.println("Loaded mesh:", Filename, "with", len(Mesh.Triangles), "triangles")
+	MeshTriangles := AssembleTrianglesFromMesh(Mesh)
+	fmt.println("Loaded mesh:", Filename, "with", len(MeshTriangles), "triangles")
 
 	win32.QueryPerformanceCounter(&StartCounter)
 
-	BVH := BuildBVH(Mesh.Triangles)
+	BVH := BuildBVH(MeshTriangles)
 
 	win32.QueryPerformanceCounter(&EndCounter)
 	ElapsedTime = (EndCounter - StartCounter) * 1000
@@ -90,7 +93,7 @@ GlassSuzanne :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight :
 	AABB := aabb{v3{F32_MAX, F32_MAX, F32_MAX}, v3{-F32_MAX, -F32_MAX, -F32_MAX}}
 	Centroid : v3
 
-	for Triangle in Mesh.Triangles
+	for Triangle in MeshTriangles
 	{
 		AABB.Min = MinV3(AABB.Min, Triangle.Vertices[0])
 		AABB.Min = MinV3(AABB.Min, Triangle.Vertices[1])
@@ -102,7 +105,7 @@ GlassSuzanne :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight :
 		Centroid = Centroid + (Triangle.Vertices[0] + Triangle.Vertices[1] + Triangle.Vertices[2])
 	}
 
-	Centroid /= f32(len(Mesh.Triangles))
+	Centroid /= f32(len(MeshTriangles))
 
 	Extents := AABB.Max - AABB.Min
 
@@ -166,11 +169,12 @@ BunnyPlaneLamp :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight
 	// Mesh
 	Filename := string("assets/bunny.obj")
 	Mesh := LoadMesh(Filename)
-	fmt.println("Loaded mesh:", Filename, "with", len(Mesh.Triangles), "triangles")
+	MeshTriangles := AssembleTrianglesFromMesh(Mesh)
+	fmt.println("Loaded mesh:", Filename, "with", len(MeshTriangles), "triangles")
 
 	win32.QueryPerformanceCounter(&StartCounter)
 
-	BVH := BuildBVH(Mesh.Triangles)
+	BVH := BuildBVH(MeshTriangles)
 
 	win32.QueryPerformanceCounter(&EndCounter)
 
@@ -180,7 +184,7 @@ BunnyPlaneLamp :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight
 	MinX : f32 = F32_MAX
 	MaxY : f32 = -F32_MAX
 	MaxZ : f32 = -F32_MAX
-	for Triangle in Mesh.Triangles
+	for Triangle in MeshTriangles
 	{
 		MinX = Min(MinX, Triangle.Vertices[0].x)
 		MinX = Min(MinX, Triangle.Vertices[1].x)
@@ -358,7 +362,8 @@ PlaneDragon :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : 
 	// Mesh
 	Filename := string("assets/dragon.obj")
 	Mesh := LoadMesh(Filename)
-	fmt.println("Loaded mesh:", Filename, "with", len(Mesh.Triangles), "triangles")
+	MeshTriangles := AssembleTrianglesFromMesh(Mesh)
+	fmt.println("Loaded mesh:", Filename, "with", len(MeshTriangles), "triangles")
 
 	BoundingBox := GetMeshBoundingBox(Mesh)
 
@@ -367,7 +372,7 @@ PlaneDragon :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : 
 
 	win32.QueryPerformanceCounter(&StartCounter)
 
-	BVH := BuildBVH(Mesh.Triangles)
+	BVH := BuildBVH(MeshTriangles)
 
 	win32.QueryPerformanceCounter(&EndCounter)
 
@@ -402,16 +407,18 @@ CornellDragon  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight
 
 	// Mesh
 	FileName := string("assets/dragon.obj")
-	Mesh := LoadMesh(FileName, 500)
-	fmt.println("Loaded mesh:", FileName, "with", len(Mesh.Triangles), "triangles")
+	Scale : f32 = 500
+	Mesh := LoadMesh(FileName)
+	MeshTriangles := AssembleTrianglesFromMesh(Mesh, Scale)
+	fmt.println("Loaded mesh:", FileName, "with", len(MeshTriangles), "triangles")
 
-	BoundingBox := GetMeshBoundingBox(Mesh)
+	BoundingBox := GetMeshBoundingBox(Mesh, Scale)
 	fmt.println("Min:", BoundingBox.Min)
 	fmt.println("Max:", BoundingBox.Max)
 
 	win32.QueryPerformanceCounter(&StartCounter)
 
-	BVH := BuildBVH(Mesh.Triangles)
+	BVH := BuildBVH(MeshTriangles)
 
 	win32.QueryPerformanceCounter(&EndCounter)
 	ElapsedTime := (EndCounter - StartCounter) * 1000
@@ -446,7 +453,7 @@ CornellDragon  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight
 	AddPrimitive(Scene, CreateQuad(v3{555, 555, 555}, v3{-555, 0, 0}, v3{0, 0, -555}), Gray, 0) // top
 	AddPrimitive(Scene, CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}), Gray, 0) // back
 
-	BVH.MaterialIndex = Glass
+	BVH.MaterialIndex = OrenNayar
 
 	// Bounding box transform
 

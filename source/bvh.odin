@@ -19,7 +19,7 @@ MaxV3 :: proc(A, B : v3) -> v3
 bvh :: struct
 {
 	Nodes : [dynamic]bvh_node,
-	Triangles : [dynamic]triangle,
+	Triangles : []triangle,
 	TriangleIndices : [dynamic]u32,
 	Centroids : [dynamic]v3,
 	RootNodeIndex : u32,
@@ -32,7 +32,7 @@ bvh :: struct
 	Rotation : f32,
 };
 
-BuildBVH :: proc(Triangles : [dynamic]triangle) -> bvh
+BuildBVH :: proc(Triangles : []triangle) -> bvh
 {
 	BVH : bvh
 
