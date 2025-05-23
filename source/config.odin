@@ -5,18 +5,6 @@ import fmt		"core:fmt"
 import strconv	"core:strconv"
 import strings	"core:strings"
 
-SCENE_NAMES :: []string {
-	"CornellBunny",
-	"GlassSuzanne",
-	"SpheresMaterial",
-	"BunnyPlaneLamp",
-	"CornellBox",
-	"CornellSphere",
-	"FinalSceneRTW",
-	"PlaneDragon",
-	"CornellDragon",
-}
-
 config :: struct
 {
 	SceneIndex 	: int,
@@ -114,6 +102,10 @@ InitializeFromConfig :: proc(Config : config) -> (scene, camera, image_u32)
 		case 8:
 		{
 			CornellDragon(&Scene, &Camera, Config.ImageWidth, Config.ImageHeight)
+		}
+		case 9:
+		{
+			CornellPLY(&Scene, &Camera, Config.ImageWidth, Config.ImageHeight)
 		}
 	}
 

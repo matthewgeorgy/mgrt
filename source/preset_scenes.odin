@@ -3,6 +3,19 @@ package main
 import fmt		"core:fmt"
 import win32	"core:sys/windows"
 
+SCENE_NAMES :: []string {
+	"CornellBunny",
+	"GlassSuzanne",
+	"SpheresMaterial",
+	"BunnyPlaneLamp",
+	"CornellBox",
+	"CornellSphere",
+	"FinalSceneRTW",
+	"PlaneDragon",
+	"CornellDragon",
+	"CornellPLY",
+}
+
 ///////////////////////////////////////
 // Preset scenes
 ///////////////////////////////////////
@@ -477,6 +490,87 @@ CornellDragon  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight
 
 	BVH.Translation = TranslationToAlign + TranslationX + TranslationZ
 	BVH.Rotation = Degs2Rads(-60)
+
+	Scene.BVH = BVH
+}
+
+CornellPLY  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : i32)
+{
+	StartCounter, EndCounter, Frequency : win32.LARGE_INTEGER
+	win32.QueryPerformanceFrequency(&Frequency)
+
+	// Mesh
+	FileName := string("assets/ply/mesh_00054.ply")
+	Scale : f32 = 50
+	Mesh := LoadMesh(FileName)
+	MeshTriangles := AssembleTrianglesFromMesh(Mesh, Scale)
+	fmt.println("Loaded mesh:", FileName, "with", len(MeshTriangles), "triangles")
+
+	BoundingBox := GetMeshBoundingBox(Mesh, Scale)
+	fmt.println("Min:", BoundingBox.Min)
+	fmt.println("Max:", BoundingBox.Max)
+
+	win32.QueryPerformanceCounter(&StartCounter)
+
+	BVH := BuildBVH(MeshTriangles)
+
+	win32.QueryPerformanceCounter(&EndCounter)
+	ElapsedTime := (EndCounter - StartCounter) * 1000
+	fmt.println("BVH construction took", ElapsedTime / Frequency, "ms")
+
+	// Camera
+	Camera.LookFrom = v3{278, 278, -800}
+	Camera.LookAt = v3{278, 278, 0}
+	Camera.FOV = 40
+	Camera.FocusDist = 10
+
+	InitializeCamera(Camera, ImageWidth, ImageHeight)
+
+	Background := AddMaterial(Scene, CreateLambertian(v3{0.0, 0.0, 0.0}))
+	NullLight := AddLight(Scene, light{})
+
+	Red := AddMaterial(Scene, CreateLambertian(v3{0.65, 0.05, 0.05}))
+	Gray := AddMaterial(Scene, CreateLambertian(v3{0.73, 0.73, 0.73}))
+	Green := AddMaterial(Scene, CreateLambertian(v3{0.12, 0.45, 0.15}))
+	Diffuse := AddMaterial(Scene, CreateLambertian(v3{0.1, 0.1, 0.1}))
+	Glass := AddMaterial(Scene, CreateDielectric(1.33))
+
+	OrenNayar := AddMaterial(Scene, CreateOrenNayar(v3{0.8, 0.6, 0.6}, 20))
+	Pink := AddMaterial(Scene, CreateLambertian(v3{0.8, 0.6, 0.6}))
+
+	Light := AddLight(Scene, light{v3{15, 15, 15}})
+
+	AddPrimitive(Scene, CreateQuad(v3{555, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}), Green, 0) // right
+	AddPrimitive(Scene, CreateQuad(v3{0, 0, 0}, v3{0, 555, 0}, v3{0, 0, 555}), Red, 0) // left
+	AddPrimitive(Scene, CreateQuad(v3{343, 554, 332}, v3{-130, 0, 0}, v3{0, 0, -105}), 0, Light) // light
+	AddPrimitive(Scene, CreateQuad(v3{0, 0, 0}, v3{555, 0, 0}, v3{0, 0, 555}), Gray, 0) // bottom
+	AddPrimitive(Scene, CreateQuad(v3{555, 555, 555}, v3{-555, 0, 0}, v3{0, 0, -555}), Gray, 0) // top
+	AddPrimitive(Scene, CreateQuad(v3{0, 0, 555}, v3{555, 0, 0}, v3{0, 555, 0}), Gray, 0) // back
+
+	BVH.MaterialIndex = OrenNayar
+
+	// Bounding box transform
+
+	AlignedBox : aabb
+
+	AlignedBox.Min = v3{0, 0, 0}
+	AlignedBox.Max = BoundingBox.Max - BoundingBox.Min
+	fmt.println("Aligned min:", AlignedBox.Min)
+	fmt.println("Aligned max:", AlignedBox.Max)
+
+	TranslationToAlign := BoundingBox.Min
+
+	FloorWidth : f32 = 555
+	FloorDepth : f32 = 555
+
+	OffsetX := Abs(FloorWidth - AlignedBox.Max.x) / 2
+	OffsetZ := Abs(FloorDepth - AlignedBox.Max.z) / 2
+
+	TranslationX := -v3{OffsetX, 0, 0}
+	TranslationZ := v3{0, 0, -OffsetZ}
+
+	BVH.Translation = TranslationToAlign + TranslationX + TranslationZ
+	// BVH.Rotation = Degs2Rads(-60)
 
 	Scene.BVH = BVH
 }
