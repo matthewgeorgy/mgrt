@@ -55,7 +55,7 @@ ply_file :: struct
 	Data : []u8,
 }
 
-mesh_data :: struct
+mesh :: struct
 {
 	Vertices : [dynamic]v3,
 	Faces : [dynamic]v3i,
@@ -78,27 +78,27 @@ main :: proc()
 		fmt.println()
 	}
 
-	MeshData := ReadPLYData(File)
+	Mesh := ReadPLYData(File)
 
-	Tris := AssembleTrianglesFromMesh(MeshData)
+	Tris := AssembleTrianglesFromMesh(Mesh)
 
-	fmt.println(len(MeshData.Vertices), "vertices")
+	fmt.println(len(Mesh.Vertices), "vertices")
 	fmt.println(len(Tris), "triangles")
 }
 
-ReadPLYData :: proc(File : ply_file) -> mesh_data
+ReadPLYData :: proc(File : ply_file) -> mesh
 {
-	MeshData : mesh_data
+	Mesh : mesh
 
 	switch File.Header.Format
 	{
 		case .ASCII:
 		{
-			MeshData = ReadPLYData_Ascii(File)
+			Mesh = ReadPLYData_Ascii(File)
 		}
 		case .BINARY_LITTLE_ENDIAN:
 		{
-			MeshData = ReadPLYData_Binary(File)
+			Mesh = ReadPLYData_Binary(File)
 		}
 		case .BINARY_BIG_ENDIAN:
 		{
@@ -106,12 +106,12 @@ ReadPLYData :: proc(File : ply_file) -> mesh_data
 		}
 	}
 
-	return MeshData
+	return Mesh
 }
 
-ReadPLYData_Binary :: proc(File : ply_file) -> mesh_data
+ReadPLYData_Binary :: proc(File : ply_file) -> mesh
 {
-	MeshData : mesh_data
+	Mesh : mesh
 
 	DataPtr := 0
 	for Element in File.Header.Elements
@@ -138,7 +138,7 @@ ReadPLYData_Binary :: proc(File : ply_file) -> mesh_data
 					DataPtr += PropertySize
 				}
 
-				append(&MeshData.Vertices, Vertex)
+				append(&Mesh.Vertices, Vertex)
 			}
 		}
 		if Element.Name == "face"
@@ -167,7 +167,7 @@ ReadPLYData_Binary :: proc(File : ply_file) -> mesh_data
 					I1 := i32(ReadPtrFromType(ValuePtr1, Property.ValueType))
 					I2 := i32(ReadPtrFromType(ValuePtr2, Property.ValueType))
 
-					append(&MeshData.Faces, v3i{I0, I1, I2})
+					append(&Mesh.Faces, v3i{I0, I1, I2})
 				}
 
 				Offset := (3 + TriangleCount - 1)
@@ -176,12 +176,12 @@ ReadPLYData_Binary :: proc(File : ply_file) -> mesh_data
 		}
 	}
 
-	return MeshData
+	return Mesh
 }
 
-ReadPLYData_Ascii :: proc(File : ply_file) -> mesh_data
+ReadPLYData_Ascii :: proc(File : ply_file) -> mesh
 {
-	MeshData : mesh_data
+	Mesh : mesh
 	StringData := string(File.Data)
 	FileData : [dynamic]string
 
@@ -213,7 +213,7 @@ ReadPLYData_Ascii :: proc(File : ply_file) -> mesh_data
 				}
 
 				// Append and move to next data line
-				append(&MeshData.Vertices, Vertex)
+				append(&Mesh.Vertices, Vertex)
 				DataIdx += 1
 			}
 		}
@@ -233,7 +233,7 @@ ReadPLYData_Ascii :: proc(File : ply_file) -> mesh_data
 					I1 := i32(strconv.atoi(FaceValues[Offset + 1]))
 					I2 := i32(strconv.atoi(FaceValues[Offset + 2]))
 
-					append(&MeshData.Faces, v3i{I0, I1, I2})
+					append(&Mesh.Faces, v3i{I0, I1, I2})
 				}
 
 				DataIdx += 1
@@ -241,7 +241,7 @@ ReadPLYData_Ascii :: proc(File : ply_file) -> mesh_data
 		}
 	}
 
-	return MeshData
+	return Mesh
 }
 
 OpenPLYFile :: proc(Filename : string) -> ply_file
@@ -285,8 +285,8 @@ OpenPLYFile :: proc(Filename : string) -> ply_file
 	copy(File.Data[:], Data[DataSegmentStart : len(Data)])
 
 	// Strip header of comments, etc.
-	StrippedHeader : [dynamic]string
-	ParsingHeader := true
+
+	CurrentElementIndex := 0
 
 	for Line in strings.split_lines_iterator(&StringFile)
    	{
@@ -297,48 +297,28 @@ OpenPLYFile :: proc(Filename : string) -> ply_file
 			continue
 		}
 
-		if ParsingHeader
+		if strings.compare(Tokens[0], "end_header") == 0
 		{
-			if strings.compare(Tokens[0], "end_header") == 0
-			{
-				ParsingHeader = false
-			}
-			else if strings.compare(Tokens[0], "format") == 0
-			{
-				Format := Tokens[1]
+			break
+		}
+		else if strings.compare(Tokens[0], "format") == 0
+		{
+			Format := Tokens[1]
 
-				if Format == "ascii"
-				{
-					File.Header.Format = .ASCII
-				}
-				else if Format == "binary_big_endian"
-				{
-					File.Header.Format = .BINARY_BIG_ENDIAN
-				}
-				else if Format == "binary_little_endian"
-				{
-					File.Header.Format = .BINARY_LITTLE_ENDIAN
-				}
-			}
-			else if (strings.compare(Tokens[0], "element") == 0) ||
-					(strings.compare(Tokens[0], "property") == 0)
+			if Format == "ascii"
 			{
-				append(&StrippedHeader, Line)
+				File.Header.Format = .ASCII
 			}
-			else
+			else if Format == "binary_big_endian"
 			{
-				continue
+				File.Header.Format = .BINARY_BIG_ENDIAN
+			}
+			else if Format == "binary_little_endian"
+			{
+				File.Header.Format = .BINARY_LITTLE_ENDIAN
 			}
 		}
-   	}
-
-	CurrentElementIndex := 0
-
-	for Entry in StrippedHeader
-	{
-		Tokens := strings.fields(Entry)
-
-		if strings.compare(Tokens[0], "element") == 0
+		else if strings.compare(Tokens[0], "element") == 0
 		{
 			Name := Tokens[1]
 			Count := strconv.atoi(Tokens[2])
@@ -368,9 +348,9 @@ OpenPLYFile :: proc(Filename : string) -> ply_file
 		}
 		else
 		{
-			fmt.println("ERROR: UNRECOGNIZED FIELD TYPE", Tokens[0])
+			continue
 		}
-	}
+   	}
 
 	return File
 }
@@ -533,15 +513,15 @@ ReadPtrFromType :: proc(Ptr : rawptr, Type : ply_type) -> int
 	return Value
 }
 
-AssembleTrianglesFromMesh :: proc(MeshData : mesh_data) -> []triangle
+AssembleTrianglesFromMesh :: proc(Mesh : mesh) -> []triangle
 {
 	Triangles : [dynamic]triangle
 
-	for Face in MeshData.Faces
+	for Face in Mesh.Faces
 	{
-		V0 := MeshData.Vertices[Face.x]
-		V1 := MeshData.Vertices[Face.y]
-		V2 := MeshData.Vertices[Face.z]
+		V0 := Mesh.Vertices[Face.x]
+		V1 := Mesh.Vertices[Face.y]
+		V2 := Mesh.Vertices[Face.z]
 
 		Triangle := triangle{ Vertices = {V0, V1, V2} }
 
