@@ -61,6 +61,54 @@ mesh_data :: struct
 	Faces : [dynamic]v3i,
 }
 
+main :: proc()
+{
+	Filename := string("assets/ply/mesh_00058.ply")
+	File := OpenPLYFile(Filename)
+
+	for Elem in File.Header.Elements
+	{
+		fmt.println(Elem.Name, Elem.Count)
+
+		for Prop in Elem.Properties
+		{
+			fmt.println("    ", Prop)
+		}
+
+		fmt.println()
+	}
+
+	MeshData := ReadPLYData(File)
+
+	Tris := AssembleTrianglesFromMesh(MeshData)
+
+	fmt.println(len(MeshData.Vertices), "vertices")
+	fmt.println(len(Tris), "triangles")
+}
+
+ReadPLYData :: proc(File : ply_file) -> mesh_data
+{
+	MeshData : mesh_data
+
+	switch File.Header.Format
+	{
+		case .ASCII:
+		{
+			MeshData = ReadPLYData_Ascii(File)
+		}
+		case .BINARY_LITTLE_ENDIAN:
+		{
+			MeshData = ReadPLYData_Binary(File)
+		}
+		case .BINARY_BIG_ENDIAN:
+		{
+			fmt.println("BIG ENDIAN PLY FILES NOT SUPPORTED")
+		}
+	}
+
+	return MeshData
+}
+
 ReadPLYData_Binary :: proc(File : ply_file) -> mesh_data
 {
 	MeshData : mesh_data
@@ -267,7 +315,7 @@ OpenPLYFile :: proc(Filename : string) -> ply_file
 				{
 					File.Header.Format = .BINARY_BIG_ENDIAN
 				}
-				else if Format == "little_big_endian"
+				else if Format == "binary_little_endian"
 				{
 					File.Header.Format = .BINARY_LITTLE_ENDIAN
 				}
@@ -325,43 +373,6 @@ OpenPLYFile :: proc(Filename : string) -> ply_file
 	}
 
 	return File
-}
-
-main :: proc()
-{
-	Filename := string("assets/ply/mesh_00002.ply")
-	File := OpenPLYFile(Filename)
-
-	for Elem in File.Header.Elements
-	{
-		fmt.println(Elem.Name, Elem.Count)
-
-		for Prop in Elem.Properties
-		{
-			fmt.println("    ", Prop)
-		}
-
-		fmt.println()
-	}
-
-	MeshData := ReadPLYData_Binary(File)
-	
-	fmt.println("Vertices:")
-	for V in MeshData.Vertices
-	{
-		fmt.println(V)
-	}
-
-	fmt.println("\nFaces:")
-	for F in MeshData.Faces
-	{
-		fmt.println(F)
-	}
-
-	// for Line in File.Data
-	// {
-	// 	fmt.println(Line)
-	// }
 }
 
 MapStringToType :: proc(StringType : string) -> ply_type
@@ -520,5 +531,23 @@ ReadPtrFromType :: proc(Ptr : rawptr, Type : ply_type) -> int
 	}
 
 	return Value
+}
+
+AssembleTrianglesFromMesh :: proc(MeshData : mesh_data) -> []triangle
+{
+	Triangles : [dynamic]triangle
+
+	for Face in MeshData.Faces
+	{
+		V0 := MeshData.Vertices[Face.x]
+		V1 := MeshData.Vertices[Face.y]
+		V2 := MeshData.Vertices[Face.z]
+
+		Triangle := triangle{ Vertices = {V0, V1, V2} }
+
+		append(&Triangles, Triangle)
+	}
+
+	return Triangles[:]
 }
 
