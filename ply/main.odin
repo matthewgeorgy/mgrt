@@ -5,6 +5,7 @@ import os      	"core:os"
 import libc    	"core:c/libc"
 import strings	"core:strings"
 import strconv	"core:strconv"
+import runtime	"base:runtime"
 
 ply_type :: enum
 {
@@ -51,7 +52,7 @@ ply_header :: struct
 ply_file :: struct
 {
 	Header : ply_header,
-	Data : [dynamic]string
+	Data : []u8,
 }
 
 mesh_data :: struct
@@ -60,9 +61,86 @@ mesh_data :: struct
 	Faces : [dynamic]v3i,
 }
 
+ReadPLYData_Binary :: proc(File : ply_file) -> mesh_data
+{
+	MeshData : mesh_data
+
+	DataPtr := 0
+	for Element in File.Header.Elements
+	{
+		if Element.Name == "vertex"
+		{
+			// Repeat for how many of these elements we have
+			for ElemIdx := 0; ElemIdx < Element.Count; ElemIdx += 1
+			{
+				Vertex : v3
+
+				for Property in Element.Properties
+				{
+					PropertySize := MapTypeToSize(Property.Type)
+					Component, Valid := MapNameToComponent(Property.Name)
+					if Valid
+					{
+						Ptr := rawptr(&File.Data[DataPtr])
+						Value := (cast(^f32)Ptr)^
+
+						Vertex[Component] = Value
+					}
+
+					DataPtr += PropertySize
+				}
+
+				append(&MeshData.Vertices, Vertex)
+			}
+		}
+		if Element.Name == "face"
+		{
+			assert(len(Element.Properties) == 1, "face element with more than one property!")
+
+			Property := Element.Properties[0]
+			LengthSize := MapTypeToSize(Property.LengthType)
+			ValueSize := MapTypeToSize(Property.ValueType)
+
+			// Repeat for how many of these elements we have
+			for ElemIdx := 0; ElemIdx < Element.Count; ElemIdx += 1
+			{
+				LengthPtr := rawptr(&File.Data[DataPtr])
+				DataPtr += LengthSize
+
+				TriangleCount := ReadPtrFromType(LengthPtr, Property.LengthType) - 2
+
+				for Offset := 0; Offset < TriangleCount; Offset += 1
+				{
+					ValuePtr0 := rawptr(&File.Data[DataPtr])
+					ValuePtr1 := rawptr(&File.Data[DataPtr + (Offset + 1) * ValueSize])
+					ValuePtr2 := rawptr(&File.Data[DataPtr + (Offset + 2) * ValueSize])
+
+					I0 := i32(ReadPtrFromType(ValuePtr0, Property.ValueType))
+					I1 := i32(ReadPtrFromType(ValuePtr1, Property.ValueType))
+					I2 := i32(ReadPtrFromType(ValuePtr2, Property.ValueType))
+
+					append(&MeshData.Faces, v3i{I0, I1, I2})
+				}
+
+				Offset := (3 + TriangleCount - 1)
+				DataPtr += Offset * ValueSize
+			}
+		}
+	}
+
+	return MeshData
+}
+
 ReadPLYData_Ascii :: proc(File : ply_file) -> mesh_data
 {
 	MeshData : mesh_data
+	StringData := string(File.Data)
+	FileData : [dynamic]string
+
+	for Line in strings.split_lines_iterator(&StringData)
+	{
+		append(&FileData, Line)
+	}
 
 	DataIdx := 0
 	for Element in File.Header.Elements
@@ -73,7 +151,7 @@ ReadPLYData_Ascii :: proc(File : ply_file) -> mesh_data
 			for ElemIdx := 0; ElemIdx < Element.Count; ElemIdx += 1
 			{
 				// Grab line of data
-				Line := strings.fields(File.Data[DataIdx])
+				Line := strings.fields(FileData[DataIdx])
 
 				// Add data according to the properties
 				Vertex : v3
@@ -96,12 +174,12 @@ ReadPLYData_Ascii :: proc(File : ply_file) -> mesh_data
 			for ElemIdx := 0; ElemIdx < Element.Count; ElemIdx += 1
 			{
 				// Grab line of data
-				Line := strings.fields(File.Data[DataIdx])
+				Line := strings.fields(FileData[DataIdx])
 				FaceValues := Line[1 : len(Line)]
 
-				TriangleCount := strconv.atoi(Line[0])
+				TriangleCount := strconv.atoi(Line[0]) - 2
 
-				for Offset := 0; Offset < TriangleCount - 2; Offset += 1
+				for Offset := 0; Offset < TriangleCount; Offset += 1
 				{
 					I0 := i32(strconv.atoi(FaceValues[0]))
 					I1 := i32(strconv.atoi(FaceValues[Offset + 1]))
@@ -130,15 +208,38 @@ OpenPLYFile :: proc(Filename : string) -> ply_file
 		return ply_file{}
 	}
 
-	// Strip header of comments, etc.
 	StringFile := string(Data)
+
+	fmt.println(&Data[0])
+	fmt.println(&StringFile)
+
+	Idx, Width := strings.index_multi(StringFile, []string{string("end_header")})
+
+	// Jump over newline characters to reach the true start of data segment
+	DataSegmentStart := Idx + Width
+	for
+	{
+		C := Data[DataSegmentStart]
+		if (C == '\r' || C == '\n')
+		{
+			DataSegmentStart += 1
+		}
+		else
+		{
+			break
+		}
+	}
+
+	DataSegmentLength := len(Data) - DataSegmentStart
+
+	File.Data = make([]u8, DataSegmentLength)
+
+	copy(File.Data[:], Data[DataSegmentStart : len(Data)])
+
+	// Strip header of comments, etc.
 	StrippedHeader : [dynamic]string
-	Format : string
-
-	fmt.println(len(Data))
-	fmt.println(len(StringFile))
-
 	ParsingHeader := true
+
 	for Line in strings.split_lines_iterator(&StringFile)
    	{
 		Tokens := strings.fields(Line)
@@ -156,7 +257,8 @@ OpenPLYFile :: proc(Filename : string) -> ply_file
 			}
 			else if strings.compare(Tokens[0], "format") == 0
 			{
-				Format = Tokens[1]
+				Format := Tokens[1]
+
 				if Format == "ascii"
 				{
 					File.Header.Format = .ASCII
@@ -179,10 +281,6 @@ OpenPLYFile :: proc(Filename : string) -> ply_file
 			{
 				continue
 			}
-		}
-		else
-		{
-			append(&File.Data, Line)
 		}
    	}
 
@@ -231,7 +329,7 @@ OpenPLYFile :: proc(Filename : string) -> ply_file
 
 main :: proc()
 {
-	Filename := string("assets/ply/test.ply")
+	Filename := string("assets/ply/mesh_00002.ply")
 	File := OpenPLYFile(Filename)
 
 	for Elem in File.Header.Elements
@@ -246,7 +344,7 @@ main :: proc()
 		fmt.println()
 	}
 
-	MeshData := ReadPLYData_Ascii(File)
+	MeshData := ReadPLYData_Binary(File)
 	
 	fmt.println("Vertices:")
 	for V in MeshData.Vertices
@@ -311,5 +409,116 @@ MapStringToType :: proc(StringType : string) -> ply_type
 	}
 
 	return Type
+}
+
+MapTypeToSize :: proc(Type : ply_type) -> int
+{
+	Size : int
+
+	switch Type
+	{
+		case .NULL, .LIST:
+		{
+			Size = 0
+		}
+		case .INT8, .UINT8:
+		{
+			Size = 1
+		}
+		case .INT16, .UINT16:
+		{
+			Size = 2
+		}
+		case .INT32, .UINT32, .FLOAT32:
+		{
+			Size = 4
+		}
+		case .FLOAT64:
+		{
+			Size = 8
+		}
+	}
+
+	return Size
+}
+
+MapNameToComponent :: proc(Name : string) -> (int, bool)
+{
+	Index : int
+	Valid := true
+
+	if Name == "x"
+	{
+		Index = 0
+	}
+	else if Name == "y"
+	{
+		Index = 1
+	}
+	else if Name == "z"
+	{
+		Index = 2
+	}
+	else
+	{
+		Valid = false
+	}
+
+	return Index, Valid
+}
+
+ReadPtrFromType :: proc(Ptr : rawptr, Type : ply_type) -> int
+{
+	Value : int
+
+	switch Type
+	{
+		case .INT8:
+		{
+			Length := (cast(^i8)Ptr)^
+			Value = int(Length)
+		}
+		case .INT16:
+		{
+			Length := (cast(^i16)Ptr)^
+			Value = int(Length)
+		}
+		case .INT32:
+		{
+			Length := (cast(^i32)Ptr)^
+			Value = int(Length)
+		}
+		case .UINT8:
+		{
+			Length := (cast(^u8)Ptr)^
+			Value = int(Length)
+		}
+		case .UINT16:
+		{
+			Length := (cast(^u16)Ptr)^
+			Value = int(Length)
+		}
+		case .UINT32:
+		{
+			Length := (cast(^u32)Ptr)^
+			Value = int(Length)
+		}
+		case .FLOAT32:
+		{
+			Length := (cast(^f32)Ptr)^
+			Value = int(Length)
+		}
+		case .FLOAT64:
+		{
+			Length := (cast(^f64)Ptr)^
+			Value = int(Length)
+		}
+		case .NULL, .LIST:
+		{
+			fmt.println("READING PTR FROM A NULL OR LIST")
+		}
+	}
+
+	return Value
 }
 
