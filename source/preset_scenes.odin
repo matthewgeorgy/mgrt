@@ -26,7 +26,7 @@ CornellBunny  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight 
 	win32.QueryPerformanceFrequency(&Frequency)
 
 	// Mesh
-	FileName := string("assets/bunny.obj")
+	FileName := string("assets/obj/bunny.obj")
 	Scale : f32 = 200
 	Mesh := LoadMesh(FileName)
 	MeshTriangles := AssembleTrianglesFromMesh(Mesh, Scale)
@@ -90,7 +90,7 @@ GlassSuzanne :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight :
 	win32.QueryPerformanceFrequency(&Frequency)
 
 	// Mesh
-	Filename := string("assets/suzanne.obj")
+	Filename := string("assets/obj/suzanne.obj")
 	Mesh := LoadMesh(Filename)
 	MeshTriangles := AssembleTrianglesFromMesh(Mesh)
 	fmt.println("Loaded mesh:", Filename, "with", len(MeshTriangles), "triangles")
@@ -180,7 +180,7 @@ BunnyPlaneLamp :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight
 	win32.QueryPerformanceFrequency(&Frequency)
 
 	// Mesh
-	Filename := string("assets/bunny.obj")
+	Filename := string("assets/obj/bunny.obj")
 	Mesh := LoadMesh(Filename)
 	MeshTriangles := AssembleTrianglesFromMesh(Mesh)
 	fmt.println("Loaded mesh:", Filename, "with", len(MeshTriangles), "triangles")
@@ -373,7 +373,7 @@ PlaneDragon :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : 
 	win32.QueryPerformanceFrequency(&Frequency)
 
 	// Mesh
-	Filename := string("assets/dragon.obj")
+	Filename := string("assets/obj/dragon.obj")
 	Mesh := LoadMesh(Filename)
 	MeshTriangles := AssembleTrianglesFromMesh(Mesh)
 	fmt.println("Loaded mesh:", Filename, "with", len(MeshTriangles), "triangles")
@@ -419,7 +419,7 @@ CornellDragon  :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight
 	win32.QueryPerformanceFrequency(&Frequency)
 
 	// Mesh
-	FileName := string("assets/dragon.obj")
+	FileName := string("assets/obj/dragon.obj")
 	Scale : f32 = 500
 	Mesh := LoadMesh(FileName)
 	MeshTriangles := AssembleTrianglesFromMesh(Mesh, Scale)

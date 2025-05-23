@@ -17,7 +17,7 @@ package main
 	- Oren-Nayar BRDF
 	- Photon mapping with both diffuse and specular
 	- Measured BRDF data (MERL)
-	- Triangle meshes (Wavefront OBJ) + BVH
+	- Triangle meshes (OBJ, PLY) + BVH
 	- Tiled multithreaded rendering
 */
 
