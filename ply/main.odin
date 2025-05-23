@@ -84,6 +84,23 @@ main :: proc()
 
 	fmt.println(len(Mesh.Vertices), "vertices")
 	fmt.println(len(Tris), "triangles")
+
+	ClosePLYFile(File)
+
+	fmt.println("closed file")
+}
+
+ClosePLYFile :: proc(File : ply_file)
+{
+	for Element in File.Header.Elements
+	{
+		delete(Element.Properties)
+		delete(Element.Name)
+	}
+
+	delete(File.Header.Elements)
+
+	delete(File.Data)
 }
 
 ReadPLYData :: proc(File : ply_file) -> mesh
@@ -249,17 +266,15 @@ OpenPLYFile :: proc(Filename : string) -> ply_file
 	File : ply_file
 
 	Data, ok := os.read_entire_file(Filename)
-
 	if !ok
 	{
 		fmt.println("Failed to open file:", Filename)
 		return ply_file{}
 	}
 
-	StringFile := string(Data)
+	defer delete(Data)
 
-	fmt.println(&Data[0])
-	fmt.println(&StringFile)
+	StringFile := string(Data)
 
 	Idx, Width := strings.index_multi(StringFile, []string{string("end_header")})
 
@@ -320,7 +335,7 @@ OpenPLYFile :: proc(Filename : string) -> ply_file
 		}
 		else if strings.compare(Tokens[0], "element") == 0
 		{
-			Name := Tokens[1]
+			Name := strings.clone(Tokens[1])
 			Count := strconv.atoi(Tokens[2])
 
 			append(&File.Header.Elements, ply_element{Name, Count, nil})
@@ -337,11 +352,11 @@ OpenPLYFile :: proc(Filename : string) -> ply_file
 			{
 				Property.LengthType = MapStringToType(Tokens[2])
 				Property.ValueType = MapStringToType(Tokens[3])
-				Property.Name = Tokens[4]
+				Property.Name = strings.clone(Tokens[4])
 			}
 			else
 			{
-				Property.Name = Tokens[2]
+				Property.Name = strings.clone(Tokens[2])
 			}
 
 			append(&File.Header.Elements[CurrentElementIndex].Properties, Property)
