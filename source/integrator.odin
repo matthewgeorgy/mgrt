@@ -193,7 +193,7 @@ ComputeIndirectIllumination :: proc(Scene : ^scene, RayDirection : v3, Record : 
 
 			if MaterialType == .DIFFUSE
 			{
-				Query := photon_map_query{ HitMaterial, FinalRecord, -FinalRay.Direction, 10 }
+				Query := photon_map_query{ HitMaterial, FinalRecord, -FinalRay.Direction, 100 }
 
 				Indirect = f * CosAtten * RadianceEstimate(Scene.GlobalPhotonMap, Query) / Sample.PDF
 			}
@@ -235,7 +235,7 @@ PhotonMapIntegrator :: proc(Ray : ray, Scene : ^scene, Depth : int) -> v3
 
 			IndirectIllumination := ComputeIndirectIllumination(Scene, Ray.Direction, &Record, 0)
 
-			CausticsQuery := photon_map_query{ SurfaceMaterial, Record, -Ray.Direction, 10 }
+			CausticsQuery := photon_map_query{ SurfaceMaterial, Record, -Ray.Direction, 100 }
 			Caustics := RadianceEstimate(Scene.CausticPhotonMap, CausticsQuery)
 
 			return DirectIllumination + IndirectIllumination + Caustics

@@ -2,20 +2,13 @@ package main
 
 import fmt		"core:fmt"
 import slice	"core:slice"
+import pq		"core:container/priority_queue"
 
 photon :: struct
 {
 	Pos : v3,
 	Dir : v3,
 	Power : v3
-};
-
-photon_node :: struct
-{
-	Photon : photon,
-
-	Axis : i32,
-	Left, Right : i32,
 };
 
 photon_map :: struct
@@ -28,13 +21,13 @@ photon_map :: struct
 	Photons : [dynamic]photon,
 
 	// kd-tree
-	Nodes : []photon_node,
-	NodeCount : int,
+	Nodes : [dynamic]kd_node,
 };
 
 nearest_photons :: struct
 {
-	PhotonsFound : [dynamic]photon
+	PhotonIndices : []int,
+	MaxDist2 : f32,
 };
 
 ///////////////////////////////////////
@@ -80,35 +73,34 @@ photon_map_query :: struct
 	Material : material,
 	Record : hit_record,
 	wo : v3,
-	MaxDistance : f32,
+	NumPhotons : int,
 }
 
 RadianceEstimate :: proc(Map : ^photon_map, Query : photon_map_query) -> v3
 {
 	Radiance : v3
 
-	NearestPhotons := LocatePhotons(Map, Query.Record.HitPoint, Query.MaxDistance)
-	defer delete(NearestPhotons.PhotonsFound)
+	NearestPhotons := LocatePhotons(Map, Query.Record.HitPoint, Query.NumPhotons)
+	defer delete(NearestPhotons.PhotonIndices)
 
-	if len(NearestPhotons.PhotonsFound) < 0
+	if len(NearestPhotons.PhotonIndices) == 0
 	{
 		return v3{0, 0, 0}
 	}
 
-	for Photon in NearestPhotons.PhotonsFound
+	MaxDist2 : f32
+	for PhotonIdx in NearestPhotons.PhotonIndices
 	{
+		Photon := Map.Photons[PhotonIdx]
+		Dist2 := LengthSquared(Photon.Pos - Query.Record.HitPoint)
+		MaxDist2 = Max(MaxDist2, Dist2)
+
 		f := EvaluateBxDF(Query.Material, Query.wo, Photon.Dir, Query.Record)
 
 		Radiance += f * Photon.Power
 	}
 
-	// TODO(matthew): This is alright for now, but in the future we can do better.
-	// At some point we want to switch to querying the k-nearest photons, where k
-	// is some integer, rather than querying all of the photons within some radius
-	// R.
-	// When we do this, the MaxDistance will then become the distance of the farthest
-	// photon from our search.
-	AreaFactor := 1.0  / (PI * Query.MaxDistance * Query.MaxDistance) // density estimate
+	AreaFactor := 1.0  / (PI * NearestPhotons.MaxDist2)
 
 	Radiance *= AreaFactor
 
@@ -151,7 +143,7 @@ BuildGlobalPhotonMap :: proc(Map : ^photon_map, Scene : ^scene)
 	fmt.println(Map.StoredPhotons * size_of(photon) / (1024), "KB of photons")
 	ScalePhotonPower(Map, f32(1.0) / f32(EmittedPhotons))
 
-	BuildPhotonMap(Map)
+	BuildTree(Map)
 }
 
 BuildCausticPhotonMap :: proc(Map : ^photon_map, Scene : ^scene)
@@ -170,7 +162,7 @@ BuildCausticPhotonMap :: proc(Map : ^photon_map, Scene : ^scene)
 	fmt.println(Map.StoredPhotons * size_of(photon) / (1024), "KB of photons")
 	ScalePhotonPower(Map, f32(1.0) / f32(EmittedPhotons))
 
-	BuildPhotonMap(Map)
+	BuildTree(Map)
 }
 
 CastGlobalPhoton :: proc(Map : ^photon_map, InitialRay : ray, InitialPower : v3, Scene : ^scene, MaxPhotonBounces : int)
@@ -291,104 +283,195 @@ CastCausticPhoton :: proc(Map : ^photon_map, InitialRay : ray, InitialPower : v3
 // These functions are for working with the kd-structure of the photon map
 ///////////////////////////////////////
 
-SortByX :: proc(A, B : photon) -> bool
+kd_node :: struct
 {
-	return A.Pos.x < B.Pos.x
+	Idx : int,
+	Axis : int,
+	LeftChildIdx, RightChildIdx : int,
+};
+
+knn_pair :: struct
+{
+	Dist : f32,
+	Idx : int,
 }
 
-SortByY :: proc(A, B : photon) -> bool
+knn_queue :: pq.Priority_Queue(knn_pair)
+
+BuildTree :: proc(Map : ^photon_map)
 {
-	return A.Pos.y < B.Pos.y
-}
+	Indices := make([]int, len(Map.Photons))
 
-SortByZ :: proc(A, B : photon) -> bool
-{
-	return A.Pos.z < B.Pos.z
-}
-
-SortByAxis : []proc(photon, photon)->bool = { SortByX, SortByY, SortByZ }
-
-BuildPhotonMap :: proc(Map : ^photon_map)
-{
-	Map.Nodes = make([]photon_node, Map.StoredPhotons)
-	_ = InsertNode(Map, Map.Photons[:], 0)
-
-	// Photons are in the k-d structure nodes, no longer need original array
-	delete(Map.Photons)
-}
-
-InsertNode :: proc(Map : ^photon_map, Photons : []photon, Axis : i32) -> i32
-{
-	PhotonNode : ^photon_node
-
-	if len(Photons) == 0
+	for I := 0; I < len(Indices); I += 1
 	{
-		return -1
+		Indices[I] = I
+	}
+
+	// Need this when looking up points in the sort routines
+	context.user_ptr = Map
+
+	BuildNode(Map, Indices[:], 0)
+}
+
+BuildNode :: proc(Map : ^photon_map, Indices : []int, Axis : int)
+{
+	if len(Indices) == 0
+	{
+		return
+	}
+
+	slice.sort_by(Indices, SortByAxis[Axis])
+
+	Mid := (len(Indices) - 1) / 2
+
+	// Remember parent index before we recurse down
+	ParentIdx := len(Map.Nodes)
+
+	Node := kd_node{ Axis = Axis, Idx = Indices[Mid] }
+
+	append(&Map.Nodes, Node)
+
+	NewAxis := (Axis + 1) % 3
+
+	// Left children
+	LeftChildIdx := len(Map.Nodes)
+	BuildNode(Map, Indices[0:Mid], NewAxis)
+
+	if LeftChildIdx == len(Map.Nodes)
+	{
+		Map.Nodes[ParentIdx].LeftChildIdx = -1
 	}
 	else
 	{
-		slice.sort_by(Photons, SortByAxis[Axis])
+		Map.Nodes[ParentIdx].LeftChildIdx = LeftChildIdx
+	}
 
-		MedianIndex := len(Photons) / 2
+	// Right children
+	RightChildIdx := len(Map.Nodes)
+	BuildNode(Map, Indices[Mid + 1 :], NewAxis)
 
-		MapIndex := i32(Map.NodeCount)
-		Node := &Map.Nodes[Map.NodeCount]
-		Map.NodeCount += 1
-
-		Node.Photon = Photons[MedianIndex]
-		Node.Axis = Axis
-
-		NewAxis := (Axis + 1) % 3
-
-		Node.Left = InsertNode(Map, Photons[0 : MedianIndex], NewAxis)
-		Node.Right = InsertNode(Map, Photons[MedianIndex + 1 : len(Photons)], NewAxis)
-
-		return MapIndex
+	if RightChildIdx == len(Map.Nodes)
+	{
+		Map.Nodes[ParentIdx].RightChildIdx = -1
+	}
+	else
+	{
+		Map.Nodes[ParentIdx].RightChildIdx = RightChildIdx
 	}
 }
 
-LocatePhotons :: proc(Map : ^photon_map, Pos : v3, MaxDistance : f32) -> nearest_photons
+LocatePhotons :: proc(Map : ^photon_map, QueryPoint : v3, k : int) -> nearest_photons
 {
-	Photons : nearest_photons
+	Result : nearest_photons
+	Queue : knn_queue
 
-	if Map.StoredPhotons != 0
+	pq.init(&Queue, KNNQueueSort, KNNQueueSwap, k)
+
+	SearchKNN(Map, 0, QueryPoint, k, &Queue)
+
+	Result.PhotonIndices = make([]int, pq.len(Queue))
+
+	for I := 0; I < len(Result.PhotonIndices); I += 1
 	{
-		FindPhotons(Map, 0, Pos, MaxDistance, &Photons.PhotonsFound)
+		Pair := pq.pop(&Queue)
+
+		Result.PhotonIndices[I] = Pair.Idx
+		Result.MaxDist2 = Max(Result.MaxDist2, Pair.Dist)
 	}
 
-	return Photons
+	pq.destroy(&Queue)
+
+	return Result
 }
 
-FindPhotons :: proc(Map : ^photon_map, NodeIndex : i32, Pos : v3, MaxDistance : f32, PhotonsFound : ^[dynamic]photon) -> int
+SearchKNN :: proc(Map : ^photon_map, NodeIdx : int, QueryPoint : v3, k : int, Queue : ^knn_queue)
 {
-	AddedRes : int = 0
-
-	if NodeIndex == -1
+	if (NodeIdx == -1) || (NodeIdx >= len(Map.Nodes))
 	{
-		return 0
+		return
 	}
 
-	Node := &Map.Nodes[NodeIndex]
+	Node := Map.Nodes[NodeIdx]
 
-	DistSq := LengthSquared(Node.Photon.Pos - Pos)
-	if (DistSq <= MaxDistance * MaxDistance)
+	Median := Map.Photons[Node.Idx].Pos
+
+	Dist2 := LengthSquared(QueryPoint - Median)
+	pq.push(Queue, knn_pair{Dist2, Node.Idx})
+
+	if pq.len(Queue^) > k
 	{
-		append(PhotonsFound, Node.Photon)
-
-		AddedRes = 1
+		pq.pop(Queue)
 	}
 
-	dx : f32 = Pos[Node.Axis] - Node.Photon.Pos[Node.Axis]
-
-	Ret := FindPhotons(Map, dx < 0.0 ? Node.Left : Node.Right, Pos, MaxDistance, PhotonsFound)
-	if (Ret >= 0 && Abs(dx) < MaxDistance)
+	// If query point is below the median along this axis, search left
+	// Otherwise, search right
+	IsLower := QueryPoint[Node.Axis] < Median[Node.Axis]
+	if IsLower
 	{
-		AddedRes += Ret
-		Ret = FindPhotons(Map, dx < 0.0 ? Node.Right : Node.Left, Pos, MaxDistance, PhotonsFound)
+		SearchKNN(Map, Node.LeftChildIdx, QueryPoint, k, Queue)
+	}
+	else
+	{
+		SearchKNN(Map, Node.RightChildIdx, QueryPoint, k, Queue)
 	}
 
-	AddedRes += Ret
+	// At a leaf node, if the queue size is less than k, or the queue's largest
+	// min distance overlaps sibling regions, then search the siblings as well
+	DistanceToSiblings := Median[Node.Axis] - QueryPoint[Node.Axis]
+	Top := pq.peek(Queue^)
 
-	return AddedRes
+	if Top.Dist > DistanceToSiblings * DistanceToSiblings
+	{
+		if IsLower
+		{
+			SearchKNN(Map, Node.RightChildIdx, QueryPoint, k, Queue)
+		}
+		else
+		{
+			SearchKNN(Map, Node.LeftChildIdx, QueryPoint, k, Queue)
+		}
+	}
+}
+
+
+
+// Utility functions for sorting, swappping
+
+SortByX :: proc(Idx1, Idx2 : int) -> bool
+{
+	Ptr := context.user_ptr
+	Map:= (cast(^photon_map)Ptr)^
+
+	return Map.Photons[Idx1].Pos.x < Map.Photons[Idx2].Pos.x
+}
+
+SortByY :: proc(Idx1, Idx2 : int) -> bool
+{
+	Ptr := context.user_ptr
+	Map:= (cast(^photon_map)Ptr)^
+
+	return Map.Photons[Idx1].Pos.y < Map.Photons[Idx2].Pos.y
+}
+
+SortByZ :: proc(Idx1, Idx2 : int) -> bool
+{
+	Ptr := context.user_ptr
+	Map:= (cast(^photon_map)Ptr)^
+
+	return Map.Photons[Idx1].Pos.z < Map.Photons[Idx2].Pos.z
+}
+
+SortByAxis : []proc(int, int)->bool = { SortByX, SortByY, SortByZ }
+
+KNNQueueSort :: proc(A, B : knn_pair) -> bool
+{
+	return A.Dist > B.Dist
+}
+
+KNNQueueSwap :: proc(q : []knn_pair, i, j : int)
+{
+	Temp := q[i]
+	q[i] = q[j]
+	q[j] = Temp
 }
 

@@ -99,6 +99,9 @@ main :: proc()
 	ElapsedTime = (EndCounter - StartCounter) * 1000 / Frequency
 	fmt.println("Caustic photon tracing took", ElapsedTime, "ms\n")
 
+	fmt.println("Global photon map nodes", len(GlobalPhotonMap.Nodes))
+	fmt.println("Caustic photon map nodes", len(CausticPhotonMap.Nodes))
+
 	// Threading
 	ThreadData : thread_data
 	Threads : [THREADCOUNT]^thread.Thread
