@@ -5,7 +5,7 @@ PathTracingIntegrator :: proc(Ray : ray, Scene : ^scene, Depth : int) -> v3
 {
 	Record : hit_record
 
-	if Depth <= 0
+	if Depth == Scene.MaxDepth
 	{
 		return v3{0, 0, 0}
 	}
@@ -30,7 +30,7 @@ PathTracingIntegrator :: proc(Ray : ray, Scene : ^scene, Depth : int) -> v3
 
 		ScatteredRay := ray{Record.HitPoint, Dir}
 
-		return CosAtten * f * PathTracingIntegrator(ScatteredRay, Scene, Depth - 1) / PDF
+		return CosAtten * f * PathTracingIntegrator(ScatteredRay, Scene, Depth + 1) / PDF
 	}
 	else
 	{
@@ -170,7 +170,7 @@ ComputeIndirectIllumination :: proc(Scene : ^scene, RayDirection : v3, Record : 
 {
 	Indirect : v3
 
-	if Depth <= 0
+	if Depth == Scene.MaxDepth
 	{
 		return v3{0, 0, 0}
 	}
@@ -199,7 +199,7 @@ ComputeIndirectIllumination :: proc(Scene : ^scene, RayDirection : v3, Record : 
 			}
 			else if MaterialType == .SPECULAR
 			{
-				Indirect = f * CosAtten * ComputeIndirectIllumination(Scene, -FinalRay.Direction, &FinalRecord, Depth - 1) / Sample.PDF
+				Indirect = f * CosAtten * ComputeIndirectIllumination(Scene, -FinalRay.Direction, &FinalRecord, Depth + 1) / Sample.PDF
 			}
 		}
 	}
@@ -211,7 +211,7 @@ PhotonMapIntegrator :: proc(Ray : ray, Scene : ^scene, Depth : int) -> v3
 {
 	Record : hit_record
 
-	if Depth <= 0
+	if Depth == Scene.MaxDepth
 	{
 		return v3{0, 0, 0}
 	}
@@ -233,7 +233,7 @@ PhotonMapIntegrator :: proc(Ray : ray, Scene : ^scene, Depth : int) -> v3
 		{
 			DirectIllumination := ComputeDirectIllumination(Ray, Record, Scene)
 
-			IndirectIllumination := ComputeIndirectIllumination(Scene, Ray.Direction, &Record, Scene.MaxDepth)
+			IndirectIllumination := ComputeIndirectIllumination(Scene, Ray.Direction, &Record, 0)
 
 			CausticsQuery := photon_map_query{ SurfaceMaterial, Record, -Ray.Direction, 10 }
 			Caustics := RadianceEstimate(Scene.CausticPhotonMap, CausticsQuery)
@@ -251,7 +251,7 @@ PhotonMapIntegrator :: proc(Ray : ray, Scene : ^scene, Depth : int) -> v3
 			CosAtten := Abs(Dot(wi, Record.SurfaceNormal))
 			NewRay := ray{Record.HitPoint, wi}
 
-			return f * CosAtten * PhotonMapIntegrator(NewRay, Scene, Depth - 1) / PDF
+			return f * CosAtten * PhotonMapIntegrator(NewRay, Scene, Depth + 1) / PDF
 		}
 		else
 		{
