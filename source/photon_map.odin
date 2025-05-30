@@ -26,7 +26,7 @@ photon_map :: struct
 
 nearest_photons :: struct
 {
-	PhotonIndices : []i32,
+	Photons : []photon,
 	MaxDist2 : f32,
 };
 
@@ -81,18 +81,16 @@ RadianceEstimate :: proc(Map : ^photon_map, Query : photon_map_query) -> v3
 	Radiance : v3
 
 	NearestPhotons := LocatePhotons(Map, Query.Record.HitPoint, Query.NumPhotons)
-	defer delete(NearestPhotons.PhotonIndices)
+	defer delete(NearestPhotons.Photons)
 
-	if len(NearestPhotons.PhotonIndices) == 0
+	if len(NearestPhotons.Photons) == 0
 	{
 		return v3{0, 0, 0}
 	}
 
 	MaxDist2 : f32
-	for PhotonIdx in NearestPhotons.PhotonIndices
+	for Photon in NearestPhotons.Photons
 	{
-		Photon := Map.Photons[PhotonIdx]
-
 		f := EvaluateBxDF(Query.Material, Query.wo, Photon.Dir, Query.Record)
 
 		Radiance += f * Photon.Power
@@ -290,7 +288,7 @@ kd_node :: struct
 
 knn_pair :: struct
 {
-	Dist : f32,
+	Dist2 : f32,
 	Idx : i32,
 }
 
@@ -367,14 +365,14 @@ LocatePhotons :: proc(Map : ^photon_map, QueryPoint : v3, k : int) -> nearest_ph
 
 	SearchKNN(Map, 0, QueryPoint, k, &Queue)
 
-	Result.PhotonIndices = make([]i32, pq.len(Queue))
+	Result.Photons = make([]photon, pq.len(Queue))
 
-	for I := 0; I < len(Result.PhotonIndices); I += 1
+	for I := 0; I < len(Result.Photons); I += 1
 	{
 		Pair := pq.pop(&Queue)
 
-		Result.PhotonIndices[I] = Pair.Idx
-		Result.MaxDist2 = Max(Result.MaxDist2, Pair.Dist)
+		Result.Photons[I] = Map.Photons[Pair.Idx]
+		Result.MaxDist2 = Max(Result.MaxDist2, Pair.Dist2)
 	}
 
 	pq.destroy(&Queue)
@@ -418,7 +416,7 @@ SearchKNN :: proc(Map : ^photon_map, NodeIdx : i32, QueryPoint : v3, k : int, Qu
 	DistanceToSiblings := Median[Node.Axis] - QueryPoint[Node.Axis]
 	Top := pq.peek(Queue^)
 
-	if Top.Dist > DistanceToSiblings * DistanceToSiblings
+	if Top.Dist2 > DistanceToSiblings * DistanceToSiblings
 	{
 		if IsLower
 		{
@@ -463,7 +461,7 @@ SortByAxis : []proc(i32, i32)->bool = { SortByX, SortByY, SortByZ }
 
 KNNQueueSort :: proc(A, B : knn_pair) -> bool
 {
-	return A.Dist > B.Dist
+	return A.Dist2 > B.Dist2
 }
 
 KNNQueueSwap :: proc(q : []knn_pair, i, j : int)
