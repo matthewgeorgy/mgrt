@@ -4,6 +4,7 @@ import libc		"core:c/libc"
 import fmt		"core:fmt"
 import strings	"core:strings"
 import mem		"core:mem"
+import math 	"core:math"
 
 bitmap_header :: struct #packed
 {
@@ -94,12 +95,25 @@ PackRGBA :: proc(Red, Green, Blue, Alpha : u8) -> u32
 
 LinearTosRGB :: proc (LinearValue : f32) -> f32
 {
-	if LinearValue > 0
+	R := LinearValue
+
+	if R < 0
 	{
-		return SquareRoot(LinearValue)
+		R = 0
 	}
 
-	return 0
+	if R > 1
+	{
+		R = 1
+	}
+
+	S := 12.92 * R
+	if R > 0.0031308
+	{
+		S = 1.055 * math.pow_f32(R, 1.0 / 2.4) - 0.055
+	}
+
+	return S
 }
 
 WritePixel :: proc(Image : image_u32, X, Y : i32, PixelColor : v3)
