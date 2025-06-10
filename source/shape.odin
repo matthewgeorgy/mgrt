@@ -73,10 +73,10 @@ CreateQuadTransformed :: proc(Q, u, v : v3, Translation : v3, Rotation : f32) ->
 	return Quad
 }
 
-// NOTE(matthew): don't really like this! Would be nicer if CreateBox just
-// returned the primitive and then we add it explicitly...
-CreateBox :: proc(A, B : v3, Translation : v3, Rotation : f32, MaterialIndex : u32, LightIndex : u32, Scene : ^scene)
+CreateBox :: proc(A, B : v3, Translation : v3, Rotation : f32) -> []quad
 {
+	Box := make([]quad, 6)
+
 	MinCoord := v3{Min(A.x, B.x), Min(A.y, B.y), Min(A.z, B.z)}
 	MaxCoord := v3{Max(A.x, B.x), Max(A.y, B.y), Max(A.z, B.z)}
 
@@ -84,12 +84,14 @@ CreateBox :: proc(A, B : v3, Translation : v3, Rotation : f32, MaterialIndex : u
 	DeltaY := v3{0, MaxCoord.y - MinCoord.y, 0}
 	DeltaZ := v3{0, 0, MaxCoord.z - MinCoord.z}
 
-    AddPrimitive(Scene, CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MaxCoord.z},  DeltaX,  DeltaY, Translation, Rotation), MaterialIndex, LightIndex) // front
-    AddPrimitive(Scene, CreateQuadTransformed(v3{MaxCoord.x, MinCoord.y, MaxCoord.z}, -DeltaZ,  DeltaY, Translation, Rotation), MaterialIndex, LightIndex) // right
-    AddPrimitive(Scene, CreateQuadTransformed(v3{MaxCoord.x, MinCoord.y, MinCoord.z}, -DeltaX,  DeltaY, Translation, Rotation), MaterialIndex, LightIndex) // back
-    AddPrimitive(Scene, CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaZ,  DeltaY, Translation, Rotation), MaterialIndex, LightIndex) // left
-    AddPrimitive(Scene, CreateQuadTransformed(v3{MinCoord.x, MaxCoord.y, MaxCoord.z},  DeltaX, -DeltaZ, Translation, Rotation), MaterialIndex, LightIndex) // top
-    AddPrimitive(Scene, CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaX,  DeltaZ, Translation, Rotation), MaterialIndex, LightIndex) // bottom
+    Box[0] = CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MaxCoord.z},  DeltaX,  DeltaY, Translation, Rotation) // front
+    Box[1] = CreateQuadTransformed(v3{MaxCoord.x, MinCoord.y, MaxCoord.z}, -DeltaZ,  DeltaY, Translation, Rotation) // right
+    Box[2] = CreateQuadTransformed(v3{MaxCoord.x, MinCoord.y, MinCoord.z}, -DeltaX,  DeltaY, Translation, Rotation) // back
+    Box[3] = CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaZ,  DeltaY, Translation, Rotation) // left
+    Box[4] = CreateQuadTransformed(v3{MinCoord.x, MaxCoord.y, MaxCoord.z},  DeltaX, -DeltaZ, Translation, Rotation) // top
+    Box[5] = CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaX,  DeltaZ, Translation, Rotation) // bottom
+
+	return Box
 }
 
 GetArea :: proc(Shape : shape) -> f32
