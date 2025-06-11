@@ -186,11 +186,11 @@ ParseCamera :: proc(Parser : ^parser) -> camera
 		}
         else if Tokens[0] == "FocusDist"
         {
-			Camera.FocusDist = ReadF32(Parser, Tokens[1:], false, "FocusDist")
+			Camera.FocusDist = ReadF32(Parser, Tokens[1:], "FocusDist", false)
 		}
         else if Tokens[0] == "FOV"
         {
-			Camera.FOV = ReadF32(Parser, Tokens[1:], false, "FOV")
+			Camera.FOV = ReadF32(Parser, Tokens[1:], "FOV", false)
         }
         else
         {
@@ -265,7 +265,7 @@ ParseShape_Sphere :: proc(Parser : ^parser) -> sphere
 		}
 		else if Tokens[0] == "Radius"
 		{
-			Sphere.Radius = ReadF32(Parser, Tokens[1:], false, "Radius")
+			Sphere.Radius = ReadF32(Parser, Tokens[1:], "Radius", false)
 		}
 		else
 		{
@@ -307,7 +307,11 @@ ParseShape_Quad :: proc(Parser : ^parser) -> quad
 		}
 		else if Tokens[0] == "Rotation"
 		{
-			TempQuad.Rotation = ReadF32(Parser, Tokens[1:], true, "Rotation")
+			TempQuad.Rotation = ReadF32(Parser, Tokens[1:], "Rotation")
+		}
+		else
+		{
+			ReportError(Parser, "ERROR: Invalid member for quad")
 		}
 	}
 
@@ -333,9 +337,13 @@ ParseShape_Plane :: proc(Parser : ^parser) -> plane
 		{
 			Plane.N = ReadV3(Parser, Tokens[1:], "N")
 		}
-		if Tokens[0] == "d"
+		else if Tokens[0] == "d"
 		{
-			Plane.d = ReadF32(Parser, Tokens[1:], true, "d")
+			Plane.d = ReadF32(Parser, Tokens[1:], "d")
+		}
+		else
+		{
+			ReportError(Parser, "ERROR: Invalid member for plane")
 		}
 	}
 
@@ -359,13 +367,17 @@ ParseShape_Triangle :: proc(Parser : ^parser) -> triangle
 		{
 			Triangle.Vertices[0] = ReadV3(Parser, Tokens[1:], "v0")
 		}
-		if Tokens[0] == "v1"
+		else if Tokens[0] == "v1"
 		{
 			Triangle.Vertices[1] = ReadV3(Parser, Tokens[1:], "v1")
 		}
-		if Tokens[0] == "v2"
+		else if Tokens[0] == "v2"
 		{
 			Triangle.Vertices[2] = ReadV3(Parser, Tokens[1:], "v2")
+		}
+		else
+		{
+			ReportError(Parser, "ERROR: Invalid member for triangle")
 		}
 	}
 
@@ -421,7 +433,7 @@ IsNumeric :: proc(String : string) -> bool
     return true
 }
 
-ReadF32 :: proc(Parser : ^parser, Tokens : []string, NegativeAllowed : bool, FieldName : string) -> f32
+ReadF32 :: proc(Parser : ^parser, Tokens : []string, FieldName : string, NegativeAllowed : bool = true) -> f32
 {
 	Ret : f32
 
