@@ -77,6 +77,9 @@ parser :: struct
 	CurrentLineNumber : int,
 
 	Errors : [dynamic]error,
+
+	Shapes : [dynamic]shape,
+	ShapeTable : map[string]int,
 }
 
 main :: proc()
@@ -121,27 +124,45 @@ ParseFile :: proc(Parser : ^parser)
 
         if Tokens[0] == "BeginCamera"
         {
-            ParseCamera(Parser, &Camera)
+			if len(Tokens) == 1
+			{
+            	Camera = ParseCamera(Parser)
+			}
+			else
+			{
+				ReportError(Parser, "ERROR: Too many symbols, BeginCamera is a standalone keyword")
+			}
         }
+
+		if Tokens[0] == "BeginShape"
+		{
+			if len(Tokens) == 2
+			{
+				ShapeName := Tokens[1]
+				Shape := ParseShape(Parser)
+
+				append(&Parser.Shapes, Shape)
+
+				// TODO(matthew): report error here if two shapes have the same name
+				Parser.ShapeTable[ShapeName] = len(Parser.Shapes) - 1
+			}
+			else
+			{
+				ReportError(Parser, "ERROR: invalid syntax, BeginShape takes a single name")
+			}
+		}
     }
 
     fmt.println(Camera)
 }
 
-ParseCamera :: proc(Parser : ^parser, Camera : ^camera)
+ParseCamera :: proc(Parser : ^parser) -> camera
 {
-	// Process first line first
-	FirstLine := Parser.CurrentLine
-	Tokens := strings.fields(Parser.CurrentLine)
-
-	if len(Tokens) != 1
-	{
-		ReportError(Parser, "ERROR: Too many symbols, BeginCamera is a standalone keyword")
-	}
+	Camera : camera
 
     for NextLine(Parser)
     {
-        Tokens = strings.fields(Parser.CurrentLine)
+		Tokens := strings.fields(Parser.CurrentLine)
 
         if Tokens[0] == "EndCamera"
         {
@@ -169,6 +190,15 @@ ParseCamera :: proc(Parser : ^parser, Camera : ^camera)
             fmt.println("Invalid field", Tokens[0], "for CAMERA")
         }
     }
+
+	return Camera
+}
+
+ParseShape :: proc(Parser : ^parser) -> shape
+{
+	Shape : shape
+
+	return Shape
 }
 
 NextLine :: proc(Parser : ^parser) -> bool
