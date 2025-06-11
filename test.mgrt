@@ -1,0 +1,43 @@
+# comment!
+ # comment!
+BeginCamera # comment!
+	LookFrom 278 278 -800 
+	LookAt 278 278 0
+	FocusDist 10
+	FOV 40
+EndCamera
+
+BeginShape Foo
+	Type sphere
+	Center 0 0 1
+	Radius 10
+EndShape
+
+BeginShape Baz
+	Type quad
+	Q 0 0 1
+	u 1 0 0
+	v 0 1 0
+	Rotation -20
+	Translation 4 -20 5
+EndShape
+
+BeginShape Bar
+	Type sphere
+	Center 1 -5 1
+	Radius 5
+EndShape
+
+BeginShape blah
+	Type plane
+	N 1 0 0
+	d -40
+EndShape
+
+BeginShape kurwa
+	Type triangle
+	v0 1 0 0
+	v1 2 0 4
+	v2 -1 4 4
+EndShape
+
