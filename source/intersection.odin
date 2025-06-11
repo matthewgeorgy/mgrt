@@ -1,5 +1,7 @@
 package main
 
+import slice "core:slice"
+
 hit_record :: struct
 {
 	MaterialIndex  : u32,
@@ -157,6 +159,41 @@ RayIntersectAABB :: proc(Ray : ray, AABB : aabb) -> f32
 	return t
 }
 
+ComputeBoxNormal :: proc(HitPoint : v3, Box : aabb) -> v3
+{
+	Normal : v3
+	Tol : f32 = 1e-6
+
+	pair :: struct
+	{
+		Dist : f32,
+		Normal : v3,
+	}
+
+	SortProc :: proc(A, B : pair) -> bool
+	{
+		return A.Dist < B.Dist
+	}
+
+	Pairs := [?]pair {
+		{Abs(HitPoint.x - Box.Min.x), v3{-1,  0,  0}},
+		{Abs(HitPoint.x - Box.Max.x), v3{ 1,  0,  0}},
+		{Abs(HitPoint.y - Box.Min.y), v3{ 0, -1,  0}},
+		{Abs(HitPoint.y - Box.Max.y), v3{ 0,  1,  0}},
+		{Abs(HitPoint.z - Box.Min.z), v3{ 0,  0, -1}},
+		{Abs(HitPoint.z - Box.Max.z), v3{ 0,  0,  1}},
+	}
+	
+	slice.sort_by(Pairs[:], SortProc)
+
+	if Pairs[0].Dist < Tol
+	{
+		Normal = Pairs[0].Normal
+	}
+
+	return Normal
+}
+
 GetIntersection :: proc(Ray : ray, Scene : ^scene, Record : ^hit_record) -> bool
 {
 	ClosestDistance : f32 = F32_MAX
@@ -214,6 +251,27 @@ GetIntersection :: proc(Ray : ray, Scene : ^scene, Record : ^hit_record) -> bool
 					OutwardNormal := Normalize(Record.HitPoint - Sphere.Center)
 
 					SetFaceNormal(Ray, OutwardNormal, Record)
+
+					Record.MaterialIndex = Primitive.MaterialIndex
+					Record.LightIndex = Primitive.LightIndex
+				}
+			}
+			case box:
+			{
+				Box := Primitive.Shape.(box)
+				RotatedRay := TransformRay(Ray, Box.Translation, Box.Rotation)
+
+				ThisDistance := RayIntersectAABB(RotatedRay, Box.AABB)
+				if (ThisDistance > 0.0001 && ThisDistance < ClosestDistance)
+				{
+					HitSomething = true
+					ClosestDistance = ThisDistance
+					Record.HitPoint = RotatedRay.Origin + ClosestDistance * RotatedRay.Direction
+
+					Normal := ComputeBoxNormal(Record.HitPoint, Box.AABB)
+					SetFaceNormal(RotatedRay, Normal, Record)
+
+					InvertRayTransform(&Record.HitPoint, &Record.SurfaceNormal, Box.Translation, Box.Rotation)
 
 					Record.MaterialIndex = Primitive.MaterialIndex
 					Record.LightIndex = Primitive.LightIndex

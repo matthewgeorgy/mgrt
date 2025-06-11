@@ -37,6 +37,14 @@ aabb :: struct
 	Min, Max : v3
 };
 
+box :: struct
+{
+	AABB : aabb,
+
+	Translation : v3,
+	Rotation : f32,
+}
+
 shape :: union
 {
 	sphere,
@@ -44,6 +52,7 @@ shape :: union
 	plane,
 	triangle,
 	aabb,
+	box,
 }
 
 CreateQuad :: proc(Q, u, v : v3) -> quad
@@ -73,23 +82,14 @@ CreateQuadTransformed :: proc(Q, u, v : v3, Translation : v3, Rotation : f32) ->
 	return Quad
 }
 
-CreateBox :: proc(A, B : v3, Translation : v3, Rotation : f32) -> []quad
+CreateBox :: proc(A, B : v3, Translation : v3, Rotation : f32) -> box
 {
-	Box := make([]quad, 6)
+	Box : box
 
-	MinCoord := v3{Min(A.x, B.x), Min(A.y, B.y), Min(A.z, B.z)}
-	MaxCoord := v3{Max(A.x, B.x), Max(A.y, B.y), Max(A.z, B.z)}
-
-	DeltaX := v3{MaxCoord.x - MinCoord.x, 0, 0}
-	DeltaY := v3{0, MaxCoord.y - MinCoord.y, 0}
-	DeltaZ := v3{0, 0, MaxCoord.z - MinCoord.z}
-
-    Box[0] = CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MaxCoord.z},  DeltaX,  DeltaY, Translation, Rotation) // front
-    Box[1] = CreateQuadTransformed(v3{MaxCoord.x, MinCoord.y, MaxCoord.z}, -DeltaZ,  DeltaY, Translation, Rotation) // right
-    Box[2] = CreateQuadTransformed(v3{MaxCoord.x, MinCoord.y, MinCoord.z}, -DeltaX,  DeltaY, Translation, Rotation) // back
-    Box[3] = CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaZ,  DeltaY, Translation, Rotation) // left
-    Box[4] = CreateQuadTransformed(v3{MinCoord.x, MaxCoord.y, MaxCoord.z},  DeltaX, -DeltaZ, Translation, Rotation) // top
-    Box[5] = CreateQuadTransformed(v3{MinCoord.x, MinCoord.y, MinCoord.z},  DeltaX,  DeltaZ, Translation, Rotation) // bottom
+	Box.AABB.Min = A
+	Box.AABB.Max = B
+	Box.Translation = Translation
+	Box.Rotation = Degs2Rads(Rotation)
 
 	return Box
 }

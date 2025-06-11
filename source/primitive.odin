@@ -8,7 +8,7 @@ primitive :: struct
 	LightIndex : u32,
 }
 
-AddPrimitive :: proc{ AddSphere, AddQuad, AddPlane, AddTriangle, AddAABB }
+AddPrimitive :: proc{ AddSphere, AddQuad, AddPlane, AddTriangle, AddBox }
 
 AddSphere :: proc(Scene : ^scene, Sphere : sphere, MaterialIndex : u32, LightIndex : u32) -> u32
 {
@@ -70,13 +70,13 @@ AddTriangle :: proc(Scene : ^scene, Triangle : triangle, MaterialIndex : u32, Li
 	return PrimitiveIdx
 }
 
-AddAABB :: proc(Scene : ^scene, AABB : aabb, MaterialIndex : u32, LightIndex : u32) -> u32
+AddBox :: proc(Scene : ^scene, Box : box, MaterialIndex : u32, LightIndex : u32) -> u32
 {
 	PrimitiveIdx := u32(len(Scene.Primitives))
 
 	Primitive : primitive
 
-	Primitive.Shape = AABB
+	Primitive.Shape = Box
 	Primitive.MaterialIndex = MaterialIndex
 	Primitive.LightIndex = LightIndex
 

@@ -264,14 +264,8 @@ CornellBox :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : i
 	Box1 := CreateBox(v3{0, 0, 0}, v3{165, 330, 165}, -v3{265, 0, 295}, 15)
 	Box2 := CreateBox(v3{0, 0, 0}, v3{165, 165, 165}, -v3{130, 0, 65}, -18)
 	
-	for I := 0; I < len(Box1); I += 1
-	{
-		AddPrimitive(Scene, Box1[I], Gray, 0)
-		AddPrimitive(Scene, Box2[I], Gray, 0)
-	}
-
-	delete(Box1)
-	delete(Box2)
+	AddPrimitive(Scene, Box1, Gray, 0)
+	AddPrimitive(Scene, Box2, Gray, 0)
 }
 
 CornellSphere :: proc(Scene : ^scene, Camera : ^camera, ImageWidth, ImageHeight : i32)
