@@ -21,8 +21,7 @@ import strconv	"core:strconv"
             - Quad
             - Plane
             - Triangle
-            - AABB
-            - Box (not actually a shape, array of 6 quads)
+            - Box
         - MaterialIndex
         - LightIndex
 
@@ -112,6 +111,11 @@ main :: proc()
 	}
 
 	ParseFile(&Parser)
+
+	for Error in Parser.Errors
+	{
+		fmt.println(Error.LineNumber, Error.Message)
+	}
 
 	for Shape in Parser.Shapes
 	{
@@ -234,6 +238,11 @@ ParseShape :: proc(Parser : ^parser) -> shape
 			else if Tokens[1] == "triangle"
 			{
 				Shape = ParseShape_Triangle(Parser)
+				break
+			}
+			else if Tokens[1] == "box"
+			{
+				Shape = ParseShape_Box(Parser)
 				break
 			}
 			else
@@ -382,6 +391,44 @@ ParseShape_Triangle :: proc(Parser : ^parser) -> triangle
 	}
 
 	return Triangle
+}
+
+ParseShape_Box :: proc(Parser : ^parser) -> box
+{
+	Box : box
+
+	for NextLine(Parser)
+	{
+		Tokens := strings.fields(Parser.CurrentLine)
+
+		if Tokens[0] == "EndShape"
+		{
+			break
+		}
+
+		if Tokens[0] == "Min"
+		{
+			Box.AABB.Min = ReadV3(Parser, Tokens[1:], "Min")
+		}
+		else if Tokens[0] == "Max"
+		{
+			Box.AABB.Max = ReadV3(Parser, Tokens[1:], "Max")
+		}
+		else if Tokens[0] == "Rotation"
+		{
+			Box.Rotation = ReadF32(Parser, Tokens[1:], "Rotation")
+		}
+		else if Tokens[0] == "Translation"
+		{
+			Box.Translation = ReadV3(Parser, Tokens[1:], "Translation")
+		}
+		else
+		{
+			ReportError(Parser, "ERROR: Invalid member for triangle")
+		}
+	}
+
+	return Box
 }
 
 NextLine :: proc(Parser : ^parser) -> bool

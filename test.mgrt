@@ -7,6 +7,14 @@ BeginCamera # comment!
 	FOV 40
 EndCamera
 
+BeginShape blyat
+	Type box
+	Min 0 0 0
+	Max 100 20 40 
+	Rotation -15
+	Translation 20 30 10
+EndShape
+
 BeginShape Foo
 	Type sphere
 	Center 0 0 1
