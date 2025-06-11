@@ -179,8 +179,9 @@ TraverseBVH :: proc(Ray : ray, ClosestDistance : f32, BVH : bvh, NodeIndex : u32
 TraverseBVHRecursive :: proc(Ray : ray, Result : ^bvh_traversal_result, BVH : bvh, NodeIndex : u32)
 {
 	Node := BVH.Nodes[NodeIndex]
+	Distance := RayIntersectAABB(Ray, Node.AABB)
 
-	if !RayIntersectAABB(Ray, Result.t, Node.AABB)
+	if !(Distance < Result.t)
 	{
 		return
 	}

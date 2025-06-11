@@ -125,10 +125,11 @@ RayIntersectTriangle :: proc(Ray : ray, Triangle : triangle) -> f32
 	return t
 }
 
-RayIntersectAABB :: proc(Ray : ray, t : f32, AABB : aabb) -> b32
+RayIntersectAABB :: proc(Ray : ray, AABB : aabb) -> f32
 {
 	BoxMin := AABB.Min
 	BoxMax := AABB.Max
+	t : f32 = F32_MAX
 
 	tx1 := (BoxMin.x - Ray.Origin.x) / Ray.Direction.x
 	tx2 := (BoxMax.x - Ray.Origin.x) / Ray.Direction.x
@@ -148,7 +149,12 @@ RayIntersectAABB :: proc(Ray : ray, t : f32, AABB : aabb) -> b32
 	tMin = Max(tMin, Min(tz1, tz2))
 	tMax = Min(tMax, Max(tz1, tz2))
 
-	return (tMax >= tMin) && (tMin < t) && (tMax > 0)
+	if tMax >= tMin && tMax > 0
+	{
+		t = tMin
+	}
+
+	return t
 }
 
 GetIntersection :: proc(Ray : ray, Scene : ^scene, Record : ^hit_record) -> bool
