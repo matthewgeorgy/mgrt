@@ -112,6 +112,13 @@ main :: proc()
 	}
 
 	ParseFile(&Parser)
+
+	for Shape in Parser.Shapes
+	{
+		fmt.println("    ", Shape)
+	}
+
+	fmt.println(Parser.ShapeTable)
 }
 
 ParseFile :: proc(Parser : ^parser)
@@ -198,7 +205,171 @@ ParseShape :: proc(Parser : ^parser) -> shape
 {
 	Shape : shape
 
+	for NextLine(Parser)
+	{
+		Tokens := strings.fields(Parser.CurrentLine)
+
+		if Tokens[0] == "EndShape"
+		{
+			break
+		}
+
+		if Tokens[0] == "Type"
+		{
+			if Tokens[1] == "sphere"
+			{
+				Shape = ParseShape_Sphere(Parser)
+				break
+			}
+			else if Tokens[1] == "quad"
+			{
+				Shape = ParseShape_Quad(Parser)
+				break
+			}
+			else if Tokens[1] == "plane"
+			{
+				Shape = ParseShape_Plane(Parser)
+				break
+			}
+			else if Tokens[1] == "triangle"
+			{
+				Shape = ParseShape_Triangle(Parser)
+				break
+			}
+			else
+			{
+				ReportError(Parser, "ERROR: Invalid shape type")
+			}
+		}
+	}
+
 	return Shape
+}
+
+ParseShape_Sphere :: proc(Parser : ^parser) -> sphere
+{
+	Sphere : sphere
+
+	for NextLine(Parser)
+	{
+		Tokens := strings.fields(Parser.CurrentLine)
+
+		if Tokens[0] == "EndShape"
+		{
+			break
+		}
+
+		if Tokens[0] == "Center"
+		{
+			Sphere.Center = ReadV3(Parser, Tokens[1:], "Center")
+		}
+		else if Tokens[0] == "Radius"
+		{
+			Sphere.Radius = ReadF32(Parser, Tokens[1:], false, "Radius")
+		}
+		else
+		{
+			ReportError(Parser, "ERROR: Invalid member for sphere")
+		}
+	}
+
+	return Sphere
+}
+
+ParseShape_Quad :: proc(Parser : ^parser) -> quad
+{
+	TempQuad : quad
+
+	for NextLine(Parser)
+	{
+		Tokens := strings.fields(Parser.CurrentLine)
+
+		if Tokens[0] == "EndShape"
+		{
+			break
+		}
+
+		if Tokens[0] == "Q"
+		{
+			TempQuad.Q = ReadV3(Parser, Tokens[1:], "Q")
+		}
+		else if Tokens[0] == "u"
+		{
+			TempQuad.u = ReadV3(Parser, Tokens[1:], "u")
+		}
+		else if Tokens[0] == "v"
+		{
+			TempQuad.v = ReadV3(Parser, Tokens[1:], "v")
+		}
+		else if Tokens[0] == "Translation"
+		{
+			TempQuad.Translation = ReadV3(Parser, Tokens[1:], "Translation")
+		}
+		else if Tokens[0] == "Rotation"
+		{
+			TempQuad.Rotation = ReadF32(Parser, Tokens[1:], true, "Rotation")
+		}
+	}
+
+	Quad := CreateQuadTransformed(TempQuad.Q, TempQuad.u, TempQuad.v, TempQuad.Translation, TempQuad.Rotation)
+
+	return Quad
+}
+
+ParseShape_Plane :: proc(Parser : ^parser) -> plane
+{
+	Plane : plane
+
+	for NextLine(Parser)
+	{
+		Tokens := strings.fields(Parser.CurrentLine)
+
+		if Tokens[0] == "EndShape"
+		{
+			break
+		}
+
+		if Tokens[0] == "N"
+		{
+			Plane.N = ReadV3(Parser, Tokens[1:], "N")
+		}
+		if Tokens[0] == "d"
+		{
+			Plane.d = ReadF32(Parser, Tokens[1:], true, "d")
+		}
+	}
+
+	return Plane
+}
+
+ParseShape_Triangle :: proc(Parser : ^parser) -> triangle
+{
+	Triangle : triangle
+
+	for NextLine(Parser)
+	{
+		Tokens := strings.fields(Parser.CurrentLine)
+
+		if Tokens[0] == "EndShape"
+		{
+			break
+		}
+
+		if Tokens[0] == "v0"
+		{
+			Triangle.Vertices[0] = ReadV3(Parser, Tokens[1:], "v0")
+		}
+		if Tokens[0] == "v1"
+		{
+			Triangle.Vertices[1] = ReadV3(Parser, Tokens[1:], "v1")
+		}
+		if Tokens[0] == "v2"
+		{
+			Triangle.Vertices[2] = ReadV3(Parser, Tokens[1:], "v2")
+		}
+	}
+
+	return Triangle
 }
 
 NextLine :: proc(Parser : ^parser) -> bool
