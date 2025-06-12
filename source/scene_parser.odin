@@ -79,9 +79,11 @@ parser :: struct
 
 	Shapes : [dynamic]shape,
 	Materials : [dynamic]material,
+	Lights : [dynamic]light,
 
 	ShapeTable : map[string]int,
 	MaterialTable : map[string]int,
+	LightTable : map[string]int,
 }
 
 main :: proc()
@@ -138,8 +140,14 @@ main :: proc()
 		}
 	}
 
+	for Light in Parser.Lights
+	{
+		fmt.println(Light)
+	}
+
 	fmt.println(Parser.ShapeTable)
 	fmt.println(Parser.MaterialTable)
+	fmt.println(Parser.LightTable)
 }
 
 ParseFile :: proc(Parser : ^parser)
@@ -195,6 +203,24 @@ ParseFile :: proc(Parser : ^parser)
 			else
 			{
 				ReportError(Parser, "ERROR: invalid syntax, BeginMaterial takes a single name")
+			}
+		}
+
+		if Tokens[0] == "BeginLight"
+		{
+			if len(Tokens) == 2
+			{
+				LightName := Tokens[1]
+				Light := ParseLight(Parser)
+
+				append(&Parser.Lights, Light)
+
+				// TODO(matthew): report error here if two shapes have the same name
+				Parser.LightTable[LightName] = len(Parser.Lights) - 1
+			}
+			else
+			{
+				ReportError(Parser, "ERROR: invalid syntax, BeginLight takes a single name")
 			}
 		}
     }
@@ -700,6 +726,32 @@ NextLine :: proc(Parser : ^parser) -> bool
             return false
         }
     }
+}
+
+ParseLight :: proc(Parser : ^parser) -> light
+{
+	Light : light
+
+	for NextLine(Parser)
+	{
+		Tokens := strings.fields(Parser.CurrentLine)
+
+		if Tokens[0] == "EndLight"
+		{
+			break
+		}
+
+		if Tokens[0] == "Le"
+		{
+			Light.Le = ReadV3(Parser, Tokens[1:], "Le")
+		}
+		else
+		{
+			ReportError(Parser, "ERROR: Invalid field for 'Light'")
+		}
+	}
+
+	return Light
 }
 
 ReportError :: proc(Parser : ^parser, Message : string)

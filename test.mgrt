@@ -75,6 +75,14 @@ EndMaterial
 BeginMaterial on
 	Type oren_nayar
 	Rho 0.5 0.22 0.93
-	Sigma = 20
+	Sigma 20
 EndMaterial
+
+BeginLight ceil
+	Le 20 3 1
+EndLight
+
+BeginLight ceil2
+	Le 1000 1000 1000
+EndLight
 
