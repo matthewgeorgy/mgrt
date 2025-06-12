@@ -51,3 +51,30 @@ BeginShape kurwa
 	v2 -1 4 4
 EndShape
 
+BeginMaterial lamb
+	Type lambertian
+	Rho 1 0 1
+EndMaterial
+
+BeginMaterial met
+	Type metal
+	Color 1 0.9 2
+	Fuzz 0.255
+EndMaterial
+
+BeginMaterial die
+	Type dielectric
+	RefractionIndex 1.5
+EndMaterial
+
+BeginMaterial merlin
+	Type merl
+	Table assets/merl/aluminium.binary
+EndMaterial
+
+BeginMaterial on
+	Type oren_nayar
+	Rho 0.5 0.22 0.93
+	Sigma = 20
+EndMaterial
+

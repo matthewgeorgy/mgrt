@@ -125,7 +125,21 @@ main :: proc()
 		fmt.println("    ", Shape)
 	}
 
+	for Material in Parser.Materials
+	{
+		if _, IsMERL := Material.(merl); IsMERL
+		{
+			MERL := Material.(merl)
+			fmt.println("     merl{Count =", MERL.Table.Count, "}")
+		}
+		else
+		{
+			fmt.println("    ", Material)
+		}
+	}
+
 	fmt.println(Parser.ShapeTable)
+	fmt.println(Parser.MaterialTable)
 }
 
 ParseFile :: proc(Parser : ^parser)
@@ -694,7 +708,7 @@ ReportError :: proc(Parser : ^parser, Message : string)
     append(&Parser.Errors, Error)
 }
 
-IsNumeric :: proc(String : string) -> bool
+IsNumericInt :: proc(String : string) -> bool
 {
     for C in String
     {
@@ -705,6 +719,28 @@ IsNumeric :: proc(String : string) -> bool
     }
 
     return true
+}
+
+IsNumericFloat :: proc(String : string) -> bool
+{
+	DecimalCount := 0
+
+    for C in String
+    {
+        if !(C >= '0' && C <= '9')
+        {
+			if C == '.'
+			{
+				DecimalCount += 1
+			}
+			else
+			{
+            	return false
+			}
+        }
+    }
+
+    return DecimalCount <= 1
 }
 
 ReadF32 :: proc(Parser : ^parser, Tokens : []string, FieldName : string, NegativeAllowed : bool = true) -> f32
@@ -729,7 +765,7 @@ ReadF32 :: proc(Parser : ^parser, Tokens : []string, FieldName : string, Negativ
 			}
 		}
 
-		if IsNumeric(Component[Start:])
+		if IsNumericFloat(Component[Start:])
 		{
 			Value := cast(f32)strconv.atof(Component)
 			Ret = Value
@@ -765,7 +801,7 @@ ReadInt :: proc(Parser : ^parser, Tokens : []string, FieldName : string, Negativ
 			}
 		}
 
-		if IsNumeric(Component[Start:])
+		if IsNumericInt(Component[Start:])
 		{
 			Value := strconv.atoi(Component)
 			Ret = Value
@@ -795,7 +831,7 @@ ReadV3 :: proc(Parser : ^parser, Tokens : []string, FieldName : string) -> v3
 				Start = 1
 			}
 
-			if IsNumeric(Component[Start:])
+			if IsNumericFloat(Component[Start:])
 			{
 				Value := cast(f32)strconv.atof(Component)
 				Ret[Idx] = Value
