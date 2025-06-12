@@ -78,7 +78,10 @@ parser :: struct
 	Errors : [dynamic]error,
 
 	Shapes : [dynamic]shape,
+	Materials : [dynamic]material,
+
 	ShapeTable : map[string]int,
+	MaterialTable : map[string]int,
 }
 
 main :: proc()
@@ -160,6 +163,24 @@ ParseFile :: proc(Parser : ^parser)
 			else
 			{
 				ReportError(Parser, "ERROR: invalid syntax, BeginShape takes a single name")
+			}
+		}
+
+		if Tokens[0] == "BeginMaterial"
+		{
+			if len(Tokens) == 2
+			{
+				MaterialName := Tokens[1]
+				Material := ParseMaterial(Parser)
+
+				append(&Parser.Materials, Material)
+
+				// TODO(matthew): report error here if two shapes have the same name
+				Parser.MaterialTable[MaterialName] = len(Parser.Materials) - 1
+			}
+			else
+			{
+				ReportError(Parser, "ERROR: invalid syntax, BeginMaterial takes a single name")
 			}
 		}
     }
@@ -253,6 +274,56 @@ ParseShape :: proc(Parser : ^parser) -> shape
 	}
 
 	return Shape
+}
+
+ParseMaterial :: proc(Parser : ^parser) -> material
+{
+	Material : material
+
+	for NextLine(Parser)
+	{
+		Tokens := strings.fields(Parser.CurrentLine)
+
+		if Tokens[0] == "EndMaterial"
+		{
+			break
+		}
+
+		if Tokens[0] == "Type"
+		{
+			if Tokens[1] == "lambertian"
+			{
+				Material = ParseMaterial_Lambertian(Parser)
+				break
+			}
+			else if Tokens[1] == "metal"
+			{
+				Material = ParseMaterial_Metal(Parser)
+				break
+			}
+			else if Tokens[1] == "dielectric"
+			{
+				Material = ParseMaterial_Dielectric(Parser)
+				break
+			}
+			else if Tokens[1] == "merl"
+			{
+				Material = ParseMaterial_MERL(Parser)
+				break
+			}
+			else if Tokens[1] == "oren_nayar"
+			{
+				Material = ParseMaterial_OrenNayar(Parser)
+				break
+			}
+			else
+			{
+				ReportError(Parser, "ERROR: Invalid material type")
+			}
+		}
+	}
+
+	return Material
 }
 
 ParseShape_Sphere :: proc(Parser : ^parser) -> sphere
@@ -429,6 +500,154 @@ ParseShape_Box :: proc(Parser : ^parser) -> box
 	}
 
 	return Box
+}
+
+ParseMaterial_Lambertian :: proc(Parser : ^parser) -> lambertian
+{
+	Lambertian : lambertian
+
+	for NextLine(Parser)
+	{
+		Tokens := strings.fields(Parser.CurrentLine)
+
+		if Tokens[0] == "EndMaterial"
+		{
+			break
+		}
+
+		if Tokens[0] == "Rho"
+		{
+			Lambertian.Rho = ReadV3(Parser, Tokens[1:], "Rho")
+		}
+		else
+		{
+			ReportError(Parser, "ERROR: Invalid member for lambertian")
+		}
+	}
+
+	return Lambertian
+}
+
+ParseMaterial_Metal :: proc(Parser : ^parser) -> metal
+{
+	Metal : metal
+
+	for NextLine(Parser)
+	{
+		Tokens := strings.fields(Parser.CurrentLine)
+
+		if Tokens[0] == "EndMaterial"
+		{
+			break
+		}
+
+		if Tokens[0] == "Color"
+		{
+			Metal.Color = ReadV3(Parser, Tokens[1:], "Color")
+		}
+		else if Tokens[0] == "Fuzz"
+		{
+			Metal.Fuzz = ReadF32(Parser, Tokens[1:], "Fuzz", false)
+		}
+		else
+		{
+			ReportError(Parser, "ERROR: Invalid member for metal")
+		}
+	}
+
+	return Metal
+}
+
+ParseMaterial_Dielectric :: proc(Parser : ^parser) -> dielectric
+{
+	Dielectric : dielectric
+
+	for NextLine(Parser)
+	{
+		Tokens := strings.fields(Parser.CurrentLine)
+
+		if Tokens[0] == "EndMaterial"
+		{
+			break
+		}
+
+		if Tokens[0] == "RefractionIndex"
+		{
+			Dielectric.RefractionIndex = ReadF32(Parser, Tokens[1:], "RefractionIndex", false)
+		}
+		else
+		{
+			ReportError(Parser, "ERROR: Invalid member for dielectric")
+		}
+	}
+
+	return Dielectric
+}
+
+ParseMaterial_MERL :: proc(Parser : ^parser) -> merl
+{
+	MERL : merl
+
+	for NextLine(Parser)
+	{
+		Tokens := strings.fields(Parser.CurrentLine)
+
+		if Tokens[0] == "EndMaterial"
+		{
+			break
+		}
+
+		if Tokens[0] == "Table"
+		{
+			if len(Tokens[1:]) == 1
+			{
+				MERL = CreateMERL(Tokens[1])
+			}
+			else
+			{
+				ReportError(Parser, "ERROR: merl takes a single string for the filename") 
+			}
+		}
+		else
+		{
+			ReportError(Parser, "ERROR: Invalid member for merl")
+		}
+	}
+
+	return MERL
+}
+
+ParseMaterial_OrenNayar :: proc(Parser : ^parser) -> oren_nayar
+{
+	Rho : v3
+	Sigma : f32
+
+	for NextLine(Parser)
+	{
+		Tokens := strings.fields(Parser.CurrentLine)
+
+		if Tokens[0] == "EndMaterial"
+		{
+			break
+		}
+
+		if Tokens[0] == "Rho"
+		{
+			Rho = ReadV3(Parser, Tokens[1:], "Rho")
+		}
+		else if Tokens[0] == "Sigma"
+		{
+			Sigma = ReadF32(Parser, Tokens[1:], "Sigma", false)
+		}
+		else
+		{
+			ReportError(Parser, "ERROR: Invalid member for oren_nayar")
+		}
+	}
+
+	OrenNayar := CreateOrenNayar(Rho, Sigma)
+
+	return OrenNayar
 }
 
 NextLine :: proc(Parser : ^parser) -> bool
