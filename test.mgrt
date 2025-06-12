@@ -86,3 +86,18 @@ BeginLight ceil2
 	Le 1000 1000 1000
 EndLight
 
+BeginPrimitive
+	Material met
+	Shape kurwa
+EndPrimitive
+
+BeginPrimitive
+	Shape blyat
+	Material lamb
+EndPrimitive
+
+BeginPrimitive
+	Shape Bar
+	Light ceil1
+EndPrimitive
+

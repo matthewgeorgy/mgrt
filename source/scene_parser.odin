@@ -80,6 +80,7 @@ parser :: struct
 	Shapes : [dynamic]shape,
 	Materials : [dynamic]material,
 	Lights : [dynamic]light,
+	Primitives : [dynamic]primitive,
 
 	ShapeTable : map[string]int,
 	MaterialTable : map[string]int,
@@ -115,6 +116,9 @@ main :: proc()
 		Lines = Lines[:],
 	}
 
+	append(&Parser.Lights, light{})
+	append(&Parser.Materials, material{})
+
 	ParseFile(&Parser)
 
 	for Error in Parser.Errors
@@ -122,32 +126,40 @@ main :: proc()
 		fmt.println(Error.LineNumber, Error.Message)
 	}
 
-	for Shape in Parser.Shapes
+	for Primitive in Parser.Primitives
 	{
-		fmt.println("    ", Shape)
+		fmt.println("    primitive")
+		fmt.println("        ", Primitive.Shape)
+		fmt.println("        ", Parser.Materials[Primitive.MaterialIndex])
+		fmt.println("        ", Parser.Lights[Primitive.LightIndex])
 	}
 
-	for Material in Parser.Materials
-	{
-		if _, IsMERL := Material.(merl); IsMERL
-		{
-			MERL := Material.(merl)
-			fmt.println("     merl{Count =", MERL.Table.Count, "}")
-		}
-		else
-		{
-			fmt.println("    ", Material)
-		}
-	}
+	// for Shape in Parser.Shapes
+	// {
+	// 	fmt.println("    ", Shape)
+	// }
 
-	for Light in Parser.Lights
-	{
-		fmt.println(Light)
-	}
+	// for Material in Parser.Materials
+	// {
+	// 	if _, IsMERL := Material.(merl); IsMERL
+	// 	{
+	// 		MERL := Material.(merl)
+	// 		fmt.println("     merl{Count =", MERL.Table.Count, "}")
+	// 	}
+	// 	else
+	// 	{
+	// 		fmt.println("    ", Material)
+	// 	}
+	// }
 
-	fmt.println(Parser.ShapeTable)
-	fmt.println(Parser.MaterialTable)
-	fmt.println(Parser.LightTable)
+	// for Light in Parser.Lights
+	// {
+	// 	fmt.println(Light)
+	// }
+
+	// fmt.println(Parser.ShapeTable)
+	// fmt.println(Parser.MaterialTable)
+	// fmt.println(Parser.LightTable)
 }
 
 ParseFile :: proc(Parser : ^parser)
@@ -221,6 +233,20 @@ ParseFile :: proc(Parser : ^parser)
 			else
 			{
 				ReportError(Parser, "ERROR: invalid syntax, BeginLight takes a single name")
+			}
+		}
+
+		if Tokens[0] == "BeginPrimitive"
+		{
+			if len(Tokens) == 1
+			{
+				Primitive := ParsePrimitive(Parser)
+
+				append(&Parser.Primitives, Primitive)
+			}
+			else
+			{
+				ReportError(Parser, "ERROR: BeginPrimitive takes no args")
 			}
 		}
     }
@@ -754,6 +780,47 @@ ParseLight :: proc(Parser : ^parser) -> light
 	return Light
 }
 
+ParsePrimitive :: proc(Parser : ^parser) -> primitive
+{
+	Primitive : primitive
+
+	for NextLine(Parser)
+	{
+		Tokens := strings.fields(Parser.CurrentLine)
+
+		if Tokens[0] == "EndPrimitive"
+		{
+			break
+		}
+
+		if Tokens[0] == "Shape"
+		{
+			ShapeName := ReadString(Parser, Tokens[1:], "Shape")
+			ShapeIdx := Parser.ShapeTable[ShapeName]
+			Shape := Parser.Shapes[ShapeIdx]
+			Primitive.Shape = Shape
+		}
+		else if Tokens[0] == "Material"
+		{
+			MaterialName := ReadString(Parser, Tokens[1:], "Material")
+			MaterialIdx := Parser.MaterialTable[MaterialName]
+			Primitive.MaterialIndex = u32(MaterialIdx)
+		}
+		else if Tokens[0] == "Light"
+		{
+			LightName := ReadString(Parser, Tokens[1:], "Light")
+			LightIdx := Parser.LightTable[LightName]
+			Primitive.LightIndex = u32(LightIdx)
+		}
+		else
+		{
+			ReportError(Parser, "ERROR: invalid field for Material")
+		}
+	}
+
+	return Primitive
+}
+
 ReportError :: proc(Parser : ^parser, Message : string)
 {
     Error := error{Message, Parser.CurrentLineNumber}
@@ -897,6 +964,22 @@ ReadV3 :: proc(Parser : ^parser, Tokens : []string, FieldName : string) -> v3
 	else
 	{
 		ReportError(Parser, strings.concatenate([]string{"ERROR: field '", FieldName, "' takes 3 floats"}))
+	}
+
+	return Ret
+}
+
+ReadString :: proc(Parser : ^parser, Tokens : []string, FieldName : string) -> string
+{
+	Ret : string
+
+	if len(Tokens) == 1
+	{
+		Ret = Tokens[0]
+	}
+	else
+	{
+		ReportError(Parser, strings.concatenate([]string{"ERROR: expected a single string for '", FieldName, "'"}))
 	}
 
 	return Ret
