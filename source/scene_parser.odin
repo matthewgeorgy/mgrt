@@ -217,6 +217,14 @@ ParseCamera :: proc(Parser : ^parser) -> camera
         {
 			Camera.FOV = ReadF32(Parser, Tokens[1:], "FOV", false)
         }
+		else if Tokens[0] == "SamplesPerPixel"
+		{
+			Camera.SamplesPerPixel = ReadInt(Parser, Tokens[1:], "SamplesPerPixel", false)
+		}
+		else if Tokens[0] == "MaxDepth"
+		{
+			Camera.MaxDepth = ReadInt(Parser, Tokens[1:], "MaxDepth", false)
+		}
         else
         {
             fmt.println("Invalid field", Tokens[0], "for CAMERA")
@@ -730,6 +738,42 @@ ReadF32 :: proc(Parser : ^parser, Tokens : []string, FieldName : string, Negativ
 	else
 	{
 		ReportError(Parser, strings.concatenate([]string{"ERROR: field '", FieldName, "' is a single float"}))
+	}
+
+	return Ret
+}
+
+ReadInt :: proc(Parser : ^parser, Tokens : []string, FieldName : string, NegativeAllowed : bool = true) -> int
+{
+	Ret : int
+
+	if len(Tokens) == 1
+	{
+		Component := Tokens[0]
+
+		Start : int
+
+		if Component[0] == '-'
+		{
+			if NegativeAllowed
+			{
+				Start = 1
+			}
+			else
+			{
+				ReportError(Parser, strings.concatenate([]string{"ERROR: field '", FieldName, "' must be a positive value"}))
+			}
+		}
+
+		if IsNumeric(Component[Start:])
+		{
+			Value := strconv.atoi(Component)
+			Ret = Value
+		}
+	}
+	else
+	{
+		ReportError(Parser, strings.concatenate([]string{"ERROR: field '", FieldName, "' is a single int"}))
 	}
 
 	return Ret

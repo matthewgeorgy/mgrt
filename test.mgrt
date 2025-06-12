@@ -5,6 +5,8 @@ BeginCamera # comment!
 	LookAt 278 278 0
 	FocusDist 10
 	FOV 40
+	SamplesPerPixel 200
+	MaxDepth 20
 EndCamera
 
 BeginShape blyat
