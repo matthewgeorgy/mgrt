@@ -123,10 +123,10 @@ SampleRayFromLight :: proc(Scene : ^scene) -> (ray, v3)
 	return Ray, Power
 }
 
-BuildGlobalPhotonMap :: proc(Map : ^photon_map, Scene : ^scene)
+BuildGlobalPhotonMap :: proc(Map : ^photon_map, Scene : ^scene, MaxDepth : int)
 {
 	EmittedPhotons :: 100000
-	MaxPhotonBounces := Scene.MaxDepth
+	MaxPhotonBounces := MaxDepth
 
 	for PhotonIndex := 0; PhotonIndex < EmittedPhotons; PhotonIndex += 1
 	{
@@ -142,10 +142,10 @@ BuildGlobalPhotonMap :: proc(Map : ^photon_map, Scene : ^scene)
 	BuildTree(Map)
 }
 
-BuildCausticPhotonMap :: proc(Map : ^photon_map, Scene : ^scene)
+BuildCausticPhotonMap :: proc(Map : ^photon_map, Scene : ^scene, MaxDepth : int)
 {
 	EmittedPhotons :: 100000
-	MaxPhotonBounces := Scene.MaxDepth
+	MaxPhotonBounces := MaxDepth
 
 	for PhotonIndex := 0; PhotonIndex < EmittedPhotons; PhotonIndex += 1
 	{
@@ -165,9 +165,8 @@ CastGlobalPhoton :: proc(Map : ^photon_map, InitialRay : ray, InitialPower : v3,
 {
 	Throughput := InitialPower
 	Ray := InitialRay
-	BounceCount : int
 
-	for BounceCount = 0; BounceCount < MaxPhotonBounces; BounceCount += 1
+	for BounceCount := 0; BounceCount < MaxPhotonBounces; BounceCount += 1
 	{
 		Record : hit_record
 
@@ -208,6 +207,7 @@ CastGlobalPhoton :: proc(Map : ^photon_map, InitialRay : ray, InitialPower : v3,
 		}
 		else
 		{
+			// photon goes to sky
 			break
 		}
 	}
@@ -217,11 +217,10 @@ CastCausticPhoton :: proc(Map : ^photon_map, InitialRay : ray, InitialPower : v3
 {
 	Throughput := InitialPower
 	Ray := InitialRay
-	BounceCount : int
 
 	PrevSpecular := false
 
-	for BounceCount = 0; BounceCount < MaxPhotonBounces; BounceCount += 1
+	for BounceCount := 0; BounceCount < MaxPhotonBounces; BounceCount += 1
 	{
 		Record : hit_record
 
@@ -270,6 +269,7 @@ CastCausticPhoton :: proc(Map : ^photon_map, InitialRay : ray, InitialPower : v3
 		}
 		else
 		{
+			// photon goes to sky
 			break
 		}
 	}

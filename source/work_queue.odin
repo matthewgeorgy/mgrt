@@ -87,7 +87,7 @@ RenderTile :: proc(WorkOrder : work_order, Camera : ^camera, Scene : ^scene, Ima
 		{
 			PixelColor : v3
 
-			for Sample : u32 = 0; Sample < Scene.SamplesPerPixel; Sample += 1
+			for Sample : u32 = 0; Sample < Camera.SamplesPerPixel; Sample += 1
 			{
 				Offset := v3{RandomUnilateral() - 0.5, RandomUnilateral() - 0.5, 0}
 				PixelCenter := Camera.FirstPixel +
@@ -95,13 +95,13 @@ RenderTile :: proc(WorkOrder : work_order, Camera : ^camera, Scene : ^scene, Ima
 							   ((f32(Y) + Offset.y) * Camera.PixelDeltaV)
 				Ray : ray
 
-				Ray.Origin = Camera.Center
+				Ray.Origin = Camera.LookFrom
 				Ray.Direction = PixelCenter - Ray.Origin
 
-				PixelColor += PhotonMapIntegrator(Ray, Scene, 0)
+				PixelColor += PhotonMapIntegrator(Ray, Scene, 0, Camera.MaxDepth)
 			}
 
-			Color := PixelColor / f32(Scene.SamplesPerPixel)
+			Color := PixelColor / f32(Camera.SamplesPerPixel)
 
 			WritePixel(Image^, X, Y, Color)
 		}

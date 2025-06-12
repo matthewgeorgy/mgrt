@@ -28,7 +28,7 @@ merl :: struct
 
 oren_nayar :: struct
 {
-	R : v3,
+	Rho : v3,
 	A, B : f32,
 }
 
@@ -107,7 +107,7 @@ CreateMERL :: proc(Filename : string) -> merl
 	return Material
 }
 
-CreateOrenNayar :: proc(R : v3, Sigma : f32) -> oren_nayar
+CreateOrenNayar :: proc(Rho : v3, Sigma : f32) -> oren_nayar
 {
 	Material : oren_nayar
 
@@ -116,7 +116,7 @@ CreateOrenNayar :: proc(R : v3, Sigma : f32) -> oren_nayar
 
 	Material.A = 1 - 0.5 * (Sigma2 / (Sigma2 + 0.33))
 	Material.B = 0.45 * Sigma2 / (Sigma2 + 0.09)
-	Material.R = R
+	Material.Rho = Rho
 
 	return Material
 }

@@ -17,7 +17,7 @@ rather than
 		SampleBxDF(Material, Ray.Direction, Record)
 		EvaluateBxDF(Material, Outgoing, Incoming)
 
-The real, internal EvaluateBxDF functions (eg, EvaluateLambertianBRDF) assume
+The real, internal EvaluateBxDF functions (eg, EvaluateBxDF_Lambertian) assume
 this convention is being adhered to. Therefore, the generic SampleBxDF and
 EvaluateBxDF functions will do the coordinate-system conversion internally before
 calling into any of the real BxDF functions.
@@ -254,11 +254,11 @@ EvaluateBxDF_OrenNayar :: proc(Material : oren_nayar, wo, wi : v3) -> v3
 		TanBeta = SinThetaO / AbsCosTheta(wo)
 	}
 
-	R := Material.R
+	Rho := Material.Rho
 	A := Material.A
 	B := Material.B
 
-	return R * INV_PI * (A + B * MaxCos * SinAlpha * TanBeta)
+	return Rho * INV_PI * (A + B * MaxCos * SinAlpha * TanBeta)
 }
 
 SampleBxDF_OrenNayar :: proc(Material : oren_nayar, wo : v3, Record : hit_record) -> bxdf_sample

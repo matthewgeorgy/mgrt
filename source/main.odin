@@ -9,7 +9,7 @@ package main
 	- IBL / environment lighting
 	- Path guiding techniques
 	- Scene file format that can be loaded at run-time
-	- Reduce Fresnel reflectancen noise with photon mapping
+	- Reduce Fresnel reflectance noise with photon mapping
 
 	NOTE(matthew): Currently supporting:
 	- Standard backwards path tracing integrator
@@ -73,7 +73,7 @@ main :: proc()
 
 	libc.printf("Resolution: %dx%d\n", Image.Width, Image.Height)
 	libc.printf("%d cores with %d %dx%d (%dk/tile) tiles\n", THREADCOUNT, Queue.EntryCount, TileWidth, TileHeight, TileWidth * TileHeight * 4 / 1024)
-	libc.printf("Quality: %u samples/pixel, %d bounces (max) per ray\n", Scene.SamplesPerPixel, Scene.MaxDepth)
+	libc.printf("Quality: %u samples/pixel, %d bounces (max) per ray\n", Camera.SamplesPerPixel, Camera.MaxDepth)
 
 	win32.QueryPerformanceFrequency(&Frequency)
 
@@ -85,7 +85,7 @@ main :: proc()
 
 	// Global
 	win32.QueryPerformanceCounter(&StartCounter)
-	BuildGlobalPhotonMap(&GlobalPhotonMap, &Scene)
+	BuildGlobalPhotonMap(&GlobalPhotonMap, &Scene, Camera.MaxDepth)
 	win32.QueryPerformanceCounter(&EndCounter)
 	Scene.GlobalPhotonMap = &GlobalPhotonMap
 	ElapsedTime = (EndCounter - StartCounter) * 1000 / Frequency
@@ -93,7 +93,7 @@ main :: proc()
 
 	// Caustic
 	win32.QueryPerformanceCounter(&StartCounter)
-	BuildCausticPhotonMap(&CausticPhotonMap, &Scene)
+	BuildCausticPhotonMap(&CausticPhotonMap, &Scene, Camera.MaxDepth)
 	win32.QueryPerformanceCounter(&EndCounter)
 	Scene.CausticPhotonMap = &CausticPhotonMap
 	ElapsedTime = (EndCounter - StartCounter) * 1000 / Frequency

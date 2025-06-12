@@ -109,8 +109,8 @@ InitializeFromConfig :: proc(Config : config) -> (scene, camera, image_u32)
 		}
 	}
 
-	Scene.SamplesPerPixel = Config.SamplesPerPixel
-	Scene.MaxDepth = Config.MaxDepth
+	Camera.SamplesPerPixel = Config.SamplesPerPixel
+	Camera.MaxDepth = Config.MaxDepth
 
 	GatherLightIndices(&Scene)
 

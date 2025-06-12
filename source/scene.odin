@@ -13,9 +13,6 @@ scene :: struct
 	BVH : bvh,
 	GlobalPhotonMap : ^photon_map,
 	CausticPhotonMap : ^photon_map,
-
-	SamplesPerPixel : u32,
-	MaxDepth : int,
 };
 
 light_surface :: struct

@@ -2,15 +2,17 @@ package main
 
 camera :: struct
 {
-	Center : v3,
-	FirstPixel : v3,
-	PixelDeltaU : v3,
-	PixelDeltaV : v3,
-
 	LookFrom : v3,
 	LookAt : v3,
 	FocusDist : f32,
 	FOV : f32,
+
+	SamplesPerPixel : u32,
+	MaxDepth : int,
+
+	FirstPixel : v3,
+	PixelDeltaU : v3,
+	PixelDeltaV : v3,
 };
 
 InitializeCamera :: proc(Camera : ^camera, ImageWidth, ImageHeight : i32)
@@ -21,7 +23,6 @@ InitializeCamera :: proc(Camera : ^camera, ImageWidth, ImageHeight : i32)
 	h : f32 = Tan(Theta / 2)
 	ViewportHeight : f32 = 2 * h * Camera.FocusDist
 	ViewportWidth : f32 = ViewportHeight * f32(ImageWidth) / f32(ImageHeight)
-	Camera.Center = Camera.LookFrom
 
 	if (ImageWidth > ImageHeight)
 	{
@@ -45,7 +46,7 @@ InitializeCamera :: proc(Camera : ^camera, ImageWidth, ImageHeight : i32)
 	Camera.PixelDeltaV = ViewportV / f32(ImageHeight)
 
 	// First pixel
-	ViewportUpperLeft := Camera.Center - (Camera.FocusDist * CameraW) - (ViewportU / 2) - (ViewportV / 2)
+	ViewportUpperLeft := Camera.LookFrom - (Camera.FocusDist * CameraW) - (ViewportU / 2) - (ViewportV / 2)
 	Camera.FirstPixel = ViewportUpperLeft + 0.5 * (Camera.PixelDeltaU + Camera.PixelDeltaV)
 }
 
