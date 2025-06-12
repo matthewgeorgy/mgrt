@@ -87,7 +87,7 @@ RenderTile :: proc(WorkOrder : work_order, Camera : ^camera, Scene : ^scene, Ima
 		{
 			PixelColor : v3
 
-			for Sample : u32 = 0; Sample < Camera.SamplesPerPixel; Sample += 1
+			for Sample := 0; Sample < Camera.SamplesPerPixel; Sample += 1
 			{
 				Offset := v3{RandomUnilateral() - 0.5, RandomUnilateral() - 0.5, 0}
 				PixelCenter := Camera.FirstPixel +

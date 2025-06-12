@@ -8,7 +8,7 @@ import strings	"core:strings"
 config :: struct
 {
 	SceneIndex 	: int,
-	SamplesPerPixel	: u32,
+	SamplesPerPixel	: int,
 	MaxDepth : int,
 	ImageWidth, ImageHeight : i32,
 }
@@ -51,7 +51,7 @@ ParseCommandLine :: proc(Config : ^config) -> bool
 
 	Config.ImageWidth = i32(strconv.atoi(Args[1]))
 	Config.ImageHeight = i32(strconv.atoi(Args[2]))
-	Config.SamplesPerPixel = u32(strconv.atoi(Args[3]))
+	Config.SamplesPerPixel = strconv.atoi(Args[3])
 	Config.MaxDepth = strconv.atoi(Args[4])
 
 	return true

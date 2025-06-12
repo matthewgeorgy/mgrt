@@ -7,7 +7,7 @@ camera :: struct
 	FocusDist : f32,
 	FOV : f32,
 
-	SamplesPerPixel : u32,
+	SamplesPerPixel : int,
 	MaxDepth : int,
 
 	FirstPixel : v3,
