@@ -117,7 +117,7 @@ main :: proc()
 	}
 
 	append(&Parser.Lights, light{})
-	append(&Parser.Materials, material{})
+	append(&Parser.Materials, lambertian{})
 
 	ParseFile(&Parser)
 
@@ -158,7 +158,7 @@ main :: proc()
 	// }
 
 	// fmt.println(Parser.ShapeTable)
-	// fmt.println(Parser.MaterialTable)
+	fmt.println(Parser.MaterialTable)
 	// fmt.println(Parser.LightTable)
 }
 
@@ -205,12 +205,20 @@ ParseFile :: proc(Parser : ^parser)
 			if len(Tokens) == 2
 			{
 				MaterialName := Tokens[1]
+
 				Material := ParseMaterial(Parser)
 
-				append(&Parser.Materials, Material)
+				if MaterialName == "background"
+				{
+					Parser.Materials[0] = Material
+				}
+				else
+				{
+					append(&Parser.Materials, Material)
 
-				// TODO(matthew): report error here if two shapes have the same name
-				Parser.MaterialTable[MaterialName] = len(Parser.Materials) - 1
+					// TODO(matthew): report error here if two shapes have the same name
+					Parser.MaterialTable[MaterialName] = len(Parser.Materials) - 1
+				}
 			}
 			else
 			{

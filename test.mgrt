@@ -98,6 +98,6 @@ EndPrimitive
 
 BeginPrimitive
 	Shape Bar
-	Light ceil1
+	Light ceil
 EndPrimitive
 
