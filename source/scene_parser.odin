@@ -87,14 +87,23 @@ parser :: struct
 	LightTable : map[string]int,
 }
 
-main :: proc()
+// main :: proc()
+// {
+// 	Camera, Image, Scene := ParseScene("test.mgrt")
+
+// 	fmt.println(Camera)
+// 	fmt.println(Image)
+// 	fmt.println(Scene)
+// }
+
+ParseScene :: proc(Filename : string) -> (camera, image_u32, scene)
 {
-	Filename := string("test.mgrt")
-	
-	File, ok := os.read_entire_file(Filename)
+	File, ok := os.read_entire_file("F:/Projects/mgrt/test.mgrt")
 	defer delete(File)
 
 	Lines : [dynamic]string
+
+	fmt.println(Filename)
 
 	if ok
 	{
@@ -119,50 +128,28 @@ main :: proc()
 	append(&Parser.Lights, light{})
 	append(&Parser.Materials, lambertian{})
 
-	ParseFile(&Parser)
+	Camera, TempImage := ParseFile(&Parser)
 
 	for Error in Parser.Errors
 	{
 		fmt.println(Error.LineNumber, Error.Message)
 	}
 
-	for Primitive in Parser.Primitives
-	{
-		fmt.println("    primitive")
-		fmt.println("        ", Primitive.Shape)
-		fmt.println("        ", Parser.Materials[Primitive.MaterialIndex])
-		fmt.println("        ", Parser.Lights[Primitive.LightIndex])
-	}
+	Image := AllocateImage(TempImage.Width, TempImage.Height)
+	InitializeCamera(&Camera, Image.Width, Image.Height)
 
-	// for Shape in Parser.Shapes
-	// {
-	// 	fmt.println("    ", Shape)
-	// }
+	Scene : scene
 
-	// for Material in Parser.Materials
-	// {
-	// 	if _, IsMERL := Material.(merl); IsMERL
-	// 	{
-	// 		MERL := Material.(merl)
-	// 		fmt.println("     merl{Count =", MERL.Table.Count, "}")
-	// 	}
-	// 	else
-	// 	{
-	// 		fmt.println("    ", Material)
-	// 	}
-	// }
+	Scene.Materials = Parser.Materials
+	Scene.Lights = Parser.Lights
+	Scene.Primitives = Parser.Primitives
 
-	// for Light in Parser.Lights
-	// {
-	// 	fmt.println(Light)
-	// }
+	GatherLightIndices(&Scene)
 
-	// fmt.println(Parser.ShapeTable)
-	fmt.println(Parser.MaterialTable)
-	// fmt.println(Parser.LightTable)
+	return Camera, Image, Scene
 }
 
-ParseFile :: proc(Parser : ^parser)
+ParseFile :: proc(Parser : ^parser) -> (camera, image_u32)
 {
     Camera : camera
 	Image : image_u32
@@ -272,8 +259,7 @@ ParseFile :: proc(Parser : ^parser)
 		}
     }
 
-    fmt.println(Camera)
-	fmt.println(Image)
+	return Camera, Image
 }
 
 ParseCamera :: proc(Parser : ^parser) -> camera
@@ -583,7 +569,7 @@ ParseShape_Box :: proc(Parser : ^parser) -> box
 		}
 		else if Tokens[0] == "Rotation"
 		{
-			Box.Rotation = ReadF32(Parser, Tokens[1:], "Rotation")
+			Box.Rotation = Degs2Rads(ReadF32(Parser, Tokens[1:], "Rotation"))
 		}
 		else if Tokens[0] == "Translation"
 		{

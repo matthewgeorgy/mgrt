@@ -36,96 +36,102 @@ else
     THREADCOUNT :: 8
 }
 
-// main :: proc()
-// {
-//     // Initialize scene, camera, and image from command line args
-//     Config : config
-//     if !ParseCommandLine(&Config)
-//     {
-//         return
-//     }
+main :: proc()
+{
+    // Initialize scene, camera, and image from command line args
+    // Config : config
+    // if !ParseCommandLine(&Config)
+    // {
+    //     return
+    // }
 
-//     Scene, Camera, Image := InitializeFromConfig(Config)
+    // Scene, Camera, Image := InitializeFromConfig(Config)
+	Camera, Image, Scene := ParseScene(string("F:/Projects/mgrt/test.mgrt"))
 
-//     // Work queue
-//     Queue : work_queue
+	for Primitive in Scene.Primitives
+	{
+		fmt.println(Primitive)
+	}
 
-//     TilesX : u32 = 20
-//     TilesY : u32 = 20
-//     TileWidth : u32 = u32(Image.Width) / TilesX
-//     TileHeight : u32 = u32(Image.Height) / TilesY
+    // Work queue
+    Queue : work_queue
 
-//     for X : u32 = 0; X < TilesX; X += 1
-//     {
-//         for Y : u32 = 0; Y < TilesY; Y += 1
-//         {
-//             Top := TileHeight * Y
-//             Left := TileWidth * X
-//             Bottom := TileHeight * (Y + 1)
-//             Right := TileWidth * (X + 1)
+    TilesX : u32 = 20
+    TilesY : u32 = 20
+    TileWidth : u32 = u32(Image.Width) / TilesX
+    TileHeight : u32 = u32(Image.Height) / TilesY
 
-//             PushWorkOrder(&Queue, Top, Left, Bottom, Right)
-//         }
-//     }
+    for X : u32 = 0; X < TilesX; X += 1
+    {
+        for Y : u32 = 0; Y < TilesY; Y += 1
+        {
+            Top := TileHeight * Y
+            Left := TileWidth * X
+            Bottom := TileHeight * (Y + 1)
+            Right := TileWidth * (X + 1)
 
-//     // Counters & stats
-//     StartCounter, EndCounter, Frequency, ElapsedTime: win32.LARGE_INTEGER
+            PushWorkOrder(&Queue, Top, Left, Bottom, Right)
+        }
+    }
 
-//     libc.printf("Resolution: %dx%d\n", Image.Width, Image.Height)
-//     libc.printf("%d cores with %d %dx%d (%dk/tile) tiles\n", THREADCOUNT, Queue.EntryCount, TileWidth, TileHeight, TileWidth * TileHeight * 4 / 1024)
-//     libc.printf("Quality: %u samples/pixel, %d bounces (max) per ray\n", Camera.SamplesPerPixel, Camera.MaxDepth)
+    // Counters & stats
+    StartCounter, EndCounter, Frequency, ElapsedTime: win32.LARGE_INTEGER
 
-//     win32.QueryPerformanceFrequency(&Frequency)
+    libc.printf("Resolution: %dx%d\n", Image.Width, Image.Height)
+    libc.printf("%d cores with %d %dx%d (%dk/tile) tiles\n", THREADCOUNT, Queue.EntryCount, TileWidth, TileHeight, TileWidth * TileHeight * 4 / 1024)
+    libc.printf("Quality: %u samples/pixel, %d bounces (max) per ray\n", Camera.SamplesPerPixel, Camera.MaxDepth)
 
-//     // Photon map
-//     MaxGlobalPhotonCount :: 5000000
-//     MaxCausticPhotonCount :: 5000000
-//     GlobalPhotonMap := CreatePhotonMap(MaxGlobalPhotonCount)
-//     CausticPhotonMap := CreatePhotonMap(MaxGlobalPhotonCount)
+    win32.QueryPerformanceFrequency(&Frequency)
 
-//      Global
-//      win32.QueryPerformanceCounter(&StartCounter)
-//      BuildGlobalPhotonMap(&GlobalPhotonMap, &Scene, Camera.MaxDepth)
-//      win32.QueryPerformanceCounter(&EndCounter)
-//      Scene.GlobalPhotonMap = &GlobalPhotonMap
-//      ElapsedTime = (EndCounter - StartCounter) * 1000 / Frequency
-//      fmt.println("Global photon tracing took", ElapsedTime, "ms\n")
+    // Photon map
+    MaxGlobalPhotonCount :: 5000000
+    MaxCausticPhotonCount :: 5000000
+    GlobalPhotonMap := CreatePhotonMap(MaxGlobalPhotonCount)
+    CausticPhotonMap := CreatePhotonMap(MaxGlobalPhotonCount)
 
-//      // Caustic
-//      win32.QueryPerformanceCounter(&StartCounter)
-//      BuildCausticPhotonMap(&CausticPhotonMap, &Scene, Camera.MaxDepth)
-//      win32.QueryPerformanceCounter(&EndCounter)
-//      Scene.CausticPhotonMap = &CausticPhotonMap
-//      ElapsedTime = (EndCounter - StartCounter) * 1000 / Frequency
-//      fmt.println("Caustic photon tracing took", ElapsedTime, "ms\n")
+    //Global map
+    win32.QueryPerformanceCounter(&StartCounter)
+    BuildGlobalPhotonMap(&GlobalPhotonMap, &Scene, Camera.MaxDepth)
+    win32.QueryPerformanceCounter(&EndCounter)
+    Scene.GlobalPhotonMap = &GlobalPhotonMap
+    ElapsedTime = (EndCounter - StartCounter) * 1000 / Frequency
+    fmt.println("Global photon tracing took", ElapsedTime, "ms\n")
 
-//     fmt.println("Global photon map nodes", len(GlobalPhotonMap.Nodes))
-//     fmt.println("Caustic photon map nodes", len(CausticPhotonMap.Nodes))
+    // Caustic map
+    win32.QueryPerformanceCounter(&StartCounter)
+    BuildCausticPhotonMap(&CausticPhotonMap, &Scene, Camera.MaxDepth)
+    win32.QueryPerformanceCounter(&EndCounter)
+    Scene.CausticPhotonMap = &CausticPhotonMap
+    ElapsedTime = (EndCounter - StartCounter) * 1000 / Frequency
+    fmt.println("Caustic photon tracing took", ElapsedTime, "ms\n")
 
-//     // Threading
-//     ThreadData : thread_data
-//     Threads : [THREADCOUNT]^thread.Thread
+    fmt.println("Global photon map nodes", len(GlobalPhotonMap.Nodes))
+    fmt.println("Caustic photon map nodes", len(CausticPhotonMap.Nodes))
 
-//     ThreadData.Queue = &Queue
-//     ThreadData.Camera = &Camera
-//     ThreadData.Scene = &Scene
-//     ThreadData.Image = &Image
+    // Threading
+    ThreadData : thread_data
+    Threads : [THREADCOUNT]^thread.Thread
 
-//     win32.QueryPerformanceCounter(&StartCounter)
+    ThreadData.Queue = &Queue
+    ThreadData.Camera = &Camera
+    ThreadData.Scene = &Scene
+    ThreadData.Image = &Image
 
-//     for I := 0; I < THREADCOUNT; I += 1
-//     {
-//         Threads[I] = thread.create_and_start_with_data(&ThreadData, Render)
-//     }
+    win32.QueryPerformanceCounter(&StartCounter)
 
-//     thread.join_multiple(..Threads[:])
+    for I := 0; I < THREADCOUNT; I += 1
+    {
+        Threads[I] = thread.create_and_start_with_data(&ThreadData, Render)
+    }
 
-//     win32.QueryPerformanceCounter(&EndCounter)
+    thread.join_multiple(..Threads[:])
 
-//     ElapsedTime = (EndCounter - StartCounter) * 1000
+    win32.QueryPerformanceCounter(&EndCounter)
 
-//     fmt.println(" Render took", ElapsedTime / Frequency, "ms")
+    ElapsedTime = (EndCounter - StartCounter) * 1000
 
-//     WriteImage(Image, string("test.bmp"))
-// }
+    fmt.println(" Render took", ElapsedTime / Frequency, "ms")
+
+    WriteImage(Image, string("test.bmp"))
+}
 
