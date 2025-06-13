@@ -98,7 +98,7 @@ parser :: struct
 
 ParseScene :: proc(Filename : string) -> (camera, image_u32, scene)
 {
-	File, ok := os.read_entire_file("F:/Projects/mgrt/test.mgrt")
+	File, ok := os.read_entire_file(Filename)
 	defer delete(File)
 
 	Lines : [dynamic]string
@@ -232,13 +232,18 @@ ParseFile :: proc(Parser : ^parser) -> (camera, image_u32)
 			}
 		}
 
-		if Tokens[0] == "BeginPrimitive"
+		if Tokens[0] == "BeginPrimitives"
 		{
 			if len(Tokens) == 1
 			{
-				Primitive := ParsePrimitive(Parser)
+				Primitives := ParsePrimitives(Parser)
 
-				append(&Parser.Primitives, Primitive)
+				for Primitive in Primitives
+				{
+					append(&Parser.Primitives, Primitive)
+				}
+
+				delete(Primitives)
 			}
 			else
 			{
@@ -788,45 +793,79 @@ ParseLight :: proc(Parser : ^parser) -> light
 	return Light
 }
 
-ParsePrimitive :: proc(Parser : ^parser) -> primitive
+ParsePrimitives :: proc(Parser : ^parser) -> []primitive
 {
-	Primitive : primitive
+	Primitives : [dynamic]primitive
 
 	for NextLine(Parser)
 	{
 		Tokens := strings.fields(Parser.CurrentLine)
 
-		if Tokens[0] == "EndPrimitive"
+		if Tokens[0] == "EndPrimitives"
 		{
 			break
 		}
 
-		if Tokens[0] == "Shape"
+		if len(Tokens) == 3
 		{
-			ShapeName := ReadString(Parser, Tokens[1:], "Shape")
-			ShapeIdx := Parser.ShapeTable[ShapeName]
-			Shape := Parser.Shapes[ShapeIdx]
-			Primitive.Shape = Shape
-		}
-		else if Tokens[0] == "Material"
-		{
-			MaterialName := ReadString(Parser, Tokens[1:], "Material")
-			MaterialIdx := Parser.MaterialTable[MaterialName]
-			Primitive.MaterialIndex = u32(MaterialIdx)
-		}
-		else if Tokens[0] == "Light"
-		{
-			LightName := ReadString(Parser, Tokens[1:], "Light")
-			LightIdx := Parser.LightTable[LightName]
-			Primitive.LightIndex = u32(LightIdx)
+			ShapeName := Tokens[0]
+			MaterialName := Tokens[1]
+			LightName := Tokens[2]
+
+			ShapeIndex := Parser.ShapeTable[ShapeName]
+			MaterialIndex : u32
+			LightIndex : u32
+
+			fmt.println(ShapeName, MaterialName, LightName)
+
+			if MaterialName != "nil"
+			{
+				MaterialIndex = cast(u32)Parser.MaterialTable[MaterialName]
+			}
+			if LightName != "nil"
+			{
+				LightIndex = cast(u32)Parser.LightTable[LightName]
+			}
+
+			Primitive := primitive {
+				Shape = Parser.Shapes[ShapeIndex],
+				MaterialIndex = MaterialIndex,
+				LightIndex = LightIndex,
+			}
+
+			append(&Primitives, Primitive)
 		}
 		else
 		{
-			ReportError(Parser, "ERROR: invalid field for Material")
+			ReportError(Parser, "ERROR: Primitive takes 3 args: [Shape] [MaterialIndex] [LightIndex]")
 		}
+
+		// if Tokens[0] == "Shape"
+		// {
+		// 	ShapeName := ReadString(Parser, Tokens[1:], "Shape")
+		// 	ShapeIdx := Parser.ShapeTable[ShapeName]
+		// 	Shape := Parser.Shapes[ShapeIdx]
+		// 	Primitive.Shape = Shape
+		// }
+		// else if Tokens[0] == "Material"
+		// {
+		// 	MaterialName := ReadString(Parser, Tokens[1:], "Material")
+		// 	MaterialIdx := Parser.MaterialTable[MaterialName]
+		// 	Primitive.MaterialIndex = u32(MaterialIdx)
+		// }
+		// else if Tokens[0] == "Light"
+		// {
+		// 	LightName := ReadString(Parser, Tokens[1:], "Light")
+		// 	LightIdx := Parser.LightTable[LightName]
+		// 	Primitive.LightIndex = u32(LightIdx)
+		// }
+		// else
+		// {
+		// 	ReportError(Parser, "ERROR: invalid field for Material")
+		// }
 	}
 
-	return Primitive
+	return Primitives[:]
 }
 
 ParseImage :: proc(Parser : ^parser) -> image_u32

@@ -89,43 +89,14 @@ BeginLight LightSource
 	Le 15 15 15
 EndLight
 
-BeginPrimitive
-	Shape Left
-	Material Red
-EndPrimitive
-
-BeginPrimitive
-	Shape Right
-	Material Green
-EndPrimitive
-
-BeginPrimitive
-	Shape Lamp
-	Light LightSource
-EndPrimitive
-
-BeginPrimitive
-	Shape Bottom
-	Material Gray
-EndPrimitive
-
-BeginPrimitive
-	Shape Top
-	Material Gray
-EndPrimitive
-
-BeginPrimitive
-	Shape Back
-	Material Gray
-EndPrimitive
-
-BeginPrimitive
-	Shape Box1
-	Material Gray
-EndPrimitive
-
-BeginPrimitive
-	Shape Box2
-	Material Gray
-EndPrimitive
+BeginPrimitives
+	Left Red nil
+	Right Green nil
+	Lamp nil LightSource
+	Bottom Gray nil
+	Top Gray nil
+	Back Gray nil
+	Box1 Gray nil
+	Box2 Gray nil
+EndPrimitives
 

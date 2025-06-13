@@ -46,7 +46,8 @@ main :: proc()
     // }
 
     // Scene, Camera, Image := InitializeFromConfig(Config)
-	Camera, Image, Scene := ParseScene(string("F:/Projects/mgrt/test.mgrt"))
+	// Camera, Image, Scene := ParseScene(string("F:/Projects/mgrt/test.mgrt"))
+	Camera, Image, Scene := ParseScene("test.mgrt")
 
 	for Primitive in Scene.Primitives
 	{
