@@ -9,6 +9,11 @@ BeginCamera # comment!
 	MaxDepth 20
 EndCamera
 
+BeginImage
+	Width 640
+	Height 640
+EndImage
+
 BeginShape blyat
 	Type box
 	Min 0 0 0

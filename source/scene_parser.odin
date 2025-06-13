@@ -165,6 +165,7 @@ main :: proc()
 ParseFile :: proc(Parser : ^parser)
 {
     Camera : camera
+	Image : image_u32
 
     for NextLine(Parser)
     {
@@ -257,9 +258,22 @@ ParseFile :: proc(Parser : ^parser)
 				ReportError(Parser, "ERROR: BeginPrimitive takes no args")
 			}
 		}
+
+		if Tokens[0] == "BeginImage"
+		{
+			if len(Tokens) == 1
+			{
+				Image = ParseImage(Parser)
+			}
+			else
+			{
+				ReportError(Parser, "ERROR: BeginImage takes no args")
+			}
+		}
     }
 
     fmt.println(Camera)
+	fmt.println(Image)
 }
 
 ParseCamera :: proc(Parser : ^parser) -> camera
@@ -827,6 +841,36 @@ ParsePrimitive :: proc(Parser : ^parser) -> primitive
 	}
 
 	return Primitive
+}
+
+ParseImage :: proc(Parser : ^parser) -> image_u32
+{
+	Image : image_u32
+
+	for NextLine(Parser)
+	{
+		Tokens := strings.fields(Parser.CurrentLine)
+		
+		if Tokens[0] == "EndImage"
+		{
+			break
+		}
+
+		if Tokens[0] == "Width"
+		{
+			Image.Width = cast(i32)ReadInt(Parser, Tokens[1:], "Width", false)
+		}
+		else if Tokens[0] == "Height"
+		{
+			Image.Height = cast(i32)ReadInt(Parser, Tokens[1:], "Height", false)
+		}
+		else
+		{
+			ReportError(Parser, "ERROR: Invalid field for image")
+		}
+	}
+
+	return Image
 }
 
 ReportError :: proc(Parser : ^parser, Message : string)
