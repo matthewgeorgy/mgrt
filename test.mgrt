@@ -1,5 +1,5 @@
 BeginCamera
-	LookFrom 278 278 -800
+	LookFrom 278 278 800
 	LookAt 278 278 0
 	FocusDist 10
 	FOV 40
@@ -16,58 +16,42 @@ BeginShape Right
 	Type quad
 	Q 555 0 0
 	u 0 555 0
-	v 0 0 555
+	v 0 0 -555
 EndShape
 
 BeginShape Left
 	Type quad
 	Q 0 0 0
 	u 0 555 0
-	v 0 0 555
+	v 0 0 -555
 EndShape
 
 BeginShape Lamp
 	Type quad
-	Q 343 554 332
-	u -130 0 0
-	v 0 0 -105
+	Q 343 554 -332
+	u 0 0 105
+	v -130 0 0
 EndShape
 
 BeginShape Bottom
 	Type quad
 	Q 0 0 0
 	u 555 0 0
-	v 0 0 555
+	v 0 0 -555
 EndShape
 
 BeginShape Top
 	Type quad
-	Q 555 555 555
+	Q 555 555 -555
 	u -555 0 0
-	v 0 0 -555
+	v 0 0 555
 EndShape
 
 BeginShape Back
 	Type quad
-	Q 0 0 555
+	Q 0 0 -555
 	u 555 0 0
 	v 0 555 0
-EndShape
-
-BeginShape Box1
-	Type box
-	Min 0 0 0
-	Max 165 330 165
-	Translation -265 0 -295
-	Rotation 15
-EndShape
-
-BeginShape Box2
-	Type box
-	Min 0 0 0
-	Max 165 165 165
-	Translation -130 0 -65
-	Rotation -18
 EndShape
 
 BeginMaterial Red
@@ -85,18 +69,29 @@ BeginMaterial Green
 	Rho 0.12 0.45 0.15
 EndMaterial
 
+BeginMaterial OrenNayar
+	Type oren_nayar
+	Rho 0.8 0.6 0.6
+	Sigma 20
+EndMaterial
+
 BeginLight LightSource
 	Le 15 15 15
 EndLight
 
 BeginPrimitives
-	Left Red nil
-	Right Green nil
+	Left Green nil
+	Right Red nil
 	Lamp nil LightSource
 	Bottom Gray nil
 	Top Gray nil
 	Back Gray nil
-	Box1 Gray nil
-	Box2 Gray nil
 EndPrimitives
+
+BeginMesh
+	File assets/obj/bunny.obj
+	Material OrenNayar
+	Scale 200
+	Translation -300 0 300
+EndMesh
 

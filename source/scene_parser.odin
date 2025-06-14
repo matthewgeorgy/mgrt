@@ -128,7 +128,7 @@ ParseScene :: proc(Filename : string) -> (camera, image_u32, scene)
 	append(&Parser.Lights, light{})
 	append(&Parser.Materials, lambertian{})
 
-	Camera, TempImage := ParseFile(&Parser)
+	Camera, TempImage, BVH := ParseFile(&Parser)
 
 	for Error in Parser.Errors
 	{
@@ -143,16 +143,18 @@ ParseScene :: proc(Filename : string) -> (camera, image_u32, scene)
 	Scene.Materials = Parser.Materials
 	Scene.Lights = Parser.Lights
 	Scene.Primitives = Parser.Primitives
+	Scene.BVH = BVH
 
 	GatherLightIndices(&Scene)
 
 	return Camera, Image, Scene
 }
 
-ParseFile :: proc(Parser : ^parser) -> (camera, image_u32)
+ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh)
 {
     Camera : camera
 	Image : image_u32
+	BVH : bvh
 
     for NextLine(Parser)
     {
@@ -262,9 +264,21 @@ ParseFile :: proc(Parser : ^parser) -> (camera, image_u32)
 				ReportError(Parser, "ERROR: BeginImage takes no args")
 			}
 		}
+
+		if Tokens[0] == "BeginMesh"
+		{
+			if len(Tokens) == 1
+			{
+				BVH = ParseMesh(Parser)
+			}
+			else
+			{
+				ReportError(Parser, "ERROR: BeginMesh takes no args")
+			}
+		}
     }
 
-	return Camera, Image
+	return Camera, Image, BVH
 }
 
 ParseCamera :: proc(Parser : ^parser) -> camera
@@ -896,6 +910,62 @@ ParseImage :: proc(Parser : ^parser) -> image_u32
 	}
 
 	return Image
+}
+
+ParseMesh :: proc(Parser : ^parser) -> bvh
+{
+	BVH : bvh
+	Mesh : mesh
+	Scale : f32
+	Translation : v3
+	Rotation : f32
+	MaterialIndex : u32
+
+	for NextLine(Parser)
+	{
+		Tokens := strings.fields(Parser.CurrentLine)
+
+		if Tokens[0] == "EndMesh"
+		{
+			break
+		}
+
+		if Tokens[0] == "File"
+		{
+			Filename := ReadString(Parser, Tokens[1:], "File")
+			Mesh = LoadMesh(Filename)
+		}
+		else if Tokens[0] == "Scale"
+		{
+			Scale = ReadF32(Parser, Tokens[1:], "Scale", false)
+		}
+		else if Tokens[0] == "Material"
+		{
+			MaterialName := ReadString(Parser, Tokens[1:], "Material")
+			MaterialIndex = cast(u32)Parser.MaterialTable[MaterialName]
+		}
+		else if Tokens[0] == "Translation"
+		{
+			Translation = ReadV3(Parser, Tokens[1:], "Translation")
+		}
+		else if Tokens[0] == "Rotation"
+		{
+			Rotation = ReadF32(Parser, Tokens[1:], "Rotation")
+		}
+		else
+		{
+			ReportError(Parser, "ERROR: Invalid member for mesh")
+		}
+	}
+
+	MeshTriangles := AssembleTrianglesFromMesh(Mesh, Scale)
+	BVH = BuildBVH(MeshTriangles)
+
+	BVH.MaterialIndex = MaterialIndex
+	BVH.Translation = Translation
+	BVH.Rotation = Rotation
+
+	return BVH
 }
 
 ReportError :: proc(Parser : ^parser, Message : string)
