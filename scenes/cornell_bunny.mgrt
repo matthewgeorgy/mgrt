@@ -4,7 +4,7 @@ BeginCamera
 	FocusDist 10
 	FOV 40
 	SamplesPerPixel 10
-	MaxDepth 50
+	MaxDepth 10
 EndCamera
 
 BeginImage
