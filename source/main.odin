@@ -19,6 +19,20 @@ package main
     - Measured BRDF data (MERL)
     - Triangle meshes (OBJ, PLY) + BVH
     - Tiled multithreaded rendering
+
+	TODO(matthew): Scenes to replace with the parser
+	- GlassSuzanne
+	- BunnyPlaneLamp
+	- CornellSphere
+	- FinalSceneRTW (probably not, needs randomized data)
+	- CornellDragon
+	- PlaneDragon
+	- CornellPLY
+
+	NOTE(matthew): Scenes ported to the parser
+	- SpheresMaterial
+	- CornellBunny
+	- CornellBox
 */
 
 import fmt      "core:fmt"
@@ -46,7 +60,7 @@ main :: proc()
     // }
 
     // Scene, Camera, Image := InitializeFromConfig(Config)
-	Camera, Image, Scene := ParseScene("scenes/spheres_material.mgrt")
+	Camera, Image, Scene := ParseScene("scenes/cornell_box.mgrt")
 
 	for Primitive in Scene.Primitives
 	{
