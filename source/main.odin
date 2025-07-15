@@ -46,8 +46,7 @@ main :: proc()
     // }
 
     // Scene, Camera, Image := InitializeFromConfig(Config)
-	// Camera, Image, Scene := ParseScene(string("F:/Projects/mgrt/test.mgrt"))
-	Camera, Image, Scene := ParseScene("test.mgrt")
+	Camera, Image, Scene := ParseScene("scenes/spheres_material.mgrt")
 
 	for Primitive in Scene.Primitives
 	{
@@ -85,29 +84,29 @@ main :: proc()
     win32.QueryPerformanceFrequency(&Frequency)
 
     // Photon map
-    MaxGlobalPhotonCount :: 5000000
-    MaxCausticPhotonCount :: 5000000
-    GlobalPhotonMap := CreatePhotonMap(MaxGlobalPhotonCount)
-    CausticPhotonMap := CreatePhotonMap(MaxGlobalPhotonCount)
+    //MaxGlobalPhotonCount :: 5000000
+    //MaxCausticPhotonCount :: 5000000
+    //GlobalPhotonMap := CreatePhotonMap(MaxGlobalPhotonCount)
+    //CausticPhotonMap := CreatePhotonMap(MaxGlobalPhotonCount)
 
-    //Global map
-    win32.QueryPerformanceCounter(&StartCounter)
-    BuildGlobalPhotonMap(&GlobalPhotonMap, &Scene, Camera.MaxDepth)
-    win32.QueryPerformanceCounter(&EndCounter)
-    Scene.GlobalPhotonMap = &GlobalPhotonMap
-    ElapsedTime = (EndCounter - StartCounter) * 1000 / Frequency
-    fmt.println("Global photon tracing took", ElapsedTime, "ms\n")
+    ////Global map
+    //win32.QueryPerformanceCounter(&StartCounter)
+    //BuildGlobalPhotonMap(&GlobalPhotonMap, &Scene, Camera.MaxDepth)
+    //win32.QueryPerformanceCounter(&EndCounter)
+    //Scene.GlobalPhotonMap = &GlobalPhotonMap
+    //ElapsedTime = (EndCounter - StartCounter) * 1000 / Frequency
+    //fmt.println("Global photon tracing took", ElapsedTime, "ms\n")
 
-    // Caustic map
-    win32.QueryPerformanceCounter(&StartCounter)
-    BuildCausticPhotonMap(&CausticPhotonMap, &Scene, Camera.MaxDepth)
-    win32.QueryPerformanceCounter(&EndCounter)
-    Scene.CausticPhotonMap = &CausticPhotonMap
-    ElapsedTime = (EndCounter - StartCounter) * 1000 / Frequency
-    fmt.println("Caustic photon tracing took", ElapsedTime, "ms\n")
+    //// Caustic map
+    //win32.QueryPerformanceCounter(&StartCounter)
+    //BuildCausticPhotonMap(&CausticPhotonMap, &Scene, Camera.MaxDepth)
+    //win32.QueryPerformanceCounter(&EndCounter)
+    //Scene.CausticPhotonMap = &CausticPhotonMap
+    //ElapsedTime = (EndCounter - StartCounter) * 1000 / Frequency
+    //fmt.println("Caustic photon tracing took", ElapsedTime, "ms\n")
 
-    fmt.println("Global photon map nodes", len(GlobalPhotonMap.Nodes))
-    fmt.println("Caustic photon map nodes", len(CausticPhotonMap.Nodes))
+    //fmt.println("Global photon map nodes", len(GlobalPhotonMap.Nodes))
+    //fmt.println("Caustic photon map nodes", len(CausticPhotonMap.Nodes))
 
     // Threading
     ThreadData : thread_data

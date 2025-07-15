@@ -1,0 +1,83 @@
+BeginCamera
+	LookFrom 0 0 -3
+	LookAt 0 0 0
+	FocusDist 1
+	FOV 90
+	SamplesPerPixel 10
+	MaxDepth 50
+EndCamera
+
+BeginImage
+	Width 640
+	Height 640
+EndImage
+
+BeginShape GroundSphere
+	Type sphere
+	Center 0 -100.5 -1
+	Radius 100
+EndShape
+
+BeginShape CenterSphere
+	Type sphere
+	Center 0 0 -1.2
+	Radius 0.5
+EndShape
+
+BeginShape LeftSphere
+	Type sphere
+	Center 1 0 -1
+	Radius 0.5
+EndShape
+
+BeginShape BubbleSphere
+	Type sphere
+	Center 1 0 -1
+	Radius 0.4
+EndShape
+
+BeginShape RightSphere
+	Type sphere
+	Center -1 0 -1
+	Radius 0.5
+EndShape
+
+BeginMaterial background
+	Type lambertian
+	Rho 0.5 0.7 1.0
+EndMaterial
+
+BeginMaterial Ground
+	Type lambertian
+	Rho 0.8 0.8 0.0
+EndMaterial
+
+BeginMaterial Center
+	Type lambertian
+	Rho 0.1 0.2 0.5
+EndMaterial
+
+BeginMaterial Left
+	Type dielectric
+	RefractionIndex 1.5
+EndMaterial
+
+BeginMaterial Bubble
+	Type dielectric
+	RefractionIndex 0.6666667
+EndMaterial
+
+BeginMaterial Right
+	Type metal
+	Color 0.8 0.6 0.2
+	Fuzz 1.0
+EndMaterial
+
+BeginPrimitives
+	GroundSphere Ground nil
+	CenterSphere Center nil
+	LeftSphere Left nil
+	BubbleSphere Bubble nil
+	RightSphere Right nil
+EndPrimitives
+

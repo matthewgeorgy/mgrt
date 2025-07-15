@@ -98,7 +98,7 @@ RenderTile :: proc(WorkOrder : work_order, Camera : ^camera, Scene : ^scene, Ima
 				Ray.Origin = Camera.LookFrom
 				Ray.Direction = PixelCenter - Ray.Origin
 
-				PixelColor += PhotonMapIntegrator(Ray, Scene, 0, Camera.MaxDepth)
+				PixelColor += PathTracingIntegrator(Ray, Scene, 0, Camera.MaxDepth)
 			}
 
 			Color := PixelColor / f32(Camera.SamplesPerPixel)
