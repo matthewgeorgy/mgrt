@@ -1,0 +1,58 @@
+BeginCamera
+	LookFrom 3.12 -1.21 2.05
+	LookAt 0 0 0
+	FocusDist 1
+	FOV 90
+	SamplesPerPixel 100
+	MaxDepth 50
+EndCamera
+
+BeginImage
+	Width 640
+	Height 640
+EndImage
+
+BeginShape Floor
+	Type plane
+	N 0 1 0
+	d 14.48
+EndShape
+
+BeginShape Lamp
+	Type quad
+	Q 1.20 2.26 0.61
+	u 2 0 0
+	v 0 0 2
+EndShape
+
+BeginMaterial FloorMat
+	Type lambertian
+	Rho 0.2 0.6 0.8
+EndMaterial
+
+BeginMaterial GlassMat
+	Type dielectric
+	RefractionIndex 1.33
+EndMaterial
+
+BeginMaterial background
+	Type lambertian
+	Rho 0.2 0.2 0.2
+EndMaterial
+
+BeginLight LightMat
+	Le 1 1 1
+EndLight
+
+BeginPrimitives
+	Floor FloorMat nil
+	Lamp nil LightMat
+EndPrimitives
+
+BeginMesh
+	File assets/obj/suzanne.obj
+	Material GlassMat
+	Rotation 45
+	Scale 1
+EndMesh
+
