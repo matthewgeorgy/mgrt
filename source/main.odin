@@ -21,7 +21,6 @@ package main
     - Tiled multithreaded rendering
 
 	TODO(matthew): Scenes to replace with the parser
-	- CornellSphere
 	- FinalSceneRTW (probably not, needs randomized data)
 	- CornellDragon
 	- PlaneDragon
@@ -33,6 +32,7 @@ package main
 	- CornellBox
 	- GlassSuzanne
 	- BunnyPlaneLamp
+	- CornellSphere
 */
 
 import fmt      "core:fmt"
@@ -52,7 +52,7 @@ else
 
 main :: proc()
 {
-    // Initialize scene, camera, and image from command line args
+    // // Initialize scene, camera, and image from command line args
     // Config : config
     // if !ParseCommandLine(&Config)
     // {
@@ -60,7 +60,7 @@ main :: proc()
     // }
 
     // Scene, Camera, Image := InitializeFromConfig(Config)
-	Camera, Image, Scene := ParseScene("scenes/bunny_plane_lamp.mgrt")
+	Camera, Image, Scene := ParseScene("scenes/cornell_sphere.mgrt")
 
 	for Primitive in Scene.Primitives
 	{
