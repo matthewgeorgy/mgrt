@@ -8,7 +8,6 @@ package main
     - Bidirectional path tracing
     - IBL / environment lighting
     - Path guiding techniques
-    - Scene file format that can be loaded at run-time
     - Reduce Fresnel reflectance noise with photon mapping
 
     NOTE(matthew): Currently supporting:
@@ -19,20 +18,6 @@ package main
     - Measured BRDF data (MERL)
     - Triangle meshes (OBJ, PLY) + BVH
     - Tiled multithreaded rendering
-
-	TODO(matthew): Scenes to replace with the parser
-	- FinalSceneRTW (probably not, needs randomized data)
-
-	NOTE(matthew): Scenes ported to the parser
-	- SpheresMaterial
-	- CornellBunny
-	- CornellBox
-	- GlassSuzanne
-	- BunnyPlaneLamp
-	- CornellSphere
-	- CornellPLY
-	- CornellDragon
-	- PlaneDragon
 */
 
 import fmt      "core:fmt"
