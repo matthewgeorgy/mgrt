@@ -5,62 +5,18 @@ import os 		"core:os"
 import strings 	"core:strings"
 import strconv	"core:strconv"
 
-/* General config hierarchy
-
-* Scene :
-    - Materials
-        - Lambertian
-        - Metal
-        - Dielectric
-        - MERL
-        - OrenNayar
-    - Lights
-    - Primitives
-        - Shape
-            - Sphere
-            - Quad
-            - Plane
-            - Triangle
-            - Box
-        - MaterialIndex
-        - LightIndex
-
-* Camera :
-    - LookFrom
-    - LookAt
-    - FocusDist
-    - FOV
-    - Samples per pixel
-    - Max depth
-
-* Image :
-    - Width
-    - Height
-
-
-Will probably do something like this:
-
-At the start, specify all lights, materials, and shapes each in their own array:
-    Lights : [dynamic]light
-    Materials : [dynamic]material
-    Shapes : [dynamic]shape
-
-We will specify a resource by its name as a string, followed by a description.
-
-When one is created, we add it to its array, and store its index and name in a map:
-    MaterialTable : map[string]int
-
-    Material : material = ...
-    append(&Materials, Material)
-    Index := len(Materials) - 1
-
-    Name := ... specified in the file
-
-    MaterialTable[Name] = MaterialIndex
-
-When we then go to specify primitives, all they will take is the name used in
-the file. We will then look up these names to get the internal index, and then
-fill out the primitive data struct accordingly.
+/*
+	TODO(matthew):
+	- Properly check/enforce for integer types when necessary (eg. SamplesPerPixel)
+	- More thorough error checking and handling
+	- Check if a name (shape, material, etc) has been used more than once
+	- Stop from rendering if there were errors while parsing the scene file
+	- Make user able to pass scene file through cmdline
+	- Include the scene file name in error messages
+	- Support spaces in strings
+	- Be able to specify the quad normal explicitly
+	- Make Scale=1 the default value if it's not specified
+	- General cleanups
 */
 
 error :: struct
@@ -86,15 +42,6 @@ parser :: struct
 	MaterialTable : map[string]int,
 	LightTable : map[string]int,
 }
-
-// main :: proc()
-// {
-// 	Camera, Image, Scene := ParseScene("test.mgrt")
-
-// 	fmt.println(Camera)
-// 	fmt.println(Image)
-// 	fmt.println(Scene)
-// }
 
 ParseScene :: proc(Filename : string) -> (camera, image_u32, scene)
 {

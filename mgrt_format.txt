@@ -1,0 +1,439 @@
+This is a description of the mgrt scene file format. It is a simple text-based
+format for specifying image, camera, and scene configuration, which includes the
+shapes and materials in a scene and how they are related to each other.
+
+General
+-=-=-=-
+
+The general format of mgrt files is blocks of begin/end statements, and inside
+these statements you specify the data parameters. These block statements are
+typically of the following form:
+
+# This is a comment!
+BeginStatement (Name)
+    Field1 (type)
+    Field2 (type)
+    Field3 (type)
+    ...
+EndStatement # Another comment!
+
+All statements begin with a Begin/End block to denote what kind of data we wish
+to specify. Some datatypes, such as materials or shapes, also take a 'Name' field
+as seen at the top so that they can be specified in other parts of the file. The
+'type' in brackets is simply used information to the reader to know what type
+each parameter is. It is NOT, however, explicitly stated when being filled out.
+
+Thorough documentation will be provided below, but as a simple, concrete example:
+
+BeginImage
+    Width 1920
+    Height 1080
+EndImage
+
+Here, we use 'BeginImage' to denote that we are filling out information about what
+the output image will be - in this case, a width of 1920 pixels and a height of
+1080 pixels. There are no equal signs or any special symbols in this format: just
+pure text for names and numbers for values. We then end this block with an
+'EndImage' statement to indicate that we are done specifiying the image
+properties.
+
+Remarks:
+1) All fields (with the exception of Primitives, see below) are specified one per
+line.
+
+2) Tabs/spaces are included above only for readability; they are not necessary to
+include in practice.
+
+
+
+
+
+Types
+-=-=-
+
+The following "typenames" are used to denote what type each member of a field is:
+
+float: scalar floating-point (ie. decimal) value
+    Eg. FocusDist = 1
+        FocusDist = 5.5
+
+float3: vector of 3 floating-point values
+    Eg. LookFrom 0 1 1
+        LookAt 0 1.25 -2.5
+
+int: scalar signed 32-bit integer value
+    Eg. SamplesPerPixel 200
+
+string: a UTF-8 text string of characters (SPACES ARE NOT SUPPORTED YET), without
+        quotation marks.
+    Eg. File assets/obj/cube.obj
+
+As a remark, the 3 numeric types (float, float3, and int) do support negative
+values. However, some of the fields in this file format are necessarily
+_required_ to be positive (eg. index of refraction). Such members will have a '+'
+symbol suffixed to the type, so (int+) instead of (int). In such cases, if a
+negative value was provided, an error will be thrown.
+
+
+
+
+
+Camera
+-=-=-=
+
+The camera settings are specified in the BeginCamera block as follows:
+
+BeginCamera
+    LookFrom        (float3)
+    LookAt          (float3)
+    FocusDist       (float+)
+    FOV             (float+)
+    SamplesPerPixel (int+)
+    MaxDepth        (int+)
+EndCamera
+
+- LookFrom: The viewing position of the camera
+- LookAt: The viewing direction of the camera
+- FocusDist: The distance to focus the camera (typically for depth/blur effects)
+- FOV: The vertical FOV of the camera
+- SamplesPerPixel: The number of samples to compute per pixel
+- MaxDepth: The maximum recursion depth of raytracing
+
+Example:
+
+BeginCamera
+    LookFrom 0 0.25 1
+    LookAt 0 0 0
+    FocusDist 1
+    FOV 90
+    SamplesPerPixel 100
+    MaxDepth 50
+EndCamera
+
+
+
+
+Image
+-=-=-
+
+The image settings specify the dimensions of the output image to be rendered:
+
+BeginImage
+    Width   (int+)
+    Height  (int+)
+EndImage
+
+- Width: The width of the image in pixels
+- Height: The Height of the image in pixels
+
+Example:
+
+BeginImage
+    Width 800
+    Height 600
+EndImage
+
+
+
+
+
+Materials
+-=-=-=-=-
+
+These are used to specify material properties:
+
+BeginMaterial Name
+    Type (string)
+    ...
+EndMaterial
+
+- Type: The type of this material as a string, may be one of the following:
+    * lambertian
+    * metal
+    * dielectric
+    * merl
+    * oren_nayar
+
+The ... at the end indicate that different parameters are given depending on
+the material type specified above.
+
+Remarks:
+
+1) The name of the material is specified as a string and MUST be provided.
+
+2) The default background colour used by the renderer is pure black as a
+lambertian material. A special name 'background' can be provided, however, to
+override this.
+
+
+
+Lambertian
+-=-=-=-=-=
+
+A diffuse, lambertian material:
+
+BeginMaterial Name
+    Type lambertian
+    Rho (float3+)
+EndMaterial
+
+- Rho: Diffuse colour as 3 floats for R, G, B, each between 0 and 1.
+
+
+
+Metal
+-=-=-
+
+A coloured metal:
+
+BeginMaterial Name
+    Type metal
+    Color (float3+)
+    Fuzz (float+)
+EndMaterial
+
+- Color: Solid colour as 3 floats for R, G, B, each between 0 and 1.
+- Fuzz: A float between 0 and 1 to denote the glossiness of the surface. A value
+        of 0 indicates pure glossy, a value of 1 indicates pure rough.
+
+
+
+Dielectric
+-=-=-=-=-=
+
+A dielectric material (eg. plastic, glass):
+
+BeginMaterial Name
+    Type dielectric
+    RefractionIndex (float+)
+EndMaterial
+
+- RefractionIndex: The index of refraction of the material.
+
+
+
+MERL
+-==-
+
+A precomputed BRDF table from the MERL database:
+
+BeginMaterial Name
+    Type merl
+    Table (string)
+EndMaterial
+
+- Table: The filename, as a string, of the MERL binary.
+
+
+
+Oren-Nayar
+-=-=-=-=-
+
+An Oren-Nayar BRDF surface, based on the original Oren-Nayar BRDF:
+
+BeginMaterial Name
+    Type oren_nayar
+    Rho   (float3+)
+    Sigma (float+)
+EndMaterial
+
+- Rho: Diffuse colour as 3 floats for R, G, B, each between 0 and 1.
+- Sigma: The angle parameter as an angle in degrees.
+
+
+
+
+
+Lights
+-=-=-=
+
+A light source "material":
+
+BeginLight Name
+    Le (float3+)
+EndLight
+
+- Le: The colour of the light source as an RGB vector.
+
+Remark:
+
+The 'Le' parameter specifies both the colour and intensity of the light source.
+For instance, if one light has a value of '1 1 1' and another light has a value
+of '20 20 20', both of these lights will represent a white colour, but the
+latter will have a higher intensity.
+
+
+
+
+
+Shapes
+-=-=-=
+
+These are used to specify shape properties:
+
+BeginShape Name
+    Type (string)
+    ...
+EndShape
+
+- Type: The type of this material as a string, may be one of the following:
+    * sphere
+    * quad
+    * plane
+    * triangle
+    * box
+
+The ... at the end indicate that different parameters are given depending on
+the shape type specified above.
+
+
+
+Sphere
+-=-=-=
+
+A 3D sphere:
+
+BeginShape Name
+    Type sphere
+    Center (float3)
+    Radius (float+)
+EndShape
+
+- Center: The center point of the sphere.
+- Radius: The radius of the sphere.
+
+
+
+Quad
+-==-
+
+A finite 2D rectangular plane:
+
+BeginShape Name
+    Type quad
+    Q (float3)
+    u (float3)
+    v (float3)
+EndShape
+
+- Q: The starting/base point of the quad.
+- u: The first direction vector.
+- v: The second direction vector.
+
+Remark:
+The direction vectors have units/extents associated with them. For instance, a
+direction vector 'u 2 0 0' extends 2 units in x and 0 units in y/z. This is
+unlike the plane shape, described below.
+
+
+
+Plane
+-=-=-
+
+An infinite 2D rectangular plane:
+
+BeginShape Name
+    Type plane
+    N (float3)
+    d (float)
+EndShape
+
+- N: The normal vector of the plane.
+- d: The distance/offset of the plane. A positive value offsets the plane in the
+     -N direction; a negative value offsets the plane in the N direction.
+
+
+
+Triangle
+-=-=-=-=
+
+A 2D triangular surface:
+
+BeginShape Name
+    Type triangle
+    v0 (float3)
+    v1 (float3)
+    v2 (float3)
+EndShape
+
+- v0, v1, v2: The three vertices of the triangle.
+
+
+
+Box
+-=-
+
+A 3D box:
+
+BeginShape Name
+    Type box
+    Min         (float3)
+    Max         (float3)
+    Rotation    (float)
+    Translation (float3)
+EndShape
+
+- Min: The "minimum" corner of the box.
+- Max: The "maximum" corner of the box.
+- Rotation: Angle in degrees to rotate the box by.
+- Translation: An offset vector to translate the box by.
+
+
+
+
+Primitives
+-=-=-=-=-=
+
+Primitives are used to relate shapes to material and light properties. Unlike the
+shapes, materials, and lights structures we've seen above which specify their
+properties one-per-line, primitives are specified as a list:
+
+BeginPrimitives
+    (ShapeName) (MaterialName) (LightName) # Primitive 1
+    (ShapeName) (MaterialName) (LightName) # Primitive 2
+    (ShapeName) (MaterialName) (LightName) # Primitive 3
+    ...                        ...
+EndPrimitives
+
+Each of 'ShapeName', 'MaterialName', and 'LightName' are strings. These are the
+names used above when creating shapes, materials, and lights!
+
+A shape can be associated with EITHER a material OR a light, not both. However,
+all three names must be explicitly provided, in this order. To specify which
+one is not being used, it is marked with the name 'nil'.
+
+Example:
+
+BeginPrimitives
+	SomeShape Material nil # This associates 'SomeShape' with 'Material' and no light
+	AnotherShape nil Light # This associates 'AnotherShape' with 'Light' and no material
+EndPrimitives
+
+
+
+
+
+Meshes
+-=-=-=
+
+These are triangle meshes to be loaded from either a .OBJ or a .PLY file.
+Currently, you can only specify one mesh per scene. Since meshes are processed
+in the renderer separately from primitives, no name is provided.
+
+BeginMesh
+	File 		(string)
+	Material 	(string)
+	Scale 		(float+)
+	Translation	(float3+)
+	Rotation 	(float)
+EndMesh
+
+- File: The filename of the mesh to be loaded.
+- Material: The name of the material to be used when rendering this mesh.
+- Scale: A scaling factor to apply to the mesh vertices to make it larger.
+		 A value of 1 applies no scaling.
+		 A value less than 1 shrinks the mesh.
+		 A value greater than 1 expands the mesh.
+- Translation: An offset vector to translate the mesh by.
+- Rotation: An angle, in degrees, to rotate the mesh by.
+
