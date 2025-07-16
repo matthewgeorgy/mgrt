@@ -1,0 +1,46 @@
+BeginCamera
+	LookFrom 0 0.25 1
+	LookAt 0 0 0
+	FocusDist 1
+	FOV 90
+	SamplesPerPixel 100
+	MaxDepth 50
+EndCamera
+
+BeginImage
+	Width 640
+	Height 640
+EndImage
+
+BeginMaterial background
+	Type lambertian
+	Rho 0.2 0.2 0.2
+EndMaterial
+
+BeginMaterial ModelMat
+	Type lambertian
+	Rho 0.8 0.2 0.2
+EndMaterial
+
+BeginMaterial FloorMat
+	Type lambertian
+	Rho 0.2 0.6 0.8
+EndMaterial
+
+BeginShape Floor
+	Type plane
+	N 0 1 0
+	d 0.28
+EndShape
+
+BeginPrimitives
+	Floor FloorMat nil
+EndPrimitives
+
+BeginMesh
+	File assets/obj/dragon.obj
+	Material ModelMat
+	Scale 1
+	Rotation 120
+EndMesh
+
