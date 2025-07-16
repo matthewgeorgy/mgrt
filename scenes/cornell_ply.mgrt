@@ -1,0 +1,96 @@
+BeginCamera
+	LookFrom 278 278 -800
+	LookAt 278 278 0
+	FocusDist 10
+	FOV 40
+	SamplesPerPixel 100
+	MaxDepth 50
+EndCamera
+
+BeginImage
+	Width 640
+	Height 640
+EndImage
+
+BeginShape Right
+	Type quad
+	Q 555 0 0
+	u 0 555 0
+	v 0 0 555
+EndShape
+
+BeginShape Left
+	Type quad
+	Q 0 0 0
+	u 0 555 0
+	v 0 0 555
+EndShape
+
+BeginShape Lamp
+	Type quad
+	Q 554.9 343 332
+	u 0 0 -105
+	v 0 -130 0
+EndShape
+
+BeginShape Bottom
+	Type quad
+	Q 0 0 0
+	u 555 0 0
+	v 0 0 555
+EndShape
+
+BeginShape Top
+	Type quad
+	Q 555 555 555
+	u -555 0 0
+	v 0 0 -555
+EndShape
+
+BeginShape Back
+	Type quad
+	Q 0 0 555
+	u 555 0 0
+	v 0 555 0
+EndShape
+
+BeginMaterial Red
+	Type lambertian
+	Rho 0.65 0.05 0.05
+EndMaterial
+
+BeginMaterial Gray
+	Type lambertian
+	Rho 0.73 0.73 0.73
+EndMaterial
+
+BeginMaterial Green
+	Type lambertian
+	Rho 0.12 0.45 0.15
+EndMaterial
+
+BeginMaterial Glass
+	Type dielectric
+	RefractionIndex 1.33
+EndMaterial
+
+BeginLight LightSource
+	Le 15 15 15
+EndLight
+
+BeginPrimitives
+	Left Red nil
+	Right Green nil
+	Lamp nil LightSource
+	Bottom Gray nil
+	Top Gray nil
+	Back Gray nil
+EndPrimitives
+
+BeginMesh
+	File assets/ply/caustic_glass.ply
+	Material Glass
+	Scale 100
+	Translation -650.85 149.92 -34.98
+EndMesh
+

@@ -24,7 +24,6 @@ package main
 	- FinalSceneRTW (probably not, needs randomized data)
 	- CornellDragon
 	- PlaneDragon
-	- CornellPLY
 
 	NOTE(matthew): Scenes ported to the parser
 	- SpheresMaterial
@@ -33,6 +32,7 @@ package main
 	- GlassSuzanne
 	- BunnyPlaneLamp
 	- CornellSphere
+	- CornellPLY
 */
 
 import fmt      "core:fmt"
@@ -60,7 +60,7 @@ main :: proc()
     // }
 
     // Scene, Camera, Image := InitializeFromConfig(Config)
-	Camera, Image, Scene := ParseScene("scenes/cornell_sphere.mgrt")
+	Camera, Image, Scene := ParseScene("scenes/cornell_ply.mgrt")
 
 	for Primitive in Scene.Primitives
 	{
