@@ -1,0 +1,57 @@
+BeginCamera
+	LookFrom 0 1 4
+	LookAt 0 0 0
+	FocusDist 1
+	FOV 90
+	SamplesPerPixel 100
+	MaxDepth 50
+EndCamera
+
+BeginImage
+	Width 640
+	Height 640
+EndImage
+
+BeginMaterial background
+	Type lambertian
+	Rho 0.2 0.2 0.2
+EndMaterial
+
+BeginMaterial ModelMat
+	Type lambertian
+	Rho 0.8 0.2 0.2
+EndMaterial
+
+BeginMaterial PlaneMat
+	Type lambertian
+	Rho 0.2 0.6 0.8
+EndMaterial
+
+BeginLight LightMat
+	Le 1 1 1
+EndLight
+
+BeginShape Floor
+	Type plane
+	N 0 1 0
+	d 0
+EndShape
+
+BeginShape Lamp
+	Type quad
+	Q -0.96 2.14 0.69
+	u 2 0 0
+	v 0 0 2
+EndShape
+
+BeginPrimitives
+	Floor PlaneMat nil
+	Lamp nil LightMat
+EndPrimitives
+
+BeginMesh
+	File assets/obj/bunny.obj
+	Material ModelMat
+	Scale 1
+EndMesh
+
