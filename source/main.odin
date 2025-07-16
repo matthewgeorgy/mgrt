@@ -22,7 +22,6 @@ package main
 
 	TODO(matthew): Scenes to replace with the parser
 	- FinalSceneRTW (probably not, needs randomized data)
-	- CornellDragon
 	- PlaneDragon
 
 	NOTE(matthew): Scenes ported to the parser
@@ -33,6 +32,7 @@ package main
 	- BunnyPlaneLamp
 	- CornellSphere
 	- CornellPLY
+	- CornellDragon
 */
 
 import fmt      "core:fmt"
@@ -60,7 +60,7 @@ main :: proc()
     // }
 
     // Scene, Camera, Image := InitializeFromConfig(Config)
-	Camera, Image, Scene := ParseScene("scenes/cornell_ply.mgrt")
+	Camera, Image, Scene := ParseScene("scenes/cornell_dragon.mgrt")
 
 	for Primitive in Scene.Primitives
 	{
@@ -97,7 +97,7 @@ main :: proc()
 
     win32.QueryPerformanceFrequency(&Frequency)
 
-    // Photon map
+    //// Photon map
     //MaxGlobalPhotonCount :: 5000000
     //MaxCausticPhotonCount :: 5000000
     //GlobalPhotonMap := CreatePhotonMap(MaxGlobalPhotonCount)

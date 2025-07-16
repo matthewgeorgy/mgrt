@@ -963,7 +963,7 @@ ParseMesh :: proc(Parser : ^parser) -> bvh
 
 	BVH.MaterialIndex = MaterialIndex
 	BVH.Translation = Translation
-	BVH.Rotation = Rotation
+	BVH.Rotation = Degs2Rads(Rotation)
 
 	return BVH
 }
