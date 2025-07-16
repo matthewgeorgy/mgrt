@@ -40,6 +40,7 @@ import thread   "core:thread"
 import win32    "core:sys/windows"
 import libc     "core:c/libc"
 import strings  "core:strings"
+import os		"core:os"
 
 when ODIN_DEBUG == true
 {
@@ -52,15 +53,21 @@ else
 
 main :: proc()
 {
-    // // Initialize scene, camera, and image from command line args
-    // Config : config
-    // if !ParseCommandLine(&Config)
-    // {
-    //     return
-    // }
+	Args := os.args
 
-    // Scene, Camera, Image := InitializeFromConfig(Config)
-	Camera, Image, Scene := ParseScene("scenes/plane_dragon.mgrt")
+	if len(Args) < 2
+	{
+		fmt.println("No scene file specified...!")
+		return
+	}
+	else if len(Args) > 2
+	{
+		fmt.println("Too many files! Only one scene file must be specified")
+		return
+	}
+
+	SceneFilename := os.args[1]
+	Camera, Image, Scene := ParseScene(SceneFilename)
 
 	for Primitive in Scene.Primitives
 	{

@@ -11,7 +11,6 @@ import strconv	"core:strconv"
 	- More thorough error checking and handling
 	- Check if a name (shape, material, etc) has been used more than once
 	- Stop from rendering if there were errors while parsing the scene file
-	- Make user able to pass scene file through cmdline
 	- Include the scene file name in error messages
 	- Support spaces in strings
 	- Be able to specify the quad normal explicitly
