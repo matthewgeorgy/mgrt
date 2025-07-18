@@ -7,15 +7,16 @@ import strconv	"core:strconv"
 
 /*
 	TODO(matthew):
-	- Properly check/enforce for integer types when necessary (eg. SamplesPerPixel)
-	- More thorough error checking and handling
 	- Check if a name (shape, material, etc) has been used more than once
-	- Stop from rendering if there were errors while parsing the scene file
 	- Include the scene file name in error messages
 	- Support spaces in strings
 	- Be able to specify the quad normal explicitly
 	- Make Scale=1 the default value if it's not specified
 	- General cleanups
+
+	NOTE(matthew): done:
+	- More thorough error checking and handling
+	- Stop from rendering if there were errors while parsing the scene file
 */
 
 error :: struct
@@ -49,8 +50,6 @@ ParseScene :: proc(Filename : string) -> (camera, image_u32, scene)
 
 	Lines : [dynamic]string
 
-	fmt.println(Filename)
-
 	if ok
 	{
 		StringFile := string(File)
@@ -75,23 +74,31 @@ ParseScene :: proc(Filename : string) -> (camera, image_u32, scene)
 	append(&Parser.Materials, lambertian{})
 
 	Camera, TempImage, BVH := ParseFile(&Parser)
-
-	for Error in Parser.Errors
-	{
-		fmt.println(Error.LineNumber, Error.Message)
-	}
-
-	Image := AllocateImage(TempImage.Width, TempImage.Height)
-	InitializeCamera(&Camera, Image.Width, Image.Height)
-
 	Scene : scene
+	Image : image_u32
 
-	Scene.Materials = Parser.Materials
-	Scene.Lights = Parser.Lights
-	Scene.Primitives = Parser.Primitives
-	Scene.BVH = BVH
+	if len(Parser.Errors) == 0
+	{
+		Image = AllocateImage(TempImage.Width, TempImage.Height)
 
-	GatherLightIndices(&Scene)
+		InitializeCamera(&Camera, Image.Width, Image.Height)
+
+		Scene.Materials = Parser.Materials
+		Scene.Lights = Parser.Lights
+		Scene.Primitives = Parser.Primitives
+		Scene.BVH = BVH
+
+		GatherLightIndices(&Scene)
+	}
+	else
+	{
+		for Error in Parser.Errors
+		{
+			fmt.println(Error.LineNumber, Error.Message)
+		}
+
+		os.exit(-1)
+	}
 
 	return Camera, Image, Scene
 }
@@ -776,8 +783,6 @@ ParsePrimitives :: proc(Parser : ^parser) -> []primitive
 			MaterialIndex : u32
 			LightIndex : u32
 
-			fmt.println(ShapeName, MaterialName, LightName)
-
 			if MaterialName != "nil"
 			{
 				MaterialIndex = cast(u32)Parser.MaterialTable[MaterialName]
@@ -1017,6 +1022,10 @@ ReadInt :: proc(Parser : ^parser, Tokens : []string, FieldName : string, Negativ
 		{
 			Value := strconv.atoi(Component)
 			Ret = Value
+		}
+		else
+		{
+			ReportError(Parser, strings.concatenate([]string{"ERROR: Invalid type value provided for field '", FieldName, "' (int)"}))
 		}
 	}
 	else

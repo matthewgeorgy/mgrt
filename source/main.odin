@@ -54,11 +54,6 @@ main :: proc()
 	SceneFilename := os.args[1]
 	Camera, Image, Scene := ParseScene(SceneFilename)
 
-	for Primitive in Scene.Primitives
-	{
-		fmt.println(Primitive)
-	}
-
     // Work queue
     Queue : work_queue
 
