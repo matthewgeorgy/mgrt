@@ -4,10 +4,10 @@ import fmt 		"core:fmt"
 import os 		"core:os"
 import strings 	"core:strings"
 import strconv	"core:strconv"
+import ansi		"core:encoding/ansi"
 
 /*
 	TODO(matthew):
-	- Include the scene file name in error messages
 	- Support spaces in strings
 	- Be able to specify the quad normal explicitly
 	- General cleanups
@@ -17,6 +17,7 @@ import strconv	"core:strconv"
 	- More thorough error checking and handling
 	- Stop from rendering if there were errors while parsing the scene file
 	- Make Scale=1 the default value if it's not specified
+	- Include the scene file name in error messages
 */
 
 error :: struct
@@ -93,7 +94,9 @@ ParseScene :: proc(Filename : string) -> (camera, image_u32, scene)
 	{
 		for Error in Parser.Errors
 		{
-			fmt.println(Error.LineNumber, Error.Message)
+			fmt.printf("%s(%d)", strings.clone_to_cstring(Filename), Error.LineNumber)
+			fmt.print(ansi.CSI + ansi.FG_RED + ansi.SGR + string(" Error: ") + ansi.CSI + ansi.RESET + ansi.SGR)
+			fmt.print(strings.clone_to_cstring(Error.Message), "\n")
 		}
 
 		os.exit(-1)
@@ -120,7 +123,7 @@ ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh)
 			}
 			else
 			{
-				ReportError(Parser, "ERROR: Too many symbols, BeginCamera is a standalone keyword")
+				ReportError(Parser, "Too many symbols, BeginCamera is a standalone keyword")
 			}
         }
 
@@ -134,7 +137,7 @@ ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh)
 
 				if ShapeExists
 				{
-					ReportError(Parser, strings.concatenate([]string{"ERROR: A shape with the name '", ShapeName, "' was already defined!"}))
+					ReportError(Parser, strings.concatenate([]string{"A shape with the name '", ShapeName, "' was already defined"}))
 				}
 				else
 				{
@@ -145,7 +148,7 @@ ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh)
 			}
 			else
 			{
-				ReportError(Parser, "ERROR: invalid syntax, BeginShape takes a single name")
+				ReportError(Parser, "Invalid syntax, BeginShape takes a single name")
 			}
 		}
 
@@ -166,7 +169,7 @@ ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh)
 					}
 					else
 					{
-						ReportError(Parser, "ERROR: The 'background' material must be lambertian")
+						ReportError(Parser, "The 'background' material must be lambertian")
 					}
 				}
 				else
@@ -175,7 +178,7 @@ ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh)
 
 					if MaterialExists
 					{
-						ReportError(Parser, strings.concatenate([]string{"ERROR: A material with the name '", MaterialName, "' was already defined!"}))
+						ReportError(Parser, strings.concatenate([]string{"A material with the name '", MaterialName, "' was already defined"}))
 					}
 					else
 					{
@@ -187,7 +190,7 @@ ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh)
 			}
 			else
 			{
-				ReportError(Parser, "ERROR: invalid syntax, BeginMaterial takes a single name")
+				ReportError(Parser, "Invalid syntax, BeginMaterial takes a single name")
 			}
 		}
 
@@ -201,7 +204,7 @@ ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh)
 
 				if LightExists
 				{
-					ReportError(Parser, strings.concatenate([]string{"ERROR: A light with the name '", LightName, "' was already defined!"}))
+					ReportError(Parser, strings.concatenate([]string{"A light with the name '", LightName, "' was already defined"}))
 				}
 				else
 				{
@@ -212,7 +215,7 @@ ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh)
 			}
 			else
 			{
-				ReportError(Parser, "ERROR: invalid syntax, BeginLight takes a single name")
+				ReportError(Parser, "Invalid syntax, BeginLight takes a single name")
 			}
 		}
 
@@ -231,7 +234,7 @@ ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh)
 			}
 			else
 			{
-				ReportError(Parser, "ERROR: BeginPrimitive takes no args")
+				ReportError(Parser, "BeginPrimitive takes no args")
 			}
 		}
 
@@ -243,7 +246,7 @@ ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh)
 			}
 			else
 			{
-				ReportError(Parser, "ERROR: BeginImage takes no args")
+				ReportError(Parser, "BeginImage takes no args")
 			}
 		}
 
@@ -255,7 +258,7 @@ ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh)
 			}
 			else
 			{
-				ReportError(Parser, "ERROR: BeginMesh takes no args")
+				ReportError(Parser, "BeginMesh takes no args")
 			}
 		}
     }
@@ -351,7 +354,7 @@ ParseShape :: proc(Parser : ^parser) -> shape
 			}
 			else
 			{
-				ReportError(Parser, "ERROR: Invalid shape type")
+				ReportError(Parser, "Invalid shape type")
 			}
 		}
 	}
@@ -401,7 +404,7 @@ ParseMaterial :: proc(Parser : ^parser) -> material
 			}
 			else
 			{
-				ReportError(Parser, "ERROR: Invalid material type")
+				ReportError(Parser, "Invalid material type")
 			}
 		}
 	}
@@ -432,7 +435,7 @@ ParseShape_Sphere :: proc(Parser : ^parser) -> sphere
 		}
 		else
 		{
-			ReportError(Parser, "ERROR: Invalid member for sphere")
+			ReportError(Parser, "Invalid member for sphere")
 		}
 	}
 
@@ -474,7 +477,7 @@ ParseShape_Quad :: proc(Parser : ^parser) -> quad
 		}
 		else
 		{
-			ReportError(Parser, "ERROR: Invalid member for quad")
+			ReportError(Parser, "Invalid member for quad")
 		}
 	}
 
@@ -506,7 +509,7 @@ ParseShape_Plane :: proc(Parser : ^parser) -> plane
 		}
 		else
 		{
-			ReportError(Parser, "ERROR: Invalid member for plane")
+			ReportError(Parser, "Invalid member for plane")
 		}
 	}
 
@@ -540,7 +543,7 @@ ParseShape_Triangle :: proc(Parser : ^parser) -> triangle
 		}
 		else
 		{
-			ReportError(Parser, "ERROR: Invalid member for triangle")
+			ReportError(Parser, "Invalid member for triangle")
 		}
 	}
 
@@ -578,7 +581,7 @@ ParseShape_Box :: proc(Parser : ^parser) -> box
 		}
 		else
 		{
-			ReportError(Parser, "ERROR: Invalid member for triangle")
+			ReportError(Parser, "Invalid member for triangle")
 		}
 	}
 
@@ -604,7 +607,7 @@ ParseMaterial_Lambertian :: proc(Parser : ^parser) -> lambertian
 		}
 		else
 		{
-			ReportError(Parser, "ERROR: Invalid member for lambertian")
+			ReportError(Parser, "Invalid member for lambertian")
 		}
 	}
 
@@ -634,7 +637,7 @@ ParseMaterial_Metal :: proc(Parser : ^parser) -> metal
 		}
 		else
 		{
-			ReportError(Parser, "ERROR: Invalid member for metal")
+			ReportError(Parser, "Invalid member for metal")
 		}
 	}
 
@@ -660,7 +663,7 @@ ParseMaterial_Dielectric :: proc(Parser : ^parser) -> dielectric
 		}
 		else
 		{
-			ReportError(Parser, "ERROR: Invalid member for dielectric")
+			ReportError(Parser, "Invalid member for dielectric")
 		}
 	}
 
@@ -688,12 +691,12 @@ ParseMaterial_MERL :: proc(Parser : ^parser) -> merl
 			}
 			else
 			{
-				ReportError(Parser, "ERROR: merl takes a single string for the filename") 
+				ReportError(Parser, "merl takes a single string for the filename") 
 			}
 		}
 		else
 		{
-			ReportError(Parser, "ERROR: Invalid member for merl")
+			ReportError(Parser, "Invalid member for merl")
 		}
 	}
 
@@ -724,7 +727,7 @@ ParseMaterial_OrenNayar :: proc(Parser : ^parser) -> oren_nayar
 		}
 		else
 		{
-			ReportError(Parser, "ERROR: Invalid member for oren_nayar")
+			ReportError(Parser, "Invalid member for oren_nayar")
 		}
 	}
 
@@ -782,7 +785,7 @@ ParseLight :: proc(Parser : ^parser) -> light
 		}
 		else
 		{
-			ReportError(Parser, "ERROR: Invalid field for 'Light'")
+			ReportError(Parser, "Invalid field for 'Light'")
 		}
 	}
 
@@ -831,7 +834,7 @@ ParsePrimitives :: proc(Parser : ^parser) -> []primitive
 		}
 		else
 		{
-			ReportError(Parser, "ERROR: Primitive takes 3 args: [Shape] [MaterialIndex] [LightIndex]")
+			ReportError(Parser, "Primitive takes 3 args: [Shape] [MaterialIndex] [LightIndex]")
 		}
 
 		// if Tokens[0] == "Shape"
@@ -885,7 +888,7 @@ ParseImage :: proc(Parser : ^parser) -> image_u32
 		}
 		else
 		{
-			ReportError(Parser, "ERROR: Invalid field for image")
+			ReportError(Parser, "Invalid field for image")
 		}
 	}
 
@@ -934,7 +937,7 @@ ParseMesh :: proc(Parser : ^parser) -> bvh
 		}
 		else
 		{
-			ReportError(Parser, "ERROR: Invalid member for mesh")
+			ReportError(Parser, "Invalid member for mesh")
 		}
 	}
 
@@ -1007,7 +1010,7 @@ ReadF32 :: proc(Parser : ^parser, Tokens : []string, FieldName : string, Negativ
 			}
 			else
 			{
-				ReportError(Parser, strings.concatenate([]string{"ERROR: field '", FieldName, "' must be a positive value"}))
+				ReportError(Parser, strings.concatenate([]string{"Field '", FieldName, "' must be a positive value"}))
 			}
 		}
 
@@ -1019,7 +1022,7 @@ ReadF32 :: proc(Parser : ^parser, Tokens : []string, FieldName : string, Negativ
 	}
 	else
 	{
-		ReportError(Parser, strings.concatenate([]string{"ERROR: field '", FieldName, "' is a single float"}))
+		ReportError(Parser, strings.concatenate([]string{"Field '", FieldName, "' is a single float"}))
 	}
 
 	return Ret
@@ -1043,7 +1046,7 @@ ReadInt :: proc(Parser : ^parser, Tokens : []string, FieldName : string, Negativ
 			}
 			else
 			{
-				ReportError(Parser, strings.concatenate([]string{"ERROR: field '", FieldName, "' must be a positive value"}))
+				ReportError(Parser, strings.concatenate([]string{"Field '", FieldName, "' must be a positive value"}))
 			}
 		}
 
@@ -1054,12 +1057,12 @@ ReadInt :: proc(Parser : ^parser, Tokens : []string, FieldName : string, Negativ
 		}
 		else
 		{
-			ReportError(Parser, strings.concatenate([]string{"ERROR: Invalid type value provided for field '", FieldName, "' (int)"}))
+			ReportError(Parser, strings.concatenate([]string{"Invalid type value provided for field '", FieldName, "' (int)"}))
 		}
 	}
 	else
 	{
-		ReportError(Parser, strings.concatenate([]string{"ERROR: field '", FieldName, "' is a single int"}))
+		ReportError(Parser, strings.concatenate([]string{"Field '", FieldName, "' is a single int"}))
 	}
 
 	return Ret
@@ -1088,13 +1091,13 @@ ReadV3 :: proc(Parser : ^parser, Tokens : []string, FieldName : string) -> v3
 			}
 			else
 			{
-				ReportError(Parser, strings.concatenate([]string{"ERROR: non-numeric value specified in field '", FieldName, "'"}))
+				ReportError(Parser, strings.concatenate([]string{"Non-numeric value specified in field '", FieldName, "'"}))
 			}
 		}
 	}
 	else
 	{
-		ReportError(Parser, strings.concatenate([]string{"ERROR: field '", FieldName, "' takes 3 floats"}))
+		ReportError(Parser, strings.concatenate([]string{"Field '", FieldName, "' takes 3 floats"}))
 	}
 
 	return Ret
@@ -1110,7 +1113,7 @@ ReadString :: proc(Parser : ^parser, Tokens : []string, FieldName : string) -> s
 	}
 	else
 	{
-		ReportError(Parser, strings.concatenate([]string{"ERROR: expected a single string for '", FieldName, "'"}))
+		ReportError(Parser, strings.concatenate([]string{"Expected a single string for '", FieldName, "'"}))
 	}
 
 	return Ret
