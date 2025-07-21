@@ -163,7 +163,7 @@ Remarks:
 
 2) The default background colour used by the renderer is pure black as a
 lambertian material. A special name 'background' can be provided, however, to
-override this.
+override this. This material MUST be specified as lambertian.
 
 
 

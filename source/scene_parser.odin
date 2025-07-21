@@ -160,12 +160,20 @@ ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh)
 			if len(Tokens) == 2
 			{
 				MaterialName := Tokens[1]
-
-				Material := ParseMaterial(Parser)
+				Material : material
 
 				if MaterialName == "background"
 				{
-					Parser.Materials[0] = Material
+					Material = ParseMaterial(Parser)
+
+					if _, IsLambertian := Material.(lambertian); IsLambertian
+					{
+						Parser.Materials[0] = Material
+					}
+					else
+					{
+						ReportError(Parser, "ERROR: The 'background' material must be lambertian")
+					}
 				}
 				else
 				{

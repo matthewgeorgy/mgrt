@@ -20,6 +20,11 @@ BeginMaterial B
 	Rho 0 1 0
 EndMaterial
 
+BeginMaterial background
+	Type lambertian
+	Rho 0 0 0
+EndMaterial
+
 BeginLight X
 	Le 1 1 1
 EndLight
