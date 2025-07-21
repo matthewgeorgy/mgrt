@@ -40,7 +40,6 @@ EndPrimitives
 BeginMesh
 	File assets/obj/dragon.obj
 	Material ModelMat
-	Scale 1
 	Rotation 120
 EndMesh
 

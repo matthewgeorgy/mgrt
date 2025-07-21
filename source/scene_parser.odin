@@ -11,12 +11,12 @@ import strconv	"core:strconv"
 	- Include the scene file name in error messages
 	- Support spaces in strings
 	- Be able to specify the quad normal explicitly
-	- Make Scale=1 the default value if it's not specified
 	- General cleanups
 
 	NOTE(matthew): done:
 	- More thorough error checking and handling
 	- Stop from rendering if there were errors while parsing the scene file
+	- Make Scale=1 the default value if it's not specified
 */
 
 error :: struct
@@ -867,7 +867,7 @@ ParseMesh :: proc(Parser : ^parser) -> bvh
 {
 	BVH : bvh
 	Mesh : mesh
-	Scale : f32
+	Scale : f32 = 1
 	Translation : v3
 	Rotation : f32
 	MaterialIndex : u32
