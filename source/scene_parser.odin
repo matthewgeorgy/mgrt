@@ -56,13 +56,7 @@ ParseScene :: proc(Filename : string) -> (camera, image_u32, scene)
 
 		for Line in strings.split_lines_iterator(&StringFile)
 		{
-			Trimmed := strings.trim(Line, " ")
-			Trimmed = strings.trim(Trimmed, "\t")
-
-			if len(Trimmed) != 0
-			{
-				append(&Lines, Trimmed)
-			}
+			append(&Lines, Line)
 		}
 	}
 
@@ -70,8 +64,8 @@ ParseScene :: proc(Filename : string) -> (camera, image_u32, scene)
 		Lines = Lines[:],
 	}
 
-	append(&Parser.Lights, light{})
-	append(&Parser.Materials, lambertian{})
+	append(&Parser.Lights, light{}) // The 'null' light
+	append(&Parser.Materials, lambertian{}) // The 'background' material
 
 	Camera, TempImage, BVH := ParseFile(&Parser)
 	Scene : scene
@@ -135,7 +129,6 @@ ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh)
 			if len(Tokens) == 2
 			{
 				ShapeName := Tokens[1]
-				Shape := ParseShape(Parser)
 
 				ShapeExists := ShapeName in Parser.ShapeTable
 
@@ -145,6 +138,7 @@ ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh)
 				}
 				else
 				{
+					Shape := ParseShape(Parser)
 					append(&Parser.Shapes, Shape)
 					Parser.ShapeTable[ShapeName] = len(Parser.Shapes) - 1
 				}
@@ -185,6 +179,7 @@ ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh)
 					}
 					else
 					{
+						Material = ParseMaterial(Parser)
 						append(&Parser.Materials, Material)
 						Parser.MaterialTable[MaterialName] = len(Parser.Materials) - 1
 					}
@@ -201,7 +196,6 @@ ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh)
 			if len(Tokens) == 2
 			{
 				LightName := Tokens[1]
-				Light := ParseLight(Parser)
 
 				LightExists := LightName in Parser.LightTable
 
@@ -211,6 +205,7 @@ ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh)
 				}
 				else
 				{
+					Light := ParseLight(Parser)
 					append(&Parser.Lights, Light)
 					Parser.LightTable[LightName] = len(Parser.Lights) - 1
 				}
