@@ -7,13 +7,13 @@ import strconv	"core:strconv"
 
 /*
 	TODO(matthew):
-	- Check if a name (shape, material, etc) has been used more than once
 	- Include the scene file name in error messages
 	- Support spaces in strings
 	- Be able to specify the quad normal explicitly
 	- General cleanups
 
 	NOTE(matthew): done:
+	- Check if a name (shape, material, light) has been used more than once
 	- More thorough error checking and handling
 	- Stop from rendering if there were errors while parsing the scene file
 	- Make Scale=1 the default value if it's not specified
@@ -89,6 +89,11 @@ ParseScene :: proc(Filename : string) -> (camera, image_u32, scene)
 		Scene.BVH = BVH
 
 		GatherLightIndices(&Scene)
+
+		for Primitive in Scene.Primitives
+		{
+			fmt.println(Primitive)
+		}
 	}
 	else
 	{
@@ -132,10 +137,17 @@ ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh)
 				ShapeName := Tokens[1]
 				Shape := ParseShape(Parser)
 
-				append(&Parser.Shapes, Shape)
+				ShapeExists := ShapeName in Parser.ShapeTable
 
-				// TODO(matthew): report error here if two shapes have the same name
-				Parser.ShapeTable[ShapeName] = len(Parser.Shapes) - 1
+				if ShapeExists
+				{
+					ReportError(Parser, strings.concatenate([]string{"ERROR: A shape with the name '", ShapeName, "' was already defined!"}))
+				}
+				else
+				{
+					append(&Parser.Shapes, Shape)
+					Parser.ShapeTable[ShapeName] = len(Parser.Shapes) - 1
+				}
 			}
 			else
 			{
@@ -157,10 +169,17 @@ ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh)
 				}
 				else
 				{
-					append(&Parser.Materials, Material)
+					MaterialExists := MaterialName in Parser.MaterialTable
 
-					// TODO(matthew): report error here if two shapes have the same name
-					Parser.MaterialTable[MaterialName] = len(Parser.Materials) - 1
+					if MaterialExists
+					{
+						ReportError(Parser, strings.concatenate([]string{"ERROR: A material with the name '", MaterialName, "' was already defined!"}))
+					}
+					else
+					{
+						append(&Parser.Materials, Material)
+						Parser.MaterialTable[MaterialName] = len(Parser.Materials) - 1
+					}
 				}
 			}
 			else
@@ -176,10 +195,17 @@ ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh)
 				LightName := Tokens[1]
 				Light := ParseLight(Parser)
 
-				append(&Parser.Lights, Light)
+				LightExists := LightName in Parser.LightTable
 
-				// TODO(matthew): report error here if two shapes have the same name
-				Parser.LightTable[LightName] = len(Parser.Lights) - 1
+				if LightExists
+				{
+					ReportError(Parser, strings.concatenate([]string{"ERROR: A light with the name '", LightName, "' was already defined!"}))
+				}
+				else
+				{
+					append(&Parser.Lights, Light)
+					Parser.LightTable[LightName] = len(Parser.Lights) - 1
+				}
 			}
 			else
 			{

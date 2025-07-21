@@ -1,0 +1,35 @@
+BeginShape A
+	Type sphere
+	Center 0 0 0
+	Radius 20
+EndShape
+
+BeginShape C
+	Type plane
+	N 0 1 0
+	d 5
+EndShape
+
+BeginMaterial B
+	Type lambertian
+	Rho 1 0 0
+EndMaterial
+
+BeginMaterial B
+	Type lambertian
+	Rho 0 1 0
+EndMaterial
+
+BeginLight X
+	Le 1 1 1
+EndLight
+
+BeginLight X
+	Le 1 2 0
+EndLight
+
+BeginPrimitives
+	A B nil
+	A C nil
+EndPrimitives
+
