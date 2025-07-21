@@ -289,11 +289,11 @@ ParseCamera :: proc(Parser : ^parser) -> camera
 		}
         else if Tokens[0] == "FocusDist"
         {
-			Camera.FocusDist = ReadF32(Parser, Tokens[1:], "FocusDist", false)
+			Camera.FocusDist = ReadFloat(Parser, Tokens[1:], "FocusDist", false)
 		}
         else if Tokens[0] == "FOV"
         {
-			Camera.FOV = ReadF32(Parser, Tokens[1:], "FOV", false)
+			Camera.FOV = ReadFloat(Parser, Tokens[1:], "FOV", false)
         }
 		else if Tokens[0] == "SamplesPerPixel"
 		{
@@ -431,7 +431,7 @@ ParseShape_Sphere :: proc(Parser : ^parser) -> sphere
 		}
 		else if Tokens[0] == "Radius"
 		{
-			Sphere.Radius = ReadF32(Parser, Tokens[1:], "Radius", false)
+			Sphere.Radius = ReadFloat(Parser, Tokens[1:], "Radius", false)
 		}
 		else
 		{
@@ -473,7 +473,7 @@ ParseShape_Quad :: proc(Parser : ^parser) -> quad
 		}
 		else if Tokens[0] == "Rotation"
 		{
-			TempQuad.Rotation = ReadF32(Parser, Tokens[1:], "Rotation")
+			TempQuad.Rotation = ReadFloat(Parser, Tokens[1:], "Rotation")
 		}
 		else
 		{
@@ -505,7 +505,7 @@ ParseShape_Plane :: proc(Parser : ^parser) -> plane
 		}
 		else if Tokens[0] == "d"
 		{
-			Plane.d = ReadF32(Parser, Tokens[1:], "d")
+			Plane.d = ReadFloat(Parser, Tokens[1:], "d")
 		}
 		else
 		{
@@ -573,7 +573,7 @@ ParseShape_Box :: proc(Parser : ^parser) -> box
 		}
 		else if Tokens[0] == "Rotation"
 		{
-			Box.Rotation = Degs2Rads(ReadF32(Parser, Tokens[1:], "Rotation"))
+			Box.Rotation = Degs2Rads(ReadFloat(Parser, Tokens[1:], "Rotation"))
 		}
 		else if Tokens[0] == "Translation"
 		{
@@ -603,7 +603,7 @@ ParseMaterial_Lambertian :: proc(Parser : ^parser) -> lambertian
 
 		if Tokens[0] == "Rho"
 		{
-			Lambertian.Rho = ReadV3(Parser, Tokens[1:], "Rho")
+			Lambertian.Rho = ReadV3(Parser, Tokens[1:], "Rho", false)
 		}
 		else
 		{
@@ -629,11 +629,11 @@ ParseMaterial_Metal :: proc(Parser : ^parser) -> metal
 
 		if Tokens[0] == "Color"
 		{
-			Metal.Color = ReadV3(Parser, Tokens[1:], "Color")
+			Metal.Color = ReadV3(Parser, Tokens[1:], "Color", false)
 		}
 		else if Tokens[0] == "Fuzz"
 		{
-			Metal.Fuzz = ReadF32(Parser, Tokens[1:], "Fuzz", false)
+			Metal.Fuzz = ReadFloat(Parser, Tokens[1:], "Fuzz", false)
 		}
 		else
 		{
@@ -659,7 +659,7 @@ ParseMaterial_Dielectric :: proc(Parser : ^parser) -> dielectric
 
 		if Tokens[0] == "RefractionIndex"
 		{
-			Dielectric.RefractionIndex = ReadF32(Parser, Tokens[1:], "RefractionIndex", false)
+			Dielectric.RefractionIndex = ReadFloat(Parser, Tokens[1:], "RefractionIndex", false)
 		}
 		else
 		{
@@ -719,11 +719,11 @@ ParseMaterial_OrenNayar :: proc(Parser : ^parser) -> oren_nayar
 
 		if Tokens[0] == "Rho"
 		{
-			Rho = ReadV3(Parser, Tokens[1:], "Rho")
+			Rho = ReadV3(Parser, Tokens[1:], "Rho", false)
 		}
 		else if Tokens[0] == "Sigma"
 		{
-			Sigma = ReadF32(Parser, Tokens[1:], "Sigma", false)
+			Sigma = ReadFloat(Parser, Tokens[1:], "Sigma", false)
 		}
 		else
 		{
@@ -781,7 +781,7 @@ ParseLight :: proc(Parser : ^parser) -> light
 
 		if Tokens[0] == "Le"
 		{
-			Light.Le = ReadV3(Parser, Tokens[1:], "Le")
+			Light.Le = ReadV3(Parser, Tokens[1:], "Le", false)
 		}
 		else
 		{
@@ -920,7 +920,7 @@ ParseMesh :: proc(Parser : ^parser) -> bvh
 		}
 		else if Tokens[0] == "Scale"
 		{
-			Scale = ReadF32(Parser, Tokens[1:], "Scale", false)
+			Scale = ReadFloat(Parser, Tokens[1:], "Scale", false)
 		}
 		else if Tokens[0] == "Material"
 		{
@@ -933,7 +933,7 @@ ParseMesh :: proc(Parser : ^parser) -> bvh
 		}
 		else if Tokens[0] == "Rotation"
 		{
-			Rotation = ReadF32(Parser, Tokens[1:], "Rotation")
+			Rotation = ReadFloat(Parser, Tokens[1:], "Rotation")
 		}
 		else
 		{
@@ -992,7 +992,7 @@ IsNumericFloat :: proc(String : string) -> bool
     return DecimalCount <= 1
 }
 
-ReadF32 :: proc(Parser : ^parser, Tokens : []string, FieldName : string, NegativeAllowed : bool = true) -> f32
+ReadFloat :: proc(Parser : ^parser, Tokens : []string, FieldName : string, NegativeAllowed : bool = true) -> f32
 {
 	Ret : f32
 
@@ -1068,31 +1068,15 @@ ReadInt :: proc(Parser : ^parser, Tokens : []string, FieldName : string, Negativ
 	return Ret
 }
 
-ReadV3 :: proc(Parser : ^parser, Tokens : []string, FieldName : string) -> v3
+ReadV3 :: proc(Parser : ^parser, Tokens : []string, FieldName : string, NegativeAllowed : bool = true) -> v3
 {
 	Ret : v3
 
-	// TODO(matthew): validate that all 3 tokens are proper numeric values
 	if len(Tokens) == 3
 	{
 		for Component, Idx in Tokens
 		{
-			Start : int
-
-			if Component[0] == '-'
-			{
-				Start = 1
-			}
-
-			if IsNumericFloat(Component[Start:])
-			{
-				Value := cast(f32)strconv.atof(Component)
-				Ret[Idx] = Value
-			}
-			else
-			{
-				ReportError(Parser, strings.concatenate([]string{"Non-numeric value specified in field '", FieldName, "'"}))
-			}
+			Ret[Idx] = ReadFloat(Parser, []string{Component}[:], FieldName, NegativeAllowed)
 		}
 	}
 	else
