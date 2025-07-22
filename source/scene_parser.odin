@@ -28,7 +28,7 @@ error :: struct
 
 parser :: struct
 {
-	Lines : []string,
+	Lines : [dynamic]string,
 	CurrentLine : string,
 	CurrentLineNumber : int,
 
@@ -49,7 +49,7 @@ ParseScene :: proc(Filename : string) -> (camera, image_u32, scene)
 	File, ok := os.read_entire_file(Filename)
 	defer delete(File)
 
-	Lines : [dynamic]string
+	Parser : parser
 
 	if ok
 	{
@@ -57,12 +57,8 @@ ParseScene :: proc(Filename : string) -> (camera, image_u32, scene)
 
 		for Line in strings.split_lines_iterator(&StringFile)
 		{
-			append(&Lines, Line)
+			append(&Parser.Lines, Line)
 		}
-	}
-
-	Parser := parser {
-		Lines = Lines[:],
 	}
 
 	append(&Parser.Lights, light{}) // The 'null' light
@@ -113,7 +109,7 @@ ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh)
 
     for NextLine(Parser)
     {
-        Tokens := strings.fields(Parser.CurrentLine)
+        Tokens := ReadLine(Parser)
 
         if Tokens[0] == "BeginCamera"
         {
@@ -272,7 +268,7 @@ ParseCamera :: proc(Parser : ^parser) -> camera
 
     for NextLine(Parser)
     {
-		Tokens := strings.fields(Parser.CurrentLine)
+        Tokens := ReadLine(Parser)
 
         if Tokens[0] == "EndCamera"
         {
@@ -318,7 +314,7 @@ ParseShape :: proc(Parser : ^parser) -> shape
 
 	for NextLine(Parser)
 	{
-		Tokens := strings.fields(Parser.CurrentLine)
+        Tokens := ReadLine(Parser)
 
 		if Tokens[0] == "EndShape"
 		{
@@ -368,7 +364,7 @@ ParseMaterial :: proc(Parser : ^parser) -> material
 
 	for NextLine(Parser)
 	{
-		Tokens := strings.fields(Parser.CurrentLine)
+        Tokens := ReadLine(Parser)
 
 		if Tokens[0] == "EndMaterial"
 		{
@@ -418,7 +414,7 @@ ParseShape_Sphere :: proc(Parser : ^parser) -> sphere
 
 	for NextLine(Parser)
 	{
-		Tokens := strings.fields(Parser.CurrentLine)
+        Tokens := ReadLine(Parser)
 
 		if Tokens[0] == "EndShape"
 		{
@@ -448,7 +444,7 @@ ParseShape_Quad :: proc(Parser : ^parser) -> quad
 
 	for NextLine(Parser)
 	{
-		Tokens := strings.fields(Parser.CurrentLine)
+        Tokens := ReadLine(Parser)
 
 		if Tokens[0] == "EndShape"
 		{
@@ -492,7 +488,7 @@ ParseShape_Plane :: proc(Parser : ^parser) -> plane
 
 	for NextLine(Parser)
 	{
-		Tokens := strings.fields(Parser.CurrentLine)
+        Tokens := ReadLine(Parser)
 
 		if Tokens[0] == "EndShape"
 		{
@@ -522,7 +518,7 @@ ParseShape_Triangle :: proc(Parser : ^parser) -> triangle
 
 	for NextLine(Parser)
 	{
-		Tokens := strings.fields(Parser.CurrentLine)
+        Tokens := ReadLine(Parser)
 
 		if Tokens[0] == "EndShape"
 		{
@@ -556,7 +552,7 @@ ParseShape_Box :: proc(Parser : ^parser) -> box
 
 	for NextLine(Parser)
 	{
-		Tokens := strings.fields(Parser.CurrentLine)
+        Tokens := ReadLine(Parser)
 
 		if Tokens[0] == "EndShape"
 		{
@@ -594,7 +590,7 @@ ParseMaterial_Lambertian :: proc(Parser : ^parser) -> lambertian
 
 	for NextLine(Parser)
 	{
-		Tokens := strings.fields(Parser.CurrentLine)
+        Tokens := ReadLine(Parser)
 
 		if Tokens[0] == "EndMaterial"
 		{
@@ -620,7 +616,7 @@ ParseMaterial_Metal :: proc(Parser : ^parser) -> metal
 
 	for NextLine(Parser)
 	{
-		Tokens := strings.fields(Parser.CurrentLine)
+        Tokens := ReadLine(Parser)
 
 		if Tokens[0] == "EndMaterial"
 		{
@@ -650,7 +646,7 @@ ParseMaterial_Dielectric :: proc(Parser : ^parser) -> dielectric
 
 	for NextLine(Parser)
 	{
-		Tokens := strings.fields(Parser.CurrentLine)
+        Tokens := ReadLine(Parser)
 
 		if Tokens[0] == "EndMaterial"
 		{
@@ -676,7 +672,7 @@ ParseMaterial_MERL :: proc(Parser : ^parser) -> merl
 
 	for NextLine(Parser)
 	{
-		Tokens := strings.fields(Parser.CurrentLine)
+        Tokens := ReadLine(Parser)
 
 		if Tokens[0] == "EndMaterial"
 		{
@@ -710,7 +706,7 @@ ParseMaterial_OrenNayar :: proc(Parser : ^parser) -> oren_nayar
 
 	for NextLine(Parser)
 	{
-		Tokens := strings.fields(Parser.CurrentLine)
+        Tokens := ReadLine(Parser)
 
 		if Tokens[0] == "EndMaterial"
 		{
@@ -750,11 +746,7 @@ NextLine :: proc(Parser : ^parser) -> bool
             Parser.CurrentLine = Trimmed
             Parser.CurrentLineNumber += 1
 
-            if len(Trimmed) == 0
-            {
-                continue
-            }
-            else
+            if len(Trimmed) > 0
             {
                 return true
             }
@@ -766,13 +758,18 @@ NextLine :: proc(Parser : ^parser) -> bool
     }
 }
 
+ReadLine :: proc(Parser : ^parser) -> []string
+{
+	return strings.fields(Parser.CurrentLine)
+}
+
 ParseLight :: proc(Parser : ^parser) -> light
 {
 	Light : light
 
 	for NextLine(Parser)
 	{
-		Tokens := strings.fields(Parser.CurrentLine)
+        Tokens := ReadLine(Parser)
 
 		if Tokens[0] == "EndLight"
 		{
@@ -798,7 +795,7 @@ ParsePrimitives :: proc(Parser : ^parser) -> []primitive
 
 	for NextLine(Parser)
 	{
-		Tokens := strings.fields(Parser.CurrentLine)
+        Tokens := ReadLine(Parser)
 
 		if Tokens[0] == "EndPrimitives"
 		{
@@ -836,30 +833,6 @@ ParsePrimitives :: proc(Parser : ^parser) -> []primitive
 		{
 			ReportError(Parser, "Primitive takes 3 args: [Shape] [MaterialIndex] [LightIndex]")
 		}
-
-		// if Tokens[0] == "Shape"
-		// {
-		// 	ShapeName := ReadString(Parser, Tokens[1:], "Shape")
-		// 	ShapeIdx := Parser.ShapeTable[ShapeName]
-		// 	Shape := Parser.Shapes[ShapeIdx]
-		// 	Primitive.Shape = Shape
-		// }
-		// else if Tokens[0] == "Material"
-		// {
-		// 	MaterialName := ReadString(Parser, Tokens[1:], "Material")
-		// 	MaterialIdx := Parser.MaterialTable[MaterialName]
-		// 	Primitive.MaterialIndex = u32(MaterialIdx)
-		// }
-		// else if Tokens[0] == "Light"
-		// {
-		// 	LightName := ReadString(Parser, Tokens[1:], "Light")
-		// 	LightIdx := Parser.LightTable[LightName]
-		// 	Primitive.LightIndex = u32(LightIdx)
-		// }
-		// else
-		// {
-		// 	ReportError(Parser, "ERROR: invalid field for Material")
-		// }
 	}
 
 	return Primitives[:]
@@ -871,7 +844,7 @@ ParseImage :: proc(Parser : ^parser) -> image_u32
 
 	for NextLine(Parser)
 	{
-		Tokens := strings.fields(Parser.CurrentLine)
+        Tokens := ReadLine(Parser)
 		
 		if Tokens[0] == "EndImage"
 		{
@@ -906,7 +879,7 @@ ParseMesh :: proc(Parser : ^parser) -> bvh
 
 	for NextLine(Parser)
 	{
-		Tokens := strings.fields(Parser.CurrentLine)
+        Tokens := ReadLine(Parser)
 
 		if Tokens[0] == "EndMesh"
 		{
