@@ -763,6 +763,60 @@ ReadLine :: proc(Parser : ^parser) -> []string
 	return strings.fields(Parser.CurrentLine)
 }
 
+LookupShapeIndex :: proc(Parser : ^parser, ShapeName : string) -> u32
+{
+	ShapeIndex : u32
+
+	ShapeExists := ShapeName in Parser.ShapeTable
+
+	if ShapeExists
+	{
+		ShapeIndex = cast(u32)Parser.ShapeTable[ShapeName]
+	}
+	else
+	{
+		ReportError(Parser, strings.concatenate([]string{"Shape '", ShapeName, "' not found"}))
+	}
+
+	return ShapeIndex
+}
+
+LookupMaterialIndex :: proc(Parser : ^parser, MaterialName : string) -> u32
+{
+	MaterialIndex : u32
+
+	MaterialExists := MaterialName in Parser.MaterialTable
+
+	if MaterialExists
+	{
+		MaterialIndex = cast(u32)Parser.MaterialTable[MaterialName]
+	}
+	else
+	{
+		ReportError(Parser, strings.concatenate([]string{"Material '", MaterialName, "' not found"}))
+	}
+
+	return MaterialIndex
+}
+
+LookupLightIndex :: proc(Parser : ^parser, LightName : string) -> u32
+{
+	LightIndex : u32
+
+	LightExists := LightName in Parser.LightTable
+
+	if LightExists
+	{
+		LightIndex = cast(u32)Parser.LightTable[LightName]
+	}
+	else
+	{
+		ReportError(Parser, strings.concatenate([]string{"Light '", LightName, "' not found"}))
+	}
+
+	return LightIndex
+}
+
 ParseLight :: proc(Parser : ^parser) -> light
 {
 	Light : light
@@ -808,17 +862,17 @@ ParsePrimitives :: proc(Parser : ^parser) -> []primitive
 			MaterialName := Tokens[1]
 			LightName := Tokens[2]
 
-			ShapeIndex := Parser.ShapeTable[ShapeName]
+			ShapeIndex := LookupShapeIndex(Parser, ShapeName)
 			MaterialIndex : u32
 			LightIndex : u32
 
 			if MaterialName != "nil"
 			{
-				MaterialIndex = cast(u32)Parser.MaterialTable[MaterialName]
+				MaterialIndex = LookupMaterialIndex(Parser, MaterialName)
 			}
 			if LightName != "nil"
 			{
-				LightIndex = cast(u32)Parser.LightTable[LightName]
+				LightIndex = LookupLightIndex(Parser, LightName)
 			}
 
 			Primitive := primitive {
@@ -898,7 +952,7 @@ ParseMesh :: proc(Parser : ^parser) -> bvh
 		else if Tokens[0] == "Material"
 		{
 			MaterialName := ReadString(Parser, Tokens[1:], "Material")
-			MaterialIndex = cast(u32)Parser.MaterialTable[MaterialName]
+			MaterialIndex = LookupMaterialIndex(Parser, MaterialName)
 		}
 		else if Tokens[0] == "Translation"
 		{

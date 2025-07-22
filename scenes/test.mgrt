@@ -38,6 +38,6 @@ EndLight
 
 BeginPrimitives
 	A B nil
-	A C nil
+	q C l
 EndPrimitives
 
