@@ -38,7 +38,7 @@ BeginPrimitives
 EndPrimitives
 
 BeginMesh
-	File assets/obj/dragon.obj
+	File "assets/obj/dragon.obj"
 	Material ModelMat
 	Rotation 120
 EndMesh

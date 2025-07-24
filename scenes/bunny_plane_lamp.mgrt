@@ -50,7 +50,7 @@ BeginPrimitives
 EndPrimitives
 
 BeginMesh
-	File assets/obj/bunny.obj
+	File "assets/obj/bunny.obj"
 	Material ModelMat
 	Scale 1
 EndMesh

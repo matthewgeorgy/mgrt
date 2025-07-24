@@ -88,7 +88,7 @@ BeginPrimitives
 EndPrimitives
 
 BeginMesh
-	File assets/ply/caustic_glass.ply
+	File "assets/ply/caustic_glass.ply"
 	Material Glass
 	Scale 100
 	Translation -650.85 149.92 -34.98

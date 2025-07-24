@@ -50,7 +50,7 @@ BeginPrimitives
 EndPrimitives
 
 BeginMesh
-	File assets/obj/suzanne.obj
+	File "assets/obj/suzanne.obj"
 	Material GlassMat
 	Rotation 45
 	Scale 1

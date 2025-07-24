@@ -3,7 +3,7 @@ BeginCamera
 	LookAt 278 278 0
 	FocusDist 10
 	FOV 40
-	SamplesPerPixel 10
+	SamplesPerPixel 100
 	MaxDepth 10
 EndCamera
 
@@ -75,6 +75,11 @@ BeginMaterial OrenNayar
 	Sigma 20
 EndMaterial
 
+BeginMaterial Gold
+	Type merl
+	File "assets/merl/gold-metallic-paint.binary"
+EndMaterial
+
 BeginLight LightSource
 	Le 15 15 15
 EndLight
@@ -89,8 +94,8 @@ BeginPrimitives
 EndPrimitives
 
 BeginMesh
-	File assets/obj/bunny.obj
-	Material OrenNayar
+	File "assets/obj/bunny.obj"
+	Material Gold
 	Scale 200
 	Translation -300 0 300
 EndMesh

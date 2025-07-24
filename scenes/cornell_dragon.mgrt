@@ -89,7 +89,7 @@ BeginPrimitives
 EndPrimitives
 
 BeginMesh
-	File assets/obj/dragon.obj
+	File "assets/obj/dragon.obj"
 	Material ModelMat
 	Scale 500
 	Translation -285.59 -141.48 -263.62
