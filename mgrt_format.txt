@@ -64,9 +64,9 @@ float3: vector of 3 floating-point values
 int: scalar signed 32-bit integer value
     Eg. SamplesPerPixel 200
 
-string: a UTF-8 text string of characters (SPACES ARE NOT SUPPORTED YET), without
-        quotation marks.
-    Eg. File assets/obj/cube.obj
+string: a UTF-8 text string of characters. Strings meant to represent filenames MUST
+        be surrounded with quotation marks.
+	Eg. File "assets/obj/cube.obj"
 
 As a remark, the 3 numeric types (float, float3, and int) do support negative
 values. However, some of the fields in this file format are necessarily
@@ -219,10 +219,10 @@ A precomputed BRDF table from the MERL database:
 
 BeginMaterial Name
     Type merl
-    Table (string)
+    File (string)
 EndMaterial
 
-- Table: The filename, as a string, of the MERL binary.
+- File: The filename, as a string, of the MERL binary.
 
 
 

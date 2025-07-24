@@ -8,7 +8,6 @@ import ansi		"core:encoding/ansi"
 
 /*
 	TODO(matthew):
-	- Support spaces in strings
 	- Be able to specify the quad normal explicitly
 	- General cleanups
 
@@ -674,11 +673,12 @@ ParseMaterial_MERL :: proc(Parser : ^parser) -> merl
 			break
 		}
 
-		if Tokens[0] == "Table"
+		if Tokens[0] == "File"
 		{
 			if len(Tokens[1:]) == 1
 			{
-				MERL = CreateMERL(Tokens[1])
+				MERLFilename := ReadString(Parser, Tokens[1:], "Table", true)
+				MERL = CreateMERL(MERLFilename)
 			}
 			else
 			{
@@ -937,8 +937,11 @@ ParseMesh :: proc(Parser : ^parser) -> bvh
 
 		if Tokens[0] == "File"
 		{
-			Filename := ReadString(Parser, Tokens[1:], "File")
-			Mesh = LoadMesh(Filename)
+			Filename := ReadString(Parser, Tokens[1:], "File", true)
+			if len(Filename) != 0
+			{
+				Mesh = LoadMesh(Filename)
+			}
 		}
 		else if Tokens[0] == "Scale"
 		{
@@ -964,7 +967,10 @@ ParseMesh :: proc(Parser : ^parser) -> bvh
 	}
 
 	MeshTriangles := AssembleTrianglesFromMesh(Mesh, Scale)
-	BVH = BuildBVH(MeshTriangles)
+	if MeshTriangles != nil
+	{
+		BVH = BuildBVH(MeshTriangles)
+	}
 
 	BVH.MaterialIndex = MaterialIndex
 	BVH.Translation = Translation
@@ -1109,13 +1115,29 @@ ReadV3 :: proc(Parser : ^parser, Tokens : []string, FieldName : string, Negative
 	return Ret
 }
 
-ReadString :: proc(Parser : ^parser, Tokens : []string, FieldName : string) -> string
+ReadString :: proc(Parser : ^parser, Tokens : []string, FieldName : string, RequiresQuotes : bool = false) -> string
 {
 	Ret : string
 
 	if len(Tokens) == 1
 	{
-		Ret = Tokens[0]
+		if RequiresQuotes
+		{
+			String := Tokens[0]
+
+			if String[0] == '"' && String[len(String) - 1] == '"'
+			{
+				Ret = String[1 : len(String) - 1]
+			}
+			else
+			{
+				ReportError(Parser, "This string must be surrounded by quotation marks")
+			}
+		}
+		else
+		{
+			Ret = Tokens[0]
+		}
 	}
 	else
 	{
