@@ -3,21 +3,34 @@ package main
 /*
     TODO(matthew): Things to add:
     - Disney BRDF
-    - NEE
-    - MIS
+    - NEE + MIS
     - Bidirectional path tracing
     - IBL / environment lighting
     - Path guiding techniques
     - Reduce Fresnel reflectance noise with photon mapping
+	- Support for rendering multiple meshes
+	- Support for randomly sampling multiple light sources (for photon mapping
+	  and other future integrators that will need it)
 
     NOTE(matthew): Currently supporting:
-    - Standard backwards path tracing integrator
-    - Basic lambertian, metal, and glass BRDFs
-    - Oren-Nayar BRDF
-    - Photon mapping with both diffuse and specular
-    - Measured BRDF data (MERL)
-    - Triangle meshes (OBJ, PLY) + BVH
-    - Tiled multithreaded rendering
+	* Integrators:
+		- Backward path-tracing
+		- Photon mapping (diffuse + specular)
+	* BxDFs / Materials:
+		- Lambertian
+		- Metal
+		- Dielectric
+		- Oren-Nayar
+		- MERL
+	* Geometry:
+		- Sphere
+		- Quad
+		- Plane
+		- Triangle
+		- Box
+		- Triangle mesh (OBJ, PLY) + BVH
+	* Tiled multithreaded rendering
+	* Custom scene parser
 */
 
 import fmt      "core:fmt"
