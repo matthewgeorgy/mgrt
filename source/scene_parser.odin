@@ -80,11 +80,6 @@ ParseScene :: proc(Filename : string) -> (camera, image_u32, scene)
 		Scene.BVH = BVH
 
 		GatherLightIndices(&Scene)
-
-		for Primitive in Scene.Primitives
-		{
-			fmt.println(Primitive)
-		}
 	}
 	else
 	{
