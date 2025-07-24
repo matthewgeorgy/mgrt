@@ -53,18 +53,18 @@ main :: proc()
 {
 	Args := os.args
 
-	if len(Args) < 2
+	if len(Args) != 3
 	{
-		fmt.println("No scene file specified...!")
-		return
-	}
-	else if len(Args) > 2
-	{
-		fmt.println("Too many files! Only one scene file must be specified")
+		fmt.println("Usage: mgrt.exe [input scene file] [output filename]")
+		fmt.println("    The input must be a .mgrt scene file")
+		fmt.println("    The output must be a .bmp image file")
+
 		return
 	}
 
 	SceneFilename := os.args[1]
+	OutputFilename := os.args[2]
+
 	Camera, Image, Scene := ParseScene(SceneFilename)
 
     // Work queue
@@ -146,6 +146,6 @@ main :: proc()
 
     fmt.println(" Render took", ElapsedTime / Frequency, "ms")
 
-    WriteImage(Image, string("test.bmp"))
+    WriteImage(Image, OutputFilename)
 }
 
