@@ -3,9 +3,13 @@ BeginCamera
 	LookAt 0 0 0
 	FocusDist 1
 	FOV 90
-	SamplesPerPixel 10
-	MaxDepth 50
 EndCamera
+
+BeginIntegrator
+	Type path_tracing
+	SamplesPerPixel 100
+	MaxDepth 50
+EndIntegrator
 
 BeginImage
 	Width 640
