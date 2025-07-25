@@ -41,13 +41,12 @@ PushWorkOrder :: proc(Queue : ^work_queue, Top, Left, Bottom, Right : u32)
 	Queue.RemainingOrders += 1
 }
 
-@(thread_local) RandomSeries : random_series
-
 Render :: proc (Param : rawptr)
 {
 	ThreadData : ^thread_data = cast(^thread_data)Param
 
-	RandomSeries = Seed(0)
+	// NOTE(matthew): thread local, see random.odin
+	RandomSeries = Seed(INITIAL_RNG_SEED)
 
 	Queue := ThreadData.Queue
 	Camera := ThreadData.Camera
