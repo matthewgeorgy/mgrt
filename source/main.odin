@@ -65,7 +65,7 @@ main :: proc()
 	SceneFilename := os.args[1]
 	OutputFilename := os.args[2]
 
-	Camera, Image, Scene := ParseScene(SceneFilename)
+	Camera, Image, Scene, Integrator := ParseScene(SceneFilename)
 
     // Work queue
     Queue : work_queue
@@ -93,19 +93,12 @@ main :: proc()
 
     libc.printf("Resolution: %dx%d\n", Image.Width, Image.Height)
     libc.printf("%d cores with %d %dx%d (%dk/tile) tiles\n", THREADCOUNT, Queue.EntryCount, TileWidth, TileHeight, TileWidth * TileHeight * 4 / 1024)
-    libc.printf("Quality: %u samples/pixel, %d bounces (max) per ray\n", Camera.SamplesPerPixel, Camera.MaxDepth)
+    libc.printf("Quality: %u samples/pixel, %d bounces (max) per ray\n", Integrator.SamplesPerPixel, Integrator.MaxDepth)
 
     win32.QueryPerformanceFrequency(&Frequency)
 
 	// Initialize main thread RNG (mostly for photon mapping)
 	RandomSeries = Seed(INITIAL_RNG_SEED)
-
-	Integrator := integrator {
-		Proc = PhotonMapIntegrator,
-		Type = .PHOTON_MAP,
-		SamplesPerPixel = Camera.SamplesPerPixel,
-		MaxDepth = Camera.MaxDepth,
-	}
 
 	if (Integrator.Type == .PHOTON_MAP)
 	{
@@ -117,7 +110,7 @@ main :: proc()
 
 		//Global map
 		win32.QueryPerformanceCounter(&StartCounter)
-		BuildGlobalPhotonMap(&GlobalPhotonMap, &Scene, Camera.MaxDepth)
+		BuildGlobalPhotonMap(&GlobalPhotonMap, &Scene, Integrator.MaxDepth)
 		win32.QueryPerformanceCounter(&EndCounter)
 		Scene.GlobalPhotonMap = &GlobalPhotonMap
 		ElapsedTime = (EndCounter - StartCounter) * 1000 / Frequency
@@ -125,7 +118,7 @@ main :: proc()
 
 		// Caustic map
 		win32.QueryPerformanceCounter(&StartCounter)
-		BuildCausticPhotonMap(&CausticPhotonMap, &Scene, Camera.MaxDepth)
+		BuildCausticPhotonMap(&CausticPhotonMap, &Scene, Integrator.MaxDepth)
 		win32.QueryPerformanceCounter(&EndCounter)
 		Scene.CausticPhotonMap = &CausticPhotonMap
 		ElapsedTime = (EndCounter - StartCounter) * 1000 / Frequency

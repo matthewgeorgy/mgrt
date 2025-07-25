@@ -43,7 +43,7 @@ parser :: struct
 	LightTable : map[string]int,
 }
 
-ParseScene :: proc(Filename : string) -> (camera, image_u32, scene)
+ParseScene :: proc(Filename : string) -> (camera, image_u32, scene, integrator)
 {
 	File, ok := os.read_entire_file(Filename)
 	defer delete(File)
@@ -63,7 +63,7 @@ ParseScene :: proc(Filename : string) -> (camera, image_u32, scene)
 	append(&Parser.Lights, light{}) // The 'null' light
 	append(&Parser.Materials, lambertian{}) // The 'background' material
 
-	Camera, TempImage, BVH := ParseFile(&Parser)
+	Camera, TempImage, BVH, Integrator := ParseFile(&Parser)
 	Scene : scene
 	Image : image_u32
 
@@ -92,14 +92,15 @@ ParseScene :: proc(Filename : string) -> (camera, image_u32, scene)
 		os.exit(-1)
 	}
 
-	return Camera, Image, Scene
+	return Camera, Image, Scene, Integrator
 }
 
-ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh)
+ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh, integrator)
 {
     Camera : camera
 	Image : image_u32
 	BVH : bvh
+	Integrator : integrator
 
     for NextLine(Parser)
     {
@@ -251,9 +252,21 @@ ParseFile :: proc(Parser : ^parser) -> (camera, image_u32, bvh)
 				ReportError(Parser, "BeginMesh takes no args")
 			}
 		}
+
+		if Tokens[0] == "BeginIntegrator"
+		{
+			if len(Tokens) == 1
+			{
+				Integrator = ParseIntegrator(Parser)
+			}
+			else
+			{
+				ReportError(Parser, "BeginIntegrator takes no args")
+			}
+		}
     }
 
-	return Camera, Image, BVH
+	return Camera, Image, BVH, Integrator
 }
 
 ParseCamera :: proc(Parser : ^parser) -> camera
@@ -285,14 +298,6 @@ ParseCamera :: proc(Parser : ^parser) -> camera
         {
 			Camera.FOV = ReadFloat(Parser, Tokens[1:], "FOV", false)
         }
-		else if Tokens[0] == "SamplesPerPixel"
-		{
-			Camera.SamplesPerPixel = ReadInt(Parser, Tokens[1:], "SamplesPerPixel", false)
-		}
-		else if Tokens[0] == "MaxDepth"
-		{
-			Camera.MaxDepth = ReadInt(Parser, Tokens[1:], "MaxDepth", false)
-		}
         else
         {
             fmt.println("Invalid field", Tokens[0], "for CAMERA")
@@ -977,6 +982,55 @@ ParseMesh :: proc(Parser : ^parser) -> bvh
 	BVH.Rotation = Degs2Rads(Rotation)
 
 	return BVH
+}
+
+ParseIntegrator :: proc(Parser : ^parser) -> integrator
+{
+	Integrator : integrator
+
+	for NextLine(Parser)
+	{
+		Tokens := ReadLine(Parser)
+
+		if Tokens[0] == "EndIntegrator"
+		{
+			break
+		}
+
+		if Tokens[0] == "Type"
+		{
+			IntegratorType := ReadString(Parser, Tokens[1:], "Type")
+
+			if IntegratorType == "path_tracing"
+			{
+				Integrator.Type = .PATH_TRACING
+				Integrator.Proc = PathTracingIntegrator
+			}
+			else if IntegratorType == "photon_map"
+			{
+				Integrator.Type = .PHOTON_MAP
+				Integrator.Proc = PhotonMapIntegrator
+			}
+			else
+			{
+				ReportError(Parser, "Invalid integrator type")
+			}
+		}
+		else if Tokens[0] == "SamplesPerPixel"
+		{
+			Integrator.SamplesPerPixel = ReadInt(Parser, Tokens[1:], "SamplesPerPixel", false)
+		}
+		else if Tokens[0] == "MaxDepth"
+		{
+			Integrator.MaxDepth = ReadInt(Parser, Tokens[1:], "MaxDepth", false)
+		}
+		else
+		{
+			ReportError(Parser, "Invalid member for integrator")
+		}
+	}
+
+	return Integrator
 }
 
 ReportError :: proc(Parser : ^parser, Message : string)
