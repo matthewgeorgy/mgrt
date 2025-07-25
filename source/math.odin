@@ -3,7 +3,6 @@ package main
 import fmt		"core:fmt"
 import math		"core:math"
 import linalg	"core:math/linalg"
-import rand		"core:math/rand"
 
 v2f	:: [2]f32
 v2i :: [2]i32
@@ -38,9 +37,65 @@ F32_MAX 		:: 3.402823466e+38
 PI				: f32 : math.PI
 INV_PI			: f32 : 1.0 / PI
 
+random_series :: struct
+{
+	A, B, C, D : u64,
+}
+
+RotateLeft :: proc(V : u64, Shift : u32) -> u64
+{
+	Result : u64
+
+	Result = (V << Shift) | (V >> (64 - Shift))
+
+	return Result
+}
+
+RandomU64 :: proc(Series : ^random_series) -> u64
+{
+	A := Series.A
+	B := Series.B
+	C := Series.C
+	D := Series.D
+
+	E := A - RotateLeft(B, 27)
+
+	A = B ~ RotateLeft(C, 17)
+	B = C + D
+	C = D + E
+	D = E + A
+
+	Series.A = A
+	Series.B = B
+	Series.C = C
+	Series.D = D
+
+	return D
+}
+
+Seed :: proc(Value : u64) -> random_series
+{
+	Series : random_series
+
+	Series.A = 0xF1EA5EED
+	Series.B = Value
+	Series.C = Value
+	Series.D = Value
+
+	for I := 0; I < 20; I += 1
+	{
+		RandomU64(&Series)
+	}
+
+	return Series
+}
+
 RandomUnilateral :: proc() -> f32
 {
-	return rand.float32()
+	RandomValue := RandomU64(&RandomSeries)
+	Result := f32(RandomValue) / f32(max(u64))
+
+	return Result
 }
 
 RandomBilateral :: proc() -> f32
