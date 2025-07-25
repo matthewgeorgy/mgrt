@@ -162,7 +162,6 @@ RayIntersectAABB :: proc(Ray : ray, AABB : aabb) -> f32
 ComputeBoxNormal :: proc(HitPoint : v3, Box : aabb) -> v3
 {
 	Normal : v3
-	Tol : f32 = 1e-6
 
 	pair :: struct
 	{
@@ -186,10 +185,7 @@ ComputeBoxNormal :: proc(HitPoint : v3, Box : aabb) -> v3
 	
 	slice.sort_by(Pairs[:], SortProc)
 
-	if Pairs[0].Dist < Tol
-	{
-		Normal = Pairs[0].Normal
-	}
+	Normal = Pairs[0].Normal
 
 	return Normal
 }
