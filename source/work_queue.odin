@@ -29,6 +29,7 @@ thread_data :: struct
 	Camera : ^camera,
 	Scene : ^scene,
 	Image : ^image_u32,
+	Integrator : ^integrator,
 };
 
 PushWorkOrder :: proc(Queue : ^work_queue, Top, Left, Bottom, Right : u32)
@@ -52,6 +53,7 @@ Render :: proc (Param : rawptr)
 	Camera := ThreadData.Camera
 	Scene := ThreadData.Scene
 	Image := ThreadData.Image
+	Integrator := ThreadData.Integrator
 
 	for
 	{
@@ -65,7 +67,7 @@ Render :: proc (Param : rawptr)
 
 			Order := Queue.WorkOrders[EntryIndex]
 
-			RenderTile(Order, Camera, Scene, Image)
+			RenderTile(Order, Camera, Scene, Image, Integrator)
 
 			RemainingOrders := intrinsics.volatile_load(&Queue.RemainingOrders)
 
@@ -82,15 +84,19 @@ Render :: proc (Param : rawptr)
 	}
 }
 
-RenderTile :: proc(WorkOrder : work_order, Camera : ^camera, Scene : ^scene, Image : ^image_u32)
+RenderTile :: proc(WorkOrder : work_order, Camera : ^camera, Scene : ^scene, Image : ^image_u32, Integrator : ^integrator)
 {
+	IntegratorProc := Integrator.Proc
+	SamplesPerPixel := Integrator.SamplesPerPixel
+	MaxDepth := Integrator.MaxDepth
+
 	for Y := i32(WorkOrder.Top); Y < i32(WorkOrder.Bottom); Y += 1
 	{
 		for X := i32(WorkOrder.Left); X < i32(WorkOrder.Right); X += 1
 		{
 			PixelColor : v3
 
-			for Sample := 0; Sample < Camera.SamplesPerPixel; Sample += 1
+			for Sample := 0; Sample < SamplesPerPixel; Sample += 1
 			{
 				Offset := v3{RandomUnilateral() - 0.5, RandomUnilateral() - 0.5, 0}
 				PixelCenter := Camera.FirstPixel +
@@ -101,10 +107,10 @@ RenderTile :: proc(WorkOrder : work_order, Camera : ^camera, Scene : ^scene, Ima
 				Ray.Origin = Camera.LookFrom
 				Ray.Direction = PixelCenter - Ray.Origin
 
-				PixelColor += PathTracingIntegrator(Ray, Scene, 0, Camera.MaxDepth)
+				PixelColor += IntegratorProc(Ray, Scene, 0, MaxDepth)
 			}
 
-			Color := PixelColor / f32(Camera.SamplesPerPixel)
+			Color := PixelColor / f32(SamplesPerPixel)
 
 			WritePixel(Image^, X, Y, Color)
 		}

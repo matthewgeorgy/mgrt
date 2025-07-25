@@ -1,5 +1,22 @@
 package main
 
+integrator_proc :: #type proc(ray, ^scene, int, int) -> v3
+
+integrator_type :: enum
+{
+	PATH_TRACING,
+	PHOTON_MAP,
+}
+
+integrator :: struct
+{
+	Proc : integrator_proc,
+	Type : integrator_type,
+
+	SamplesPerPixel : int,
+	MaxDepth : int,
+}
+
 PathTracingIntegrator :: proc(Ray : ray, Scene : ^scene, CurrentDepth, MaxDepth : int) -> v3
 {
 	Record : hit_record
