@@ -6,7 +6,7 @@ BeginCamera
 EndCamera
 
 BeginIntegrator
-	Type path_tracing
+	Type nee
 	SamplesPerPixel 10
 	MaxDepth 50
 EndIntegrator

@@ -1011,6 +1011,11 @@ ParseIntegrator :: proc(Parser : ^parser) -> integrator
 				Integrator.Type = .PHOTON_MAP
 				Integrator.Proc = PhotonMapIntegrator
 			}
+			else if IntegratorType == "nee"
+			{
+				Integrator.Type = .NEE
+				Integrator.Proc = NEEIntegrator
+			}
 			else
 			{
 				ReportError(Parser, "Invalid integrator type")

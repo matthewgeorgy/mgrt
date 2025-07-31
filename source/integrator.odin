@@ -6,6 +6,7 @@ integrator_type :: enum
 {
 	PATH_TRACING,
 	PHOTON_MAP,
+	NEE,
 }
 
 integrator :: struct
@@ -187,5 +188,54 @@ ComputeIndirectIllumination :: proc(Scene : ^scene, RayDirection : v3, Record : 
 	}
 
 	return Indirect
+}
+
+NEEIntegrator :: proc(Ray : ray, Scene : ^scene, CurrentDepth, MaxDepth : int) -> v3
+{
+	Record : hit_record
+
+	if CurrentDepth == MaxDepth
+	{
+		return v3{}
+	}
+
+	if GetIntersection(Ray, Scene, &Record)
+	{
+		Output : v3 
+
+		if HasLight(Record)
+		{
+			Light := Scene.Lights[Record.LightIndex]
+			Output += Light.Le
+		}
+
+		SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
+
+		SampleResult := SampleBxDF(SurfaceMaterial, -Ray.Direction, Record)
+
+		f := SampleResult.f
+		Dir := SampleResult.wi
+		PDF := SampleResult.PDF
+
+		CosAtten := Abs(Dot(Dir, Record.SurfaceNormal))
+
+		ScatteredRay := ray{Record.HitPoint, Dir}
+
+		Direct := ComputeDirectIllumination(Ray, Record, Scene)
+		Indirect := CosAtten * f * NEEIntegrator(ScatteredRay, Scene, CurrentDepth + 1, MaxDepth) / PDF
+
+		// NOTE(matthew): We have double the amount of light since our indirect
+		// samples may return light directly from light sources.
+		// To remedy this, we just divide by 2 for now.
+		Weight : f32 = (CurrentDepth == 0) ? 0.5 : 1
+
+		Output += Weight * (Direct + Indirect) 
+
+		return Output
+	}
+	else
+	{
+		return Scene.Materials[0].(lambertian).Rho
+	}
 }
 
