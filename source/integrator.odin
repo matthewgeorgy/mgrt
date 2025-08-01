@@ -201,12 +201,15 @@ NEEIntegrator :: proc(Ray : ray, Scene : ^scene, CurrentDepth, MaxDepth : int) -
 
 	if GetIntersection(Ray, Scene, &Record)
 	{
-		Output : v3 
+		Output : v3 // weight=0  most of the time, except at first bounce
 
-		if HasLight(Record)
+		if CurrentDepth == 0
 		{
-			Light := Scene.Lights[Record.LightIndex]
-			Output += Light.Le
+			if HasLight(Record)
+			{
+				Light := Scene.Lights[Record.LightIndex]
+				Output = Light.Le
+			}
 		}
 
 		SurfaceMaterial := Scene.Materials[Record.MaterialIndex]
@@ -224,12 +227,7 @@ NEEIntegrator :: proc(Ray : ray, Scene : ^scene, CurrentDepth, MaxDepth : int) -
 		Direct := ComputeDirectIllumination(Ray, Record, Scene)
 		Indirect := CosAtten * f * NEEIntegrator(ScatteredRay, Scene, CurrentDepth + 1, MaxDepth) / PDF
 
-		// NOTE(matthew): We have double the amount of light since our indirect
-		// samples may return light directly from light sources.
-		// To remedy this, we just divide by 2 for now.
-		Weight : f32 = (CurrentDepth == 0) ? 0.5 : 1
-
-		Output += Weight * (Direct + Indirect) 
+		Output += (Direct + Indirect) // weight=1 most of the time
 
 		return Output
 	}
